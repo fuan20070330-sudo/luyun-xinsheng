@@ -59,6 +59,18 @@ async function waitForState(page, expression, timeout = 20000) {
 async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   await page.goto(baseUrl + '?gateway=' + encodeURIComponent('ws://127.0.0.1:' + gatewayPort + '/ws'), { waitUntil: 'networkidle' });
   await waitForState(page, () => window.__LUYUN_APP__ && window.__LUYUN_APP__.state.initialized);
+  const appChrome = await page.evaluate(() => ({
+    techSections: document.querySelectorAll('#tech').length,
+    footers: document.querySelectorAll('footer').length,
+    fieldHints: document.querySelectorAll('.field-hint').length,
+    interviewPlaceholder: document.getElementById('interview-notes').getAttribute('placeholder'),
+    materialPlaceholder: document.getElementById('brand-materials').getAttribute('placeholder')
+  }));
+  assert.equal(appChrome.techSections, 0);
+  assert.equal(appChrome.footers, 0);
+  assert.ok(appChrome.fieldHints >= 9);
+  assert.ok(appChrome.interviewPlaceholder.includes('受访人身份'));
+  assert.ok(appChrome.materialPlaceholder.includes('每行一条'));
   await page.waitForFunction(() => document.getElementById('connection-pill').getAttribute('data-state') === 'connected', null, { timeout: 10000 });
   await page.click('[data-action="run-demo"]');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.artifacts.length === 4, null, { timeout: 20000 });
@@ -138,6 +150,18 @@ async function runFallbackFlow(context, baseUrl, consoleErrors) {
   const page = await context.newPage();
   await page.goto(baseUrl + '?gateway=' + encodeURIComponent('ws://127.0.0.1:1/ws'), { waitUntil: 'domcontentloaded' });
   await waitForState(page, () => window.__LUYUN_APP__ && window.__LUYUN_APP__.state.initialized);
+  const appChrome = await page.evaluate(() => ({
+    techSections: document.querySelectorAll('#tech').length,
+    footers: document.querySelectorAll('footer').length,
+    fieldHints: document.querySelectorAll('.field-hint').length,
+    interviewPlaceholder: document.getElementById('interview-notes').getAttribute('placeholder'),
+    materialPlaceholder: document.getElementById('brand-materials').getAttribute('placeholder')
+  }));
+  assert.equal(appChrome.techSections, 0);
+  assert.equal(appChrome.footers, 0);
+  assert.ok(appChrome.fieldHints >= 9);
+  assert.ok(appChrome.interviewPlaceholder.includes('受访人身份'));
+  assert.ok(appChrome.materialPlaceholder.includes('每行一条'));
   await page.waitForFunction(() => document.getElementById('connection-pill').getAttribute('data-state') === 'disconnected', null, { timeout: 8000 });
   await page.click('[data-action="run-demo"]');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.artifacts.length === 4 && window.__LUYUN_APP__.state.reviews.length >= 1, null, { timeout: 15000 });

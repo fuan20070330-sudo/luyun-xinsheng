@@ -30,16 +30,23 @@ try {
     riskCards: document.querySelectorAll('#risk-list .risk-card').length,
     mobileWidth: document.documentElement.scrollWidth,
     viewport: window.innerWidth,
-    protocol: document.getElementById('connection-protocol').textContent
+    protocol: document.getElementById('connection-protocol').textContent,
+    techSections: document.querySelectorAll('#tech').length,
+    footers: document.querySelectorAll('footer').length,
+    fieldHints: document.querySelectorAll('.field-hint').length
   }));
   assert.equal(result.artifacts, 4);
   assert.ok(result.reviews >= 1);
   assert.equal(result.mobileWidth, result.viewport);
+  assert.equal(result.techSections, 0);
+  assert.equal(result.footers, 0);
+  assert.ok(result.fieldHints >= 9);
   assert.equal(errors.length, 0, errors.join('\n'));
   console.log(JSON.stringify({ ok: true, url, ...result }, null, 2));
 } finally {
   await browser.close();
 }
+
 
 
 

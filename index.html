@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#9f2f25">
   <meta name="description" content="老字号叙事工坊：老字号与非遗品牌内容助手，整理品牌历史、产品资料和受访内容，生成品牌故事、内容日历、多平台文案与年轻化表达方案。">
   <title>老字号叙事工坊｜老字号与非遗品牌内容助手</title>
-  <link rel="icon" href="assets/favicon.svg?v=2.0.0" type="image/svg+xml">
-  <link rel="stylesheet" href="css/styles.css?v=2.0.0">
+  <link rel="icon" href="assets/favicon.svg?v=2.1.0" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css?v=2.1.0">
 </head>
 <body>
   <a class="skip-link" href="#workspace">跳到内容工作台</a>
@@ -26,7 +26,6 @@
         <a href="#workspace">工作台</a>
         <a href="#results">生成结果</a>
         <a href="#reviews">品牌确认</a>
-        <a href="#tech">工具说明</a>
       </nav>
       <div class="connection-pill" id="connection-pill" data-state="connecting" role="status" aria-live="polite">
         <span class="connection-dot"></span>
@@ -39,7 +38,7 @@
   <main>
     <section class="hero section-shell" aria-labelledby="hero-title">
       <div class="hero-copy reveal">
-        <p class="eyebrow"><span>AI 传播工具创新赛道</span><span class="eyebrow-divider"></span><span>品牌叙事协作原型</span></p>
+        <p class="eyebrow"><span>老字号与非遗品牌内容助手</span><span class="eyebrow-divider"></span><span>叙事共创 · 品牌方确认</span></p>
         <h1 id="hero-title">让老字号故事<span>有据可循</span>，<br>也有年轻表达</h1>
         <p class="hero-lead">输入品牌历史、产品资料和受访内容，实时生成品牌故事、内容日历、多平台文案与年轻化表达方案。AI 负责整理和生成初稿，品牌方确认事实、文化内涵和对外表达。</p>
         <div class="hero-actions">
@@ -103,12 +102,12 @@
           <form id="brand-form" novalidate>
             <div class="field-row two-col">
               <label class="field"><span>已有品牌</span><select id="brand-select"><option value="luxiangzhai">鲁香斋（模拟品牌）</option><option value="new">+ 新建品牌</option></select></label>
-              <label class="field"><span>品牌类型</span><input id="brand-type" value="山东传统糕点老字号" maxlength="40" required></label>
+              <label class="field"><span>品牌类型</span><input id="brand-type" value="山东传统糕点老字号" maxlength="40" required placeholder="例如：山东传统糕点老字号、非遗手作工坊、文创品牌"><small class="field-hint">用于判断品牌所属行业、文化身份和表达边界。</small></label>
             </div>
-            <label class="field"><span>品牌名称</span><input id="brand-name" value="鲁香斋（模拟品牌）" maxlength="60" required></label>
-            <label class="field"><span>品牌语气</span><input id="brand-tone" value="真诚、考究、年轻，不说满话" maxlength="80" required></label>
-            <label class="field"><span>品牌历史与产品资料</span><textarea id="brand-materials" rows="8" required placeholder="每行尽量包含可直接引用的品牌原文，例如创立年份、工序、产品信息、荣誉登记等。"></textarea></label>
-            <label class="field"><span>受访内容 / 口述记录</span><textarea id="interview-notes" rows="5" placeholder="录入传承人访谈、品牌方口述、客户反馈等，系统将提取访谈洞察并仅作为有来源内容使用。"></textarea></label>
+            <label class="field"><span>品牌名称</span><input id="brand-name" value="鲁香斋（模拟品牌）" maxlength="60" required placeholder="填写品牌在正式资料中的名称"><small class="field-hint">优先使用品牌档案、证照或官网中的正式名称。</small></label>
+            <label class="field"><span>品牌语气</span><input id="brand-tone" value="真诚、考究、年轻，不说满话" maxlength="80" required placeholder="例如：真诚、考究、克制、有温度，不夸大"><small class="field-hint">描述希望用户感受到的语气，AI 会据此调整表达。</small></label>
+            <label class="field"><span>品牌历史与产品资料</span><textarea id="brand-materials" rows="8" required placeholder="建议每行一条可直接引用的资料，例如：品牌创立于1918年；传统枣泥酥包含选枣、蒸制、炒馅、包制和烘烤工序；产品包括节令礼盒。"></textarea><small class="field-hint">这里填写品牌档案、产品说明、荣誉登记和工艺原文。不要填写没有来源的推测。</small></label>
+            <label class="field"><span>受访内容 / 口述记录</span><textarea id="interview-notes" rows="5" placeholder="例如：受访人身份＋原话。品牌传承人表示，年轻化不能改变关键工序，要让年轻人知道每一步为什么这样做。"></textarea><small class="field-hint">填写传承人访谈、品牌方口述或客户反馈；AI 只按原意整理，不替受访者补写观点。</small></label>
             <div class="import-row">
               <label class="file-button">导入 TXT / MD / JSON / CSV<input id="file-import" type="file" accept=".txt,.md,.markdown,.json,.csv,text/plain,application/json,text/csv"></label>
               <span id="file-import-status">支持 UTF-8 文本，导入后仍可编辑</span>
@@ -150,11 +149,11 @@
               </div>
             </fieldset>
             <div class="field-row two-col">
-              <label class="field"><span>目标受众</span><input id="target-audience" value="25-35岁关注地方文化、愿意尝试传统新做的城市消费者" maxlength="120" required></label>
-              <label class="field"><span>叙事主题</span><input id="campaign-theme" value="一块枣泥酥里的山东老味道" maxlength="120" required></label>
+              <label class="field"><span>目标受众</span><input id="target-audience" value="25-35岁关注地方文化、愿意尝试传统新做的城市消费者" maxlength="120" required placeholder="例如：25-35岁、关注地方文化、愿意尝试传统新做的城市消费者"><small class="field-hint">说明这条内容主要给谁看。</small></label>
+              <label class="field"><span>叙事主题</span><input id="campaign-theme" value="一块枣泥酥里的山东老味道" maxlength="120" required placeholder="例如：一块枣泥酥里的山东老味道"><small class="field-hint">填写本次内容围绕的人、事、手艺、产品或节令。</small></label>
             </div>
-            <label class="field"><span>共创目标</span><input id="content-goal" value="形成可持续更新的品牌故事、内容日历与年轻化表达方案" maxlength="160" required></label>
-            <label class="field"><span>限制条件</span><textarea id="content-constraints" rows="3" placeholder="例如：不承诺功效；待核实信息不得写成确定事实；平台字数上限等。" required></textarea></label>
+            <label class="field"><span>共创目标</span><input id="content-goal" value="形成可持续更新的品牌故事、内容日历与年轻化表达方案" maxlength="160" required placeholder="例如：建立品牌记忆点、形成四周内容日历、让年轻用户看懂工艺"><small class="field-hint">说明希望用户看完后了解、收藏、搜索还是到店。</small></label>
+            <label class="field"><span>限制条件</span><textarea id="content-constraints" rows="3" placeholder="例如：不承诺功效；年份只使用档案原文；非遗身份待核实；不要改变受访原意；平台字数限制等。" required></textarea><small class="field-hint">填写必须遵守的事实边界、禁用词、文化要求和平台限制。</small></label>
 
             <div class="case-switcher" aria-label="演示案例">
               <span>测试案例</span>
@@ -249,49 +248,22 @@
       </div>
     </section>
 
-    <section class="tech-section section-shell" id="tech" aria-labelledby="tech-title">
-      <div class="section-heading reveal">
-        <div><p class="section-kicker">05 / 工具说明</p><h2 id="tech-title">不是一个大模型黑盒，而是一条可验证的传播生产线</h2></div>
-        <p>前端、网关、叙事适配、文化校验和品牌确认彼此解耦，便于接入品牌档案或在比赛现场独立演示。</p>
-      </div>
-      <div class="tech-flow reveal" aria-label="技术流程">
-        <div><span>01</span><strong>品牌档案与访谈</strong><small>历史 / 产品 / 受访内容</small></div><i>→</i>
-        <div><span>02</span><strong>WebSocket 网关</strong><small>真实 /ws 协议与状态同步</small></div><i>→</i>
-        <div><span>03</span><strong>叙事适配层</strong><small>远程模型优先，失败确定性回退</small></div><i>→</i>
-        <div><span>04</span><strong>事实与文化校验</strong><small>引用编号 / 风险等级 / 修改建议</small></div><i>→</i>
-        <div><span>05</span><strong>品牌方确认与导出</strong><small>双稿留痕 / Markdown 交付</small></div>
-      </div>
-      <div class="tech-cards">
-        <article class="panel reveal"><span>可运行</span><h3>无构建静态前端</h3><p>原生 HTML、CSS、JavaScript，相对路径适配 GitHub Pages 子目录，无外部 CDN 与前端密钥。</p></article>
-        <article class="panel reveal"><span>可确认</span><h3>品牌方确认机制</h3><p>AI 提供初稿，品牌方确认事实、文化内涵和对外表达，确认与修改全部留痕。</p></article>
-        <article class="panel reveal"><span>可追溯</span><h3>完整证据字段</h3><p>任务记录模型、提示词版本、事实引用、文化风险、AI 原稿、品牌确认稿、确认动作和时间。</p></article>
-        <article class="panel reveal"><span>可扩展</span><h3>后端独占密钥</h3><p>远程模型只由 Node 网关读取环境变量调用；支持 Docker、Render、Railway 与 Fly.io。</p></article>
-      </div>
-      <div class="doc-links reveal">
-        <a href="docs/PRODUCT.md">产品说明</a><a href="docs/TECHNICAL.md">技术说明</a><a href="docs/USAGE.md">使用说明</a><a href="docs/DEPLOYMENT.md">部署说明</a><a href="docs/CASES.md">三个运行案例</a><a href="docs/PROMPT-CHANGELOG.md">提示词版本记录</a>
-      </div>
-    </section>
   </main>
 
-  <footer class="site-footer">
-    <div class="section-shell footer-grid">
-      <div><strong>老字号叙事工坊</strong><p>老字号与非遗品牌内容助手</p></div>
-      <p>原型演示数据不构成真实品牌事实或商业宣传依据。</p>
-      <a href="#top">返回顶部 ↑</a>
-    </div>
-  </footer>
 
   <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
 
-  <script src="js/config.js?v=2.0.0"></script>
-  <script src="shared/engine.js?v=2.0.0"></script>
-  <script src="shared/generator.js?v=2.0.0"></script>
-  <script src="js/data.js?v=2.0.0"></script>
-  <script src="js/gateway-client.js?v=2.0.0"></script>
-  <script src="js/renderer.js?v=2.0.0"></script>
-  <script src="js/app.js?v=2.0.0"></script>
+  <script src="js/config.js?v=2.1.0"></script>
+  <script src="shared/engine.js?v=2.1.0"></script>
+  <script src="shared/generator.js?v=2.1.0"></script>
+  <script src="js/data.js?v=2.1.0"></script>
+  <script src="js/gateway-client.js?v=2.1.0"></script>
+  <script src="js/renderer.js?v=2.1.0"></script>
+  <script src="js/app.js?v=2.1.0"></script>
 </body>
 </html>
+
+
 
 
 
