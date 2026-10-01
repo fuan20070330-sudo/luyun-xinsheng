@@ -23,6 +23,8 @@ try {
     title: document.title,
     mode: window.__LUYUN_APP__.state.transportMode,
     facts: window.__LUYUN_APP__.state.facts.length,
+    categories: Array.from(new Set(window.__LUYUN_APP__.state.facts.map((fact) => fact.category))),
+    interviewInput: document.getElementById('interview-notes').value.length,
     artifacts: window.__LUYUN_APP__.state.artifacts.length,
     reviews: window.__LUYUN_APP__.state.reviews.length,
     riskCards: document.querySelectorAll('#risk-list .risk-card').length,
@@ -38,5 +40,6 @@ try {
 } finally {
   await browser.close();
 }
+
 
 
