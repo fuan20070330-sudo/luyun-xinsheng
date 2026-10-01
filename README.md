@@ -80,6 +80,7 @@ http://localhost:4173/?gateway=ws%3A%2F%2F127.0.0.1%3A8787%2Fws
 ## 测试
 
 ```bash
+npm install
 npm test
 npm run test:e2e
 npm run test:live
@@ -99,7 +100,7 @@ npm run check
 - Markdown 下载。
 - 390px 手机无横向滚动。
 
-当前验证结果见 [`docs/TEST-REPORT.md`](docs/TEST-REPORT.md)。`test:live` 直接访问已部署的 GitHub Pages 地址进行公网验收。
+前端与网关运行本身不需要安装依赖；`npm install` 仅用于安装浏览器端到端验收所需的 Playwright。当前验证结果见 [`docs/TEST-REPORT.md`](docs/TEST-REPORT.md)。`test:live` 直接访问已部署的 GitHub Pages 地址进行公网验收。
 
 ## WebSocket 协议
 

@@ -3,8 +3,8 @@ import process from 'node:process';
 import { pathToFileURL } from 'node:url';
 
 const url = process.env.LIVE_URL || 'https://fuan20070330-sudo.github.io/luyun-xinsheng/';
-const playwrightPath = process.env.PLAYWRIGHT_PATH || 'C:/Users/fuan/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs';
-const { chromium } = await import(pathToFileURL(playwrightPath).href);
+const playwrightSpecifier = process.env.PLAYWRIGHT_PATH ? pathToFileURL(process.env.PLAYWRIGHT_PATH).href : 'playwright';
+const { chromium } = await import(playwrightSpecifier);
 const browser = await chromium.launch({ headless: true, executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe' });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 const errors = [];
@@ -38,3 +38,4 @@ try {
 } finally {
   await browser.close();
 }
+

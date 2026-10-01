@@ -13,5 +13,8 @@
     "test:live": "node tests/live-check.mjs",
     "start": "node server/src/server.js",
     "check": "node --check js/app.js && node --check js/renderer.js && node --check shared/engine.js && node --check shared/generator.js && node --check server/src/server.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.50.0"
   }
 }

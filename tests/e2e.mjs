@@ -13,8 +13,8 @@ const prefix = '/luyun-xinsheng/';
 const artifactsDir = path.join(root, 'tests', 'artifacts');
 fs.mkdirSync(artifactsDir, { recursive: true });
 
-const playwrightPath = process.env.PLAYWRIGHT_PATH || 'C:/Users/fuan/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs';
-const { chromium } = await import(pathToFileURL(playwrightPath).href);
+const playwrightSpecifier = process.env.PLAYWRIGHT_PATH ? pathToFileURL(process.env.PLAYWRIGHT_PATH).href : 'playwright';
+const { chromium } = await import(playwrightSpecifier);
 
 const mime = {
   '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
@@ -183,5 +183,6 @@ try {
   await new Promise((resolve) => gatewayBundle.server.close(resolve));
   await stop(staticServer);
 }
+
 
 
