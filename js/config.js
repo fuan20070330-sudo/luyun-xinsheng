@@ -1,5 +1,5 @@
 /**
- * 鲁韵新声前端配置。
+ * 老字号叙事工坊前端配置。
  * 部署到 GitHub Pages 后，只需把 gatewayUrl 改成独立 WebSocket 网关地址。
  * 示例：gatewayUrl: "wss://luyun-gateway.example.com/ws"
  * 前端不会、也不应保存任何模型 API Key。
@@ -25,3 +25,4 @@
     appVersion: '1.0.0'
   });
 }());
+

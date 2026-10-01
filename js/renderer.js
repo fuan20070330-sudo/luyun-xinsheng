@@ -65,7 +65,7 @@
   }
 
   function artifactStatus(status) {
-    return { draft: '待审核', accepted: '已接受', flagged: '已标记风险', edited: '已编辑', rejected: '已驳回' }[status] || '待审核';
+    return { draft: '待品牌确认', accepted: '品牌方已确认', flagged: '待修改', edited: '品牌方已修改', rejected: '已驳回' }[status] || '待品牌确认';
   }
 
   function renderArtifacts(state) {
@@ -76,9 +76,10 @@
     status.textContent = artifacts.length ? artifacts.length + ' 项成果已生成' : '尚无生成结果';
     if (!artifacts.length) {
       grid.innerHTML = [
-        '<article class="artifact-card empty-artifact"><span>主</span><h3>主内容草稿</h3><p>生成后可接受、编辑、标记风险或复制。</p></article>',
-        '<article class="artifact-card empty-artifact"><span>题</span><h3>选题矩阵</h3><p>围绕同一事实资产拆解平台化选题。</p></article>',
-        '<article class="artifact-card empty-artifact"><span>镜</span><h3>平台脚本</h3><p>提供镜头、口播、画面和事实提示。</p></article>'
+        '<article class="artifact-card empty-artifact"><span>事</span><h3>品牌故事</h3><p>基于品牌历史与受访内容形成可追溯叙事。</p></article>',
+        '<article class="artifact-card empty-artifact"><span>历</span><h3>内容日历</h3><p>按节点、主题与平台规划持续内容。</p></article>',
+        '<article class="artifact-card empty-artifact"><span>传</span><h3>多平台文案</h3><p>适配小红书、抖音和微信公众号表达。</p></article>',
+        '<article class="artifact-card empty-artifact"><span>新</span><h3>年轻化表达方案</h3><p>在保持文化内涵的前提下提出年轻受众可理解的表达。</p></article>'
       ].join('');
       return;
     }
@@ -91,7 +92,7 @@
         '<textarea class="artifact-textarea" data-editor="' + escapeHtml(artifact.id) + '" aria-label="编辑' + escapeHtml(artifact.title) + '">' + escapeHtml(artifact.content) + '</textarea>' +
         '<div class="artifact-meta"><span class="meta-chip">模型：' + escapeHtml((artifact.modelInfo && artifact.modelInfo.model) || 'local-deterministic-demo') + '</span><span class="meta-chip">提示词：' + escapeHtml((artifact.modelInfo && artifact.modelInfo.promptVersion) || 'brand-safe-content-v1.2') + '</span></div>' +
         '<div class="fact-refs" aria-label="事实引用">' + refs + '</div>' +
-        '<div class="artifact-actions"><button type="button" data-review="accept" data-artifact="' + escapeHtml(artifact.id) + '">接受</button><button type="button" class="edit-action" data-review="edit" data-artifact="' + escapeHtml(artifact.id) + '">编辑</button><button type="button" class="save-action" data-review="save" data-artifact="' + escapeHtml(artifact.id) + '">保存修改</button><button type="button" data-review="flag" data-artifact="' + escapeHtml(artifact.id) + '">标记风险</button><button type="button" data-review="copy" data-artifact="' + escapeHtml(artifact.id) + '">复制</button></div>' +
+        '<div class="artifact-actions"><button type="button" data-review="accept" data-artifact="' + escapeHtml(artifact.id) + '">品牌确认</button><button type="button" class="edit-action" data-review="edit" data-artifact="' + escapeHtml(artifact.id) + '">品牌方修改</button><button type="button" class="save-action" data-review="save" data-artifact="' + escapeHtml(artifact.id) + '">保存确认稿</button><button type="button" data-review="flag" data-artifact="' + escapeHtml(artifact.id) + '">退回修改</button><button type="button" data-review="copy" data-artifact="' + escapeHtml(artifact.id) + '">复制</button></div>' +
         '</article>';
     }).join('');
   }
@@ -109,7 +110,7 @@
         '<td>' + escapeHtml(task.brandName || '品牌') + '<small>' + escapeHtml(task.mode || '本地演示') + '</small></td>' +
         '<td>' + escapeHtml(task.model || 'local-deterministic-demo') + '<small>' + escapeHtml(task.promptVersion || '') + '</small></td>' +
         '<td><span class="risk-count ' + ((task.highRisk || 0) ? 'risk-high' : 'risk-low') + '"><b>' + (task.riskCount || 0) + '</b> 条<small>高 ' + (task.highRisk || 0) + '</small></span></td>' +
-        '<td>' + (task.reviewCount || 0) + ' 次<small>' + escapeHtml(task.status || '待审核') + '</small></td></tr>';
+        '<td>' + (task.reviewCount || 0) + ' 次<small>' + escapeHtml(task.status || '待品牌确认') + '</small></td></tr>';
     }).join('');
   }
 
@@ -118,16 +119,16 @@
     var reviews = state.reviews || [];
     byId('review-count').textContent = reviews.length + ' 次';
     if (!reviews.length) {
-      timeline.innerHTML = '<div class="empty-state"><span class="empty-glyph">审</span><p>接受、修改、驳回或标记内容后，将在此记录审核人、动作、前后内容和时间。</p></div>';
+      timeline.innerHTML = '<div class="empty-state"><span class="empty-glyph">审</span><p>品牌方确认、修改或退回内容后，将在此记录确认人、动作、前后内容和时间。</p></div>';
       return;
     }
     timeline.innerHTML = reviews.slice(0, 20).map(function (review) {
-      var action = { accept: '接受内容', edit: '保存人工修改', flag: '标记风险', reject: '驳回内容' }[review.action] || review.action;
+      var action = { accept: '品牌方确认', edit: '保存品牌方修改', flag: '退回修改', reject: '驳回内容' }[review.action] || review.action;
       var before = review.before ? '<div><strong>修改前：</strong>' + escapeHtml(review.before).slice(0, 240) + '</div>' : '';
       var after = review.after ? '<div><strong>修改后：</strong>' + escapeHtml(review.after).slice(0, 240) + '</div>' : '';
-      return '<article class="audit-item"><div class="audit-item-head"><strong>' + escapeHtml(review.reviewer || '人工审核员') + '</strong><span>' + escapeHtml(formatTime(review.createdAt)) + '</span></div>' +
+      return '<article class="audit-item"><div class="audit-item-head"><strong>' + escapeHtml(review.reviewer || '品牌确认人') + '</strong><span>' + escapeHtml(formatTime(review.createdAt)) + '</span></div>' +
         '<p>动作：' + escapeHtml(action) + '｜目标：' + escapeHtml(review.artifactId || '') + '｜任务：' + escapeHtml(review.jobId || '') + '</p>' +
-        '<p>' + escapeHtml(review.note || '已完成审核动作，结果已归档。') + '</p>' +
+        '<p>' + escapeHtml(review.note || '已完成品牌确认动作，结果已归档。') + '</p>' +
         (before || after ? '<div class="audit-diff">' + before + after + '</div>' : '') + '</article>';
     }).join('');
   }
@@ -174,4 +175,6 @@
     setConnection: setConnection
   };
 }(window));
+
+
 

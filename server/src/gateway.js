@@ -75,6 +75,7 @@ class LuyunGateway {
       type: String(brandInput.type || '未分类品牌').slice(0, 80),
       tone: String(brandInput.tone || '真实、克制').slice(0, 120),
       materials: materials,
+      interviews: String(brandInput.interviews || ''),
       isDemo: !!brandInput.isDemo
     };
     const facts = engine.extractFacts(materials, { sourceName: payload.sourceName || '用户提交品牌资料' });
@@ -95,7 +96,7 @@ class LuyunGateway {
     const createdAt = new Date().toISOString();
     this.send(client, 'job.accepted', requestId, { jobId, createdAt, protocol: this.protocol });
 
-    this.sendProgress(client, requestId, jobId, 'retrieve', 18, '服务端检索已入库事实，未核实记录不进入确定事实上下文');
+    this.sendProgress(client, requestId, jobId, 'retrieve', 18, '服务端检索已入库的品牌历史、产品与访谈事实');
     const safePayload = Object.assign({}, payload, { brand: brand, facts: facts, jobId: jobId });
     const risks = engine.detectRisks({
       materials: brand.materials,
@@ -104,7 +105,7 @@ class LuyunGateway {
       goal: payload.goal,
       facts: facts
     });
-    this.sendProgress(client, requestId, jobId, 'generate', 42, 'AI 适配层开始生成候选内容');
+    this.sendProgress(client, requestId, jobId, 'generate', 42, '叙事适配层开始生成品牌故事、内容日历、多平台文案和年轻化表达方案');
     let generated = null;
     let usedRemote = false;
     if (this.adapter.enabled) {
@@ -123,10 +124,10 @@ class LuyunGateway {
         artifacts: engine.generateContent(Object.assign({}, safePayload, { risks: risks, modelInfo: modelInfo }))
       };
     }
-    this.sendProgress(client, requestId, jobId, 'verify', 72, '逐句执行医疗功效、荣誉真实性、绝对化、年份与工艺校验');
+    this.sendProgress(client, requestId, jobId, 'verify', 72, '逐句执行医疗功效、非遗身份、文化正统性、绝对化、年份与工艺校验');
     const delta = generated.artifacts[0].content.replace(/\n/g, ' ').slice(0, 96);
     this.send(client, 'content.delta', requestId, { jobId: jobId, text: delta + '…' });
-    this.sendProgress(client, requestId, jobId, 'store', 92, '绑定事实编号并保存模型、提示词和原稿元数据');
+    this.sendProgress(client, requestId, jobId, 'store', 92, '绑定事实编号并保存模型、提示词、AI 原稿与品牌确认元数据');
     const result = {
       jobId: jobId, createdAt: createdAt, brand: brand, facts: facts, risks: risks,
       artifacts: generated.artifacts, modelInfo: generated.modelInfo,
@@ -146,7 +147,7 @@ class LuyunGateway {
       jobId: String(payload.jobId || ''),
       artifactId: String(payload.artifactId || ''),
       action: payload.action,
-      reviewer: String(payload.reviewer || '当前审核员').slice(0, 80),
+      reviewer: String(payload.reviewer || '当前品牌确认人').slice(0, 80),
       note: String(payload.note || '').slice(0, 500),
       before: String(payload.before || '').slice(0, 20000),
       after: String(payload.after || '').slice(0, 20000),
@@ -201,3 +202,4 @@ class LuyunGateway {
 }
 
 module.exports = { LuyunGateway, PROMPT_VERSION: engine.PROMPT_VERSION };
+

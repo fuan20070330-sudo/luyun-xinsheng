@@ -14,13 +14,15 @@ const materials = [
   '传统枣泥酥包含选枣、蒸制、炒馅、包制和烘烤五道主要工序。',
   '品牌资料登记信息显示，鲁香斋为山东老字号。',
   '目前产品包括低糖枣泥酥、山楂锅盔、桂花酥和节令礼盒。',
-  '品牌强调保留传统口感，并在合规范围内优化产品含糖量。'
+  '品牌强调保留传统口感，并在合规范围内优化产品含糖量。',
+  '受访记录（模拟）第1条：品牌传承人表示，年轻化不能改变关键工序，要让年轻人知道每一步为什么这样做。',
+  '受访记录（模拟）第2条：品牌方希望节令礼盒成为家庭分享的入口，但不承诺保健功效。'
 ].join('\n');
 
 function testEngine() {
   const facts = engine.extractFacts(materials, { sourceName: '鲁香斋模拟品牌档案' });
-  assert.equal(facts.length, 7, '应生成 7 条事实（含一条人物待核实）');
-  assert.equal(facts.filter((fact) => fact.status !== '待核实').length, 5);
+  assert.equal(facts.length, 8, '应生成 8 条事实（含一条人物待核实）');
+  assert.equal(facts.filter((fact) => fact.status !== '待核实').length, 7);
   assert.deepEqual([...new Set(facts.map((fact) => fact.category))].sort(), engine.CATEGORIES.slice().sort());
   const boundary = engine.detectRisks({
     materials,
@@ -46,11 +48,12 @@ function testEngine() {
     modelInfo: { model: 'test-local', promptVersion: engine.PROMPT_VERSION },
     isDemo: true
   });
-  assert.equal(artifacts.length, 3);
+  assert.equal(artifacts.length, 4);
   assert.ok(artifacts.every((artifact) => artifact.content.length > 100));
+  assert.deepEqual(artifacts.map((artifact) => artifact.id), ['story', 'calendar', 'copy', 'youth']);
   assert.ok(artifacts.every((artifact) => artifact.facts.length > 0));
   assert.match(artifacts[0].content, /F00\d/);
-  return { facts: facts.length, highRisks: highTerms.length, artifacts: artifacts.length };
+  return { facts: facts.length, verified: facts.filter((fact) => fact.status !== '待核实').length, highRisks: highTerms.length, artifacts: artifacts.length };
 }
 
 function testFrameCodec() {
@@ -163,7 +166,7 @@ async function testGateway() {
       payload: { brand: { id: 'test-brand', name: '鲁香斋（模拟品牌）', type: '糕点', tone: '真诚', materials, isDemo: true }, sourceName: '自动化测试资料' }
     });
     const brandReady = await client.waitFor('brand.ready');
-    assert.ok(brandReady.payload.facts.length >= 6);
+    assert.ok(brandReady.payload.facts.length >= 7);
     client.sendJson({
       event: 'content.generate', requestId: 'job-test',
       payload: {
@@ -173,11 +176,11 @@ async function testGateway() {
       }
     });
     const job = await client.waitFor('job.ready');
-    assert.equal(job.payload.artifacts.length, 3);
+    assert.equal(job.payload.artifacts.length, 4);
     assert.ok(job.payload.risks.length >= 0);
     client.sendJson({
       event: 'review.update', requestId: 'review-test',
-      payload: { jobId: job.payload.jobId, artifactId: 'main', action: 'accept', reviewer: '自动化测试员', before: job.payload.artifacts[0].content, after: '', note: '测试审核' }
+      payload: { jobId: job.payload.jobId, artifactId: 'story', action: 'accept', reviewer: '自动化测试员', before: job.payload.artifacts[0].content, after: '', note: '测试审核' }
     });
     const review = await client.waitFor('review.saved');
     assert.equal(review.payload.reviewer, '自动化测试员');
@@ -194,6 +197,9 @@ const engineResult = testEngine();
 const gatewayResult = await testGateway().catch((error) => { console.error('gateway test failed:', error.stack || error.message); process.exit(1); });
 console.log(JSON.stringify({ ok: true, engine: engineResult, gateway: gatewayResult }, null, 2));
 process.exit(0);
+
+
+
 
 
 

@@ -4,111 +4,69 @@
   if (typeof module === 'object' && module.exports) module.exports = engine;
 }(typeof globalThis !== 'undefined' ? globalThis : this, function (engine) {
   'use strict';
-
   var PLATFORM_NAMES = { xiaohongshu: '小红书', douyin: '抖音', wechat: '微信公众号', matrix: '多平台矩阵' };
-  var TYPE_NAMES = { package: '平台内容包', campaign: '跨平台传播方案', video: '短视频脚本', note: '小红书笔记' };
-
+  var TYPE_NAMES = { narrative: '完整叙事包', story: '品牌故事', calendar: '内容日历', copy: '多平台文案', youth: '年轻化表达' };
   function pickByCategory(facts, categories) {
     var wanted = Array.isArray(categories) ? categories : [categories];
-    return (facts || []).filter(function (fact) {
-      return wanted.indexOf(fact.category) !== -1 && fact.status !== '待核实';
-    });
+    return (facts || []).filter(function (fact) { return wanted.indexOf(fact.category) !== -1 && fact.status !== '待核实'; });
   }
-
-  function withRefs(fact) {
-    return fact.text + ' [' + fact.id + ']';
-  }
-
+  function withRefs(fact) { return fact.text + ' [' + fact.id + ']'; }
   function safeBrief(config) {
     var facts = config.facts || [];
-    return {
-      history: pickByCategory(facts, '历史')[0],
-      craft: pickByCategory(facts, '工艺').slice(0, 5),
-      honors: pickByCategory(facts, '荣誉'),
-      products: pickByCategory(facts, '产品'),
-      philosophy: pickByCategory(facts, '品牌理念')[0]
-    };
+    return { history: pickByCategory(facts, '历史')[0], craft: pickByCategory(facts, '工艺').slice(0, 5), honors: pickByCategory(facts, '荣誉'), products: pickByCategory(facts, '产品'), philosophy: pickByCategory(facts, '品牌理念')[0], interviews: pickByCategory(facts, '访谈洞察').slice(0, 4) };
   }
-
   function riskGate(config) {
     var high = (config.risks || []).filter(function (risk) { return risk.level === 'high'; });
     if (!high.length) return '';
-    return '【发布拦截】本次输入中发现 ' + high.length + ' 项高风险：' + high.map(function (risk) { return risk.term; }).join('、') + '。这些短语没有形成可核验事实，已从宣传正文中隔离。请先补充权威证明，或按风险建议改写并人工复核。\n\n';
+    return '【发布拦截】本次输入中发现 ' + high.length + ' 项高风险：' + high.map(function (risk) { return risk.term; }).join('、') + '。这些表述没有形成可核验事实，已从确定叙事中隔离。请先补充权威证明，或由品牌方确认文化内涵后修改。\n\n';
   }
-
-  function demoDisclosure(config) {
-    return config.isDemo ? '\n\n——\n仅用于产品原型演示｜鲁香斋为虚构模拟品牌。' : '';
+  function demoDisclosure(config) { return config.isDemo ? '\n\n——\n仅用于产品原型演示｜鲁香斋为虚构模拟品牌。' : ''; }
+  function buildBrandStory(config) {
+    var brand = config.brand || {}, brief = safeBrief(config);
+    var history = brief.history ? withRefs(brief.history) : '品牌历史线索待核实';
+    var craft = brief.craft.length ? brief.craft.map(withRefs).join('；') : '传统工艺线索待核实';
+    var products = brief.products.length ? brief.products.slice(0, 4).map(withRefs).join('；') : '产品信息待核实';
+    var philosophy = brief.philosophy ? withRefs(brief.philosophy) : '品牌理念待核实';
+    var honor = brief.honors.length ? brief.honors.map(withRefs).join('；') : '品牌荣誉信息待核实';
+    var interview = brief.interviews.length ? brief.interviews.map(withRefs).join('；') : '受访内容线索待核实';
+    var opening = (config.platform === 'wechat') ? '标题：一块' + (brand.type || '山东老味道') + '，如何把时间里的手艺讲给今天的人？\n\n导语\n' + brand.name + '的故事，不从传奇开场，而从能够回看原文的线索开始。' : '【标题】从' + (brief.history ? brief.history.text.replace(/^[^：]*：/, '').slice(0, 18) : '一段可核验的历史') + '开始，重新认识' + brand.name;
+    return riskGate(config) + opening + '\n\n一、故事的起点\n' + history + '。这里不补写年份，也不用无法验证的称号替代品牌自己的时间。\n\n二、手艺如何被看见\n' + craft + '。工艺的价值不在一句“古法”，而在每一步具体动作和它背后的经验。\n\n三、今天的产品\n' + products + '。' + philosophy + '。\n\n四、受访者眼中的责任\n' + interview + '。这段口述只按原意整理；涉及文化内涵和对外表达的部分，由品牌方确认。\n\n五、事实边界\n' + honor + '。所有未提供来源的信息继续保持“待核实”，不进入确定叙事。\n\n结尾\n老字号的新表达，不是把故事讲得更夸张，而是让年轻人听见手艺、产品和传承人的真实选择。 ' + demoDisclosure(config);
   }
-
-  function buildMainContent(config) {
-    var brand = config.brand || {};
-    var platform = config.platform || 'xiaohongshu';
-    var brief = safeBrief(config);
-    var historyLine = brief.history ? withRefs(brief.history) : '品牌历史线索待核实';
-    var craftLine = brief.craft.length ? brief.craft.map(withRefs).join('；') : '传统工艺线索待核实';
-    var productLine = brief.products.length ? brief.products.slice(0, 4).map(withRefs).join('；') : '产品信息待核实';
-    var philosophyLine = brief.philosophy ? withRefs(brief.philosophy) : '品牌理念待核实';
-    var honorLine = brief.honors.length ? brief.honors.map(withRefs).join('；') : '品牌荣誉信息待核实';
-    var prefix = riskGate(config);
-
-    if (platform === 'douyin') {
-      return prefix + '【3秒钩子】\n一块老味道，为什么值得被重新讲一遍？\n\n【口播正文】\n' + brand.name + '这次把镜头放回一块糕点的来路。' + historyLine + '。\n制作线索并非“神秘传说”，而是可以被拆解的工序：' + craftLine + '。\n今天的产品也不是简单复刻：' + productLine + '。\n品牌想守住的是' + philosophyLine + '。\n\n【结尾互动】\n你更想先看哪一道工序？评论区点单。' + demoDisclosure(config);
-    }
-    if (platform === 'wechat') {
-      return prefix + '标题：一块' + (brand.type || '山东糕点') + '，怎样把老味道讲给年轻人？\n\n导语\n关于' + brand.name + '，我们先把“看得见、查得到”的部分写好：' + historyLine + '。\n\n一、从原文出发，不替品牌补写传奇\n' + honorLine + '。品牌资料中的登记信息可以作为引用，但没有证书或权威来源支撑的称号，仍应标记“待核实”。\n\n二、一块糕点背后的工艺秩序\n' + craftLine + '。这些步骤构成了产品口感与制作逻辑，也提醒内容创作者：工艺故事要回到工序，而不是堆叠“古法”“秘制”等空泛词。\n\n三、传统口味与当代产品线\n' + productLine + '。' + philosophyLine + '。\n\n结语\n把老字号讲年轻，不等于把事实讲夸张。先有据，再有感；先经人审，再对外发布。' + demoDisclosure(config);
-    }
-    var title = platform === 'matrix' ? '同一份品牌事实，四种平台表达' : '把' + (config.theme || '一块老味道') + '讲得真实一点';
-    return prefix + '【标题】' + title + '\n\n【正文】\n最近重新认识' + brand.name + '。' + historyLine + '。\n\n我尤其想记录工艺里那些具体的动作：' + craftLine + '。不是一句“古法”一带而过，而是每一步都能回到品牌资料。\n\n产品线目前包括：' + productLine + '。' + philosophyLine + '。\n\n如果你也喜欢地方老味道，可以先收藏这份事实清单，再去看它的新表达。\n\n【事实边界】\n' + honorLine + '。未提供原文来源的信息一律不写成确定事实。\n\n【互动引导】\n你最想了解品牌历史、制作工序，还是产品口味？' + demoDisclosure(config);
+  function buildCalendar(config) {
+    var brand = config.brand || {}, theme = config.theme || '品牌叙事主题', audience = config.audience || '目标受众';
+    var refs = (config.facts || []).filter(function (fact) { return fact.status !== '待核实'; }).map(function (fact) { return fact.id; });
+    function range(start, count) { return refs.slice(start, start + count).join('、') || '待补充'; }
+    return riskGate(config) + '【内容日历】' + brand.name + '｜' + theme + '\n目标受众：' + audience + '\n策划周期：4周\n\n| 周次 | 叙事主题 | 核心事实 | 小红书 | 抖音 | 公众号 | 品牌确认点 |\n|---|---|---|---|---|---|---|\n| 第1周 | 品牌为什么从这一段历史开始 | ' + range(0, 2) + ' | 图文故事：时间的起点 | 15秒口播：先看档案再看产品 | 长文：从原文理解品牌 | 确认历史年份与原始出处 |\n| 第2周 | 一道工序如何决定一种口感 | ' + range(1, 3) + ' | 工序拆解卡片 | 镜头快切：动作即叙事 | 图解工艺脉络 | 确认工序顺序与专业表述 |\n| 第3周 | 传统产品怎样进入当代生活 | ' + range(3, 3) + ' | 产品体验笔记 | 场景短视频：分享与品尝 | 产品线深度介绍 | 确认产品信息和营养表述 |\n| 第4周 | 传承人与年轻消费者的对话 | ' + range(4, 4) + ' | 访谈金句与问答 | 传承人口述片段 | 人物访谈长文 | 确认受访原意与文化内涵 |\n\n发布原则：每周保留 1 次品牌方事实确认；未经确认的受访解读、文化判断和平台改写不得直接发布。\n\n' + demoDisclosure(config);
   }
-
-  function buildTopicMatrix(config) {
-    var brand = config.brand || {};
-    var theme = config.theme || '品牌核心主题';
-    var audience = config.audience || '目标受众';
-    var facts = config.facts || [];
-    var allRefs = facts.filter(function (fact) { return fact.status !== '待核实'; }).slice(0, 7).map(function (fact) { return fact.id; });
-    return '【选题矩阵】' + brand.name + '｜' + theme + '\n目标受众：' + audience + '\n\n' +
-      '| 平台 | 选题角度 | 内容形态 | 主要事实引用 |\n' +
-      '|---|---|---|---|\n' +
-      '| 小红书 | 从一道具体工序切入，讲“看得见的传统” | 6图笔记 + 300字正文 | ' + allRefs.slice(0, 3).join('、') + ' |\n' +
-      '| 抖音 | 用30秒拆解“原料到成品”的动作节奏 | 竖屏口播 + 特写 | ' + allRefs.slice(0, 4).join('、') + ' |\n' +
-      '| 公众号 | 以品牌档案为线索，解释传统与当代产品线 | 长图文 / 图文故事 | ' + allRefs.slice(0, 6).join('、') + ' |\n' +
-      '| 多平台矩阵 | 同一事实包分别改写为体验、知识、人物、节令四条线 | 统一素材、差异分发 | ' + allRefs.slice(0, 7).join('、') + ' |\n\n' +
-      '内容排期建议：\n1. 第一篇讲“为什么是老字号”，只使用已核验历史与荣誉原文。\n2. 第二篇讲“一道工序怎么做”，用镜头替代形容词。\n3. 第三篇讲“传统产品如何适应当下”，避免健康功效承诺。\n4. 节令礼盒内容必须补充当季 SKU、价格、供应范围等可验证信息。\n\n' + demoDisclosure(config);
-  }
-
-  function buildScript(config) {
-    var brand = config.brand || {};
-    var brief = safeBrief(config);
-    var history = brief.history ? brief.history.text + ' [' + brief.history.id + ']' : '品牌历史以知识库原文为准';
-    var craft = brief.craft.length ? brief.craft.map(withRefs).join('；') : '工艺细节待核实';
+  function buildMultiPlatformCopy(config) {
+    var brand = config.brand || {}, brief = safeBrief(config);
+    var history = brief.history ? withRefs(brief.history) : '品牌历史待核实';
+    var craft = brief.craft.length ? brief.craft[0].text + ' [' + brief.craft[0].id + ']' : '工艺信息待核实';
     var product = brief.products.length ? brief.products[0].text + ' [' + brief.products[0].id + ']' : '产品信息待核实';
-    return '【30秒短视频脚本】' + brand.name + '\n\n' +
-      '0-3秒｜钩子\n画面：糕点特写推进，落下第一行字“老味道，不靠编故事”。\n口播：一块老味道，先看它的来路。\n\n' +
-      '3-9秒｜历史\n画面：档案纸、年份字样和资料局部。\n口播：' + history + '。\n字幕：历史信息引用知识库，不补写年份。\n\n' +
-      '9-20秒｜工艺\n画面：按资料中的工序顺序做快切，每道动作只保留一个特写。\n口播：' + craft + '。\n字幕：工序按品牌资料拆解，不添加未证实细节。\n\n' +
-      '20-26秒｜产品\n画面：产品分镜与包装，不出现功效字幕。\n口播：' + product + '。\n\n' +
-      '26-30秒｜收束\n画面：品牌标识与“原文可查，发布前必审”。\n口播：老字号的新表达，先把事实说清楚。\n\n' +
-      '制作提示：高风险短语不得进入口播、字幕、标题或评论置顶；所有事实引用需与审核稿一同留档。\n\n' + demoDisclosure(config);
+    var interview = brief.interviews.length ? brief.interviews[0].text + ' [' + brief.interviews[0].id + ']' : '受访内容待补充';
+    return riskGate(config) + '【多平台文案】' + brand.name + '\n\n小红书｜标题：原来一块老味道，背后有这么多具体工序\n' + history + '。' + craft + '。如果你也喜欢地方文化，可以先收藏这份事实清单。\n\n抖音｜3秒钩子：老味道不靠编故事。\n口播：先看档案里的' + history + '；再看工艺中的' + craft + '；最后回到今天的产品——' + product + '。\n\n微信公众号｜标题：把老字号讲年轻，先从不补写历史开始\n导语：' + history + '。\n正文线索一：' + craft + '。\n正文线索二：' + product + '。\n受访补充：' + interview + '。\n结语：AI 给出初稿，品牌方确认事实、文化内涵和对外表达。\n\n统一事实引用：' + (brief.history ? brief.history.id : '待补充') + '、' + (brief.craft[0] ? brief.craft[0].id : '待补充') + '、' + (brief.products[0] ? brief.products[0].id : '待补充') + '、' + (brief.interviews[0] ? brief.interviews[0].id : '待补充') + '。\n\n' + demoDisclosure(config);
   }
-
+  function buildYouthPlan(config) {
+    var brand = config.brand || {}, brief = safeBrief(config);
+    var craft = brief.craft.length ? brief.craft[0].text + ' [' + brief.craft[0].id + ']' : '工艺细节待核实';
+    var interview = brief.interviews.length ? brief.interviews[0].text + ' [' + brief.interviews[0].id + ']' : '受访内容待补充';
+    var audience = config.audience || '年轻消费者';
+    return riskGate(config) + '【年轻化表达方案】' + brand.name + '\n目标受众：' + audience + '\n\n一、表达原则\n1. 先讲具体动作，再讲文化价值。\n2. 先保留原意，再做平台语态转换。\n3. 不用“最正宗、御用、非遗”等未经确认的标签替代真实内容。\n4. AI 生成只作为初稿，品牌方确认事实、文化内涵与对外表达。\n\n二、语态转换表\n| 原有表达 | 年轻化改写方向 | 事实依据 |\n|---|---|---|\n| 传统工序 | “每一步为什么这样做” | ' + craft + ' |\n| 传承责任 | “这一代人在守住什么” | ' + interview + ' |\n| 老字号叙事 | “不靠传奇，先看原文” | ' + (brief.history ? brief.history.id : '待补充') + ' |\n\n三、三种内容人设\n- 事实型：用档案和工序回答问题。\n- 体验型：把产品放回分享、节令和日常场景。\n- 对谈型：让传承人讲述选择，不用旁白替代本人表达。\n\n四、可用开场示例\n“老味道不是一句形容词。今天我们把它拆成几道工序，再从传承人的话里听听，为什么要这样做。”\n\n五、品牌方确认清单\n- 历史年份和出处是否准确。\n- 工艺名称和顺序是否准确。\n- 访谈摘录是否改变原意。\n- 文化解释是否代表品牌立场。\n- 对外表达是否允许发布。\n\n' + demoDisclosure(config);
+  }
   function generateContent(config) {
     config = config || {};
     var modelInfo = config.modelInfo || { model: 'local-deterministic-demo', mode: 'local', promptVersion: engine.PROMPT_VERSION };
-    var main = buildMainContent(config);
-    var matrix = buildTopicMatrix(config);
-    var script = buildScript(config);
-    var facts = config.facts || [];
-    var referenced = facts.filter(function (fact) { return fact.status !== '待核实'; }).slice(0, 8).map(function (fact) { return fact.id; });
+    var referenced = (config.facts || []).filter(function (fact) { return fact.status !== '待核实'; }).slice(0, 10).map(function (fact) { return fact.id; });
     var highRiskCount = (config.risks || []).filter(function (risk) { return risk.level === 'high'; }).length;
     var createdAt = new Date().toISOString();
+    function artifact(id, title, label, content) { return { id: id, title: title, label: label, content: content, originalContent: content, status: highRiskCount ? 'flagged' : 'draft', facts: referenced, modelInfo: modelInfo, createdAt: createdAt }; }
     return [
-      { id: 'main', title: '主内容草稿', label: PLATFORM_NAMES[config.platform] || '平台内容', content: main, originalContent: main, status: highRiskCount ? 'flagged' : 'draft', facts: referenced, modelInfo: modelInfo, createdAt: createdAt },
-      { id: 'matrix', title: '选题矩阵', label: TYPE_NAMES[config.contentType] || '内容规划', content: matrix, originalContent: matrix, status: 'draft', facts: referenced, modelInfo: modelInfo, createdAt: createdAt },
-      { id: 'script', title: '30秒短视频脚本', label: '视频 / 平台脚本', content: script, originalContent: script, status: highRiskCount ? 'flagged' : 'draft', facts: referenced, modelInfo: modelInfo, createdAt: createdAt }
+      artifact('story', '品牌故事', '历史 / 工艺 / 受访内容', buildBrandStory(config)),
+      artifact('calendar', '内容日历', '四周叙事排期', buildCalendar(config)),
+      artifact('copy', '多平台文案', PLATFORM_NAMES[config.platform] || '多平台矩阵', buildMultiPlatformCopy(config)),
+      artifact('youth', '年轻化表达方案', '语态转换 / 品牌确认', buildYouthPlan(config))
     ];
   }
-
   engine.PLATFORM_NAMES = PLATFORM_NAMES;
   engine.TYPE_NAMES = TYPE_NAMES;
   engine.generateContent = generateContent;

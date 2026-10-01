@@ -6,14 +6,15 @@
   'use strict';
 
   var PROMPT_VERSION = 'brand-safe-content-v1.2';
-  var CATEGORIES = ['历史', '工艺', '荣誉', '人物', '产品', '品牌理念'];
+  var CATEGORIES = ['历史', '工艺', '荣誉', '人物', '产品', '品牌理念', '访谈洞察'];
   var CATEGORY_TERMS = {
     '历史': ['创立', '始创', '创建', '始于', '年', '年代', '历史', '传承', '成立', '老字号', '字号'],
     '工艺': ['工艺', '工序', '制作', '选枣', '蒸制', '炒馅', '包制', '烘烤', '手工', '古法', '秘方', '技艺'],
     '荣誉': ['荣誉', '老字号', '非遗', '奖', '认证', '证书', '称号', '登记', '协会', '品牌'],
     '人物': ['创始人', '传承人', '师傅', '人物', '先生', '女士', '第四代', '第五代', '技师'],
     '产品': ['产品', '枣泥酥', '山楂锅盔', '桂花酥', '礼盒', '口味', '含糖', '配料', '包装', '糕', '酥'],
-    '品牌理念': ['理念', '坚持', '强调', '希望', '注重', '使命', '价值', '保留', '优化', '真诚', '品牌']
+    '品牌理念': ['理念', '坚持', '强调', '希望', '注重', '使命', '价值', '保留', '优化', '真诚', '品牌'],
+    '访谈洞察': ['受访', '访谈', '口述', '传承人表示', '品牌方希望', '回忆', '讲述', '责任', '年轻人']
   };
 
   function normalizeText(value) {
@@ -39,6 +40,8 @@
     if (/\b(18|19|20)\d{2}\b/.test(sentence)) scores['历史'] += 3;
     if (/工序|制作|烘烤|炒馅|蒸制/.test(sentence)) scores['工艺'] += 3;
     if (/产品包括|礼盒|口味|含糖量/.test(sentence)) scores['产品'] += 2;
+    if (/品牌强调|品牌理念|保留.*口感|优化.*含糖/.test(sentence)) scores['品牌理念'] += 6;
+    if (/受访|访谈|口述|传承人表示|品牌方希望/.test(sentence)) scores['访谈洞察'] += 4;
     var winner = '品牌理念';
     var best = 0;
     CATEGORIES.forEach(function (category) {
@@ -51,6 +54,7 @@
     var score = 0.68;
     if (/\b(18|19|20)\d{2}\b/.test(sentence)) score += 0.12;
     if (/档案|资料|登记|证书|记录|原文|品牌说明/.test(sentence + sourceName)) score += 0.12;
+    if (/受访|访谈|口述|传承人表示|品牌方希望/.test(sentence + sourceName)) score += 0.08;
     if (sentence.length >= 18) score += 0.04;
     if (sentence.length >= 45) score -= 0.03;
     return Math.max(0.55, Math.min(0.98, Number(score.toFixed(2))));
@@ -134,6 +138,7 @@
     var superlativeTerms = ['全国第一', '行业唯一', '最好', '最佳', '绝对安全', '纯天然', '零添加', '100%有效'];
     var craftTerms = ['古法秘制', '宫廷秘方', '独家秘方', '纯手工', '百年秘方'];
     var nutritionTerms = ['低糖', '无糖'];
+    var culturalTerms = ['最正宗', '唯一正统', '正宗嫡传', '祖传秘制', '失传技艺', '原汁原味'];
 
     sources.forEach(function (source) {
       medicalTerms.forEach(function (term) {
@@ -177,6 +182,15 @@
           type: '无法验证的工艺描述', level: 'medium', term: term, location: source.location,
           quote: findContext(source.text, term), reason: '“秘方”“纯手工”等描述无法从当前品牌资料中验证，且可能影响消费者判断。',
           suggestion: '补充工艺流程、生产记录或权威认定；否则改为不含排他性和稀缺性暗示的表述。',
+          factRefs: findMatchingFactIds(term, facts)
+        });
+      });
+      culturalTerms.forEach(function (term) {
+        if (source.text.indexOf(term) === -1) return;
+        pushRisk(risks, keys, {
+          type: '文化内涵或正统性表述', level: 'high', term: term, location: source.location,
+          quote: findContext(source.text, term), reason: '该表述暗示唯一、正统、祖传或失传等文化身份，但当前资料没有提供可核验的历史依据和文化确认。',
+          suggestion: '删除正统性和稀缺性暗示；由品牌方补充历史依据、传承谱系或文化内涵说明后再改写。',
           factRefs: findMatchingFactIds(term, facts)
         });
       });
@@ -229,3 +243,5 @@
     findMatchingFactIds: findMatchingFactIds
   };
 }));
+
+

@@ -1,11 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="鲁韵新声">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="老字号叙事工坊">
   <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f7f1e5"/><stop offset="1" stop-color="#eadcc5"/></linearGradient><pattern id="n" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".8" fill="#4d3c29" opacity=".1"/></pattern></defs>
   <rect width="1200" height="630" fill="url(#bg)"/><rect width="1200" height="630" fill="url(#n)"/>
   <circle cx="1040" cy="90" r="250" fill="none" stroke="#9f2f25" opacity=".12" stroke-width="2"/>
   <circle cx="1040" cy="90" r="170" fill="none" stroke="#1f6d5c" opacity=".12" stroke-width="2"/>
-  <g transform="translate(72 62)"><rect width="92" height="92" rx="23 7 23 7" fill="#9f2f25"/><text x="46" y="67" text-anchor="middle" fill="#fff8ec" font-family="Songti SC,SimSun,serif" font-size="54" font-weight="900">鲁</text></g>
-  <text x="72" y="255" fill="#76231d" font-family="Microsoft YaHei,sans-serif" font-size="28" font-weight="700" letter-spacing="6">山东老字号内容共创助手</text>
-  <text x="72" y="355" fill="#1f2523" font-family="Songti SC,SimSun,serif" font-size="74" font-weight="900">鲁韵新声</text>
+  <g transform="translate(72 62)"><rect width="92" height="92" rx="23 7 23 7" fill="#9f2f25"/><text x="46" y="67" text-anchor="middle" fill="#fff8ec" font-family="Songti SC,SimSun,serif" font-size="54" font-weight="900">坊</text></g>
+  <text x="72" y="255" fill="#76231d" font-family="Microsoft YaHei,sans-serif" font-size="28" font-weight="700" letter-spacing="6">老字号与非遗品牌内容助手</text>
+  <text x="72" y="355" fill="#1f2523" font-family="Songti SC,SimSun,serif" font-size="68" font-weight="900">老字号叙事工坊</text>
   <text x="72" y="430" fill="#4e5652" font-family="Microsoft YaHei,sans-serif" font-size="30">让故事有据可循，也有年轻表达</text>
-  <g transform="translate(72 505)" font-family="Microsoft YaHei,sans-serif" font-size="21"><rect width="165" height="48" rx="24" fill="#dceae4"/><text x="82" y="31" text-anchor="middle" fill="#1f6d5c">事实可溯源</text><rect x="185" width="165" height="48" rx="24" fill="#f3ded8"/><text x="267" y="31" text-anchor="middle" fill="#9f2f25">风险可校验</text><rect x="370" width="165" height="48" rx="24" fill="#e8e2d6"/><text x="452" y="31" text-anchor="middle" fill="#4e5652">审核有留痕</text></g>
+  <g transform="translate(72 505)" font-family="Microsoft YaHei,sans-serif" font-size="21"><rect width="165" height="48" rx="24" fill="#dceae4"/><text x="82" y="31" text-anchor="middle" fill="#1f6d5c">历史可溯源</text><rect x="185" width="165" height="48" rx="24" fill="#f3ded8"/><text x="267" y="31" text-anchor="middle" fill="#9f2f25">访谈可整理</text><rect x="370" width="180" height="48" rx="24" fill="#e8e2d6"/><text x="460" y="31" text-anchor="middle" fill="#4e5652">品牌方确认</text></g>
 </svg>

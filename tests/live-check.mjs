@@ -16,7 +16,7 @@ try {
   await page.waitForFunction(() => window.__LUYUN_APP__ && window.__LUYUN_APP__.state.initialized, null, { timeout: 15000 });
   await page.waitForFunction(() => document.getElementById('connection-pill').getAttribute('data-state') === 'disconnected', null, { timeout: 10000 });
   await page.click('[data-action="run-demo"]');
-  await page.waitForFunction(() => window.__LUYUN_APP__.state.artifacts.length === 3 && window.__LUYUN_APP__.state.reviews.length >= 1, null, { timeout: 20000 });
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.artifacts.length === 4 && window.__LUYUN_APP__.state.reviews.length >= 1, null, { timeout: 20000 });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(300);
   const result = await page.evaluate(() => ({
@@ -38,4 +38,5 @@ try {
 } finally {
   await browser.close();
 }
+
 

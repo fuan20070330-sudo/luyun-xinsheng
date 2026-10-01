@@ -21,7 +21,7 @@ function createServer(env = process.env) {
     response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     response.end(JSON.stringify({
       ok: true,
-      service: '鲁韵新声 WebSocket 网关',
+      service: '老字号叙事工坊 WebSocket 网关',
       protocol: 'luyun-gateway/1.0',
       websocket: '/ws',
       health: '/healthz',
@@ -52,3 +52,4 @@ if (require.main === module) {
 }
 
 module.exports = { createServer };
+

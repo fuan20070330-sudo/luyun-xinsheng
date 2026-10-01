@@ -54,12 +54,12 @@ function createAiAdapter(env = {}) {
     if (!enabled) return null;
     const facts = (payload.facts || []).filter((fact) => fact.status !== '待核实');
     const system = [
-      '你是山东老字号品牌内容共创助手。',
-      '只能把用户提供 facts 数组中的文字当作确定事实，严禁补写年份、荣誉称号、人物、工艺、销量或功效。',
+      '你是老字号叙事工坊的品牌内容助手。',
+      '只能把用户提供 facts 数组中的文字当作确定事实，严禁补写年份、荣誉称号、非遗身份、人物、工艺、销量或功效。',
       '无来源信息必须写成“待核实”，高风险表述必须拒绝写成确定事实。',
-      '输出 JSON 对象，字段为 main(字符串)、matrix(字符串)、script(字符串)。',
-      'main 要根据平台生成候选稿；matrix 是选题矩阵；script 是30秒短视频脚本。',
-      '所有确定事实后必须保留对应 [Fxxx] 引用编号。不要输出 Markdown 代码围栏。'
+      '输出 JSON 对象，字段为 story(字符串)、calendar(字符串)、copy(字符串)、youth(字符串)。',
+      'story 是品牌故事；calendar 是四周内容日历；copy 是多平台文案；youth 是年轻化表达方案。',
+      '所有确定事实后必须保留对应 [Fxxx] 引用编号；品牌方负责确认事实、文化内涵和对外表达。不要输出 Markdown 代码围栏。'
     ].join('\n');
     const user = JSON.stringify({
       brand: { name: payload.brand.name, type: payload.brand.type, tone: payload.brand.tone },
@@ -89,7 +89,7 @@ function createAiAdapter(env = {}) {
       modelInfo: { model: model, mode: '远程 AI 适配层', promptVersion: engine.PROMPT_VERSION },
       isDemo: payload.isDemo
     });
-    ['main', 'matrix', 'script'].forEach((key, index) => {
+    ['story', 'calendar', 'copy', 'youth'].forEach((key, index) => {
       if (parsed[key] && String(parsed[key]).trim().length > 20) deterministic[index].content = String(parsed[key]).trim();
       if (parsed[key]) deterministic[index].originalContent = deterministic[index].content;
     });
@@ -100,3 +100,4 @@ function createAiAdapter(env = {}) {
 }
 
 module.exports = { createAiAdapter, requestJson, endpointFromBase };
+

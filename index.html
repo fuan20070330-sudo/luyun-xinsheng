@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#9f2f25">
-  <meta name="description" content="鲁韵新声：山东老字号品牌叙事与多平台内容共创助手，提供可溯源事实、风险校验和人工审核留痕。">
-  <title>鲁韵新声｜山东老字号品牌叙事与多平台内容共创助手</title>
+  <meta name="description" content="老字号叙事工坊：老字号与非遗品牌内容助手，整理品牌历史、产品资料和受访内容，生成品牌故事、内容日历、多平台文案与年轻化表达方案。">
+  <title>老字号叙事工坊｜老字号与非遗品牌内容助手</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -15,9 +15,9 @@
 
   <header class="site-header" id="top">
     <div class="header-inner">
-      <a class="brand" href="#top" aria-label="鲁韵新声首页">
-        <span class="brand-seal" aria-hidden="true">鲁</span>
-        <span class="brand-copy"><strong>鲁韵新声</strong><small>老字号内容共创助手</small></span>
+      <a class="brand" href="#top" aria-label="老字号叙事工坊首页">
+        <span class="brand-seal" aria-hidden="true">坊</span>
+        <span class="brand-copy"><strong>老字号叙事工坊</strong><small>老字号与非遗品牌内容助手</small></span>
       </a>
       <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" data-action="toggle-nav">
         <span></span><span></span><span></span><span class="sr-only">展开导航</span>
@@ -25,7 +25,7 @@
       <nav class="site-nav" id="site-nav" aria-label="主导航">
         <a href="#workspace">工作台</a>
         <a href="#results">生成结果</a>
-        <a href="#reviews">审核留痕</a>
+        <a href="#reviews">品牌确认</a>
         <a href="#tech">工具说明</a>
       </nav>
       <div class="connection-pill" id="connection-pill" data-state="connecting" role="status" aria-live="polite">
@@ -39,14 +39,14 @@
   <main>
     <section class="hero section-shell" aria-labelledby="hero-title">
       <div class="hero-copy reveal">
-        <p class="eyebrow"><span>AI 传播工具创新赛道</span><span class="eyebrow-divider"></span><span>可溯源内容原型</span></p>
+        <p class="eyebrow"><span>AI 传播工具创新赛道</span><span class="eyebrow-divider"></span><span>品牌叙事协作原型</span></p>
         <h1 id="hero-title">让老字号故事<span>有据可循</span>，<br>也有年轻表达</h1>
-        <p class="hero-lead">上传品牌资料，提取事实，实时生成多平台内容，完成风险校验与人工审核。AI 只做资料整理、候选草稿和判断提醒，最终事实与发布权始终属于品牌方。</p>
+        <p class="hero-lead">输入品牌历史、产品资料和受访内容，实时生成品牌故事、内容日历、多平台文案与年轻化表达方案。AI 负责整理和生成初稿，品牌方确认事实、文化内涵和对外表达。</p>
         <div class="hero-actions">
           <button class="button button-primary button-large" type="button" data-action="run-demo">
-            <span class="button-icon" aria-hidden="true">▶</span>一键评审演示
+            <span class="button-icon" aria-hidden="true">▶</span>一键叙事演示
           </button>
-          <a class="button button-ghost button-large" href="#workspace">进入共创工作台</a>
+          <a class="button button-ghost button-large" href="#workspace">进入叙事工坊</a>
         </div>
         <p class="demo-disclaimer"><span aria-hidden="true">◆</span> 默认载入虚构品牌“鲁香斋（模拟品牌）”，仅用于产品原型演示。</p>
       </div>
@@ -57,20 +57,20 @@
           <span id="connection-protocol">luyun-gateway/1.0</span>
         </div>
         <div class="metric-grid">
-          <article class="metric-card"><span id="metric-facts">0</span><small>可溯源事实</small></article>
-          <article class="metric-card"><span id="metric-jobs">0</span><small>生成任务</small></article>
-          <article class="metric-card"><span id="metric-reviews">0</span><small>人工审核</small></article>
+          <article class="metric-card"><span id="metric-facts">0</span><small>可溯源叙事事实</small></article>
+          <article class="metric-card"><span id="metric-jobs">0</span><small>叙事任务</small></article>
+          <article class="metric-card"><span id="metric-reviews">0</span><small>品牌方确认</small></article>
         </div>
         <div class="pipeline" aria-label="WebSocket 处理链路">
           <div class="pipeline-step is-active" data-pipeline="ingest"><span>01</span><strong>品牌入库</strong><small>brand.ingest</small></div>
           <i aria-hidden="true"></i>
-          <div class="pipeline-step" data-pipeline="retrieve"><span>02</span><strong>知识检索</strong><small>facts[]</small></div>
+          <div class="pipeline-step" data-pipeline="retrieve"><span>02</span><strong>叙事提取</strong><small>facts[]</small></div>
           <i aria-hidden="true"></i>
-          <div class="pipeline-step" data-pipeline="generate"><span>03</span><strong>内容生成</strong><small>content.delta</small></div>
+          <div class="pipeline-step" data-pipeline="generate"><span>03</span><strong>内容共创</strong><small>content.delta</small></div>
           <i aria-hidden="true"></i>
-          <div class="pipeline-step" data-pipeline="verify"><span>04</span><strong>事实校验</strong><small>risk.scan</small></div>
+          <div class="pipeline-step" data-pipeline="verify"><span>04</span><strong>文化校验</strong><small>risk.scan</small></div>
           <i aria-hidden="true"></i>
-          <div class="pipeline-step" data-pipeline="review"><span>05</span><strong>人工审核</strong><small>review.update</small></div>
+          <div class="pipeline-step" data-pipeline="review"><span>05</span><strong>品牌确认</strong><small>review.update</small></div>
         </div>
         <div class="console-foot">
           <div><span>运行模式</span><strong id="runtime-mode">正在探测网关</strong></div>
@@ -81,23 +81,23 @@
 
     <section class="trust-strip" aria-label="产品边界">
       <div class="section-shell trust-grid">
-        <article><span class="trust-mark">据</span><div><strong>事实可溯源</strong><p>每项品牌事实显示原文来源和置信度。</p></div></article>
-        <article><span class="trust-mark">审</span><div><strong>人机双校验</strong><p>高风险内容不得直接进入发布状态。</p></div></article>
-        <article><span class="trust-mark">痕</span><div><strong>审核有留痕</strong><p>保留模型、提示词版本、AI 原稿和人工稿。</p></div></article>
-        <article><span class="trust-mark">降</span><div><strong>网关失联可降级</strong><p>自动切换确定性本地演示，不中断评审。</p></div></article>
+        <article><span class="trust-mark">据</span><div><strong>事实可溯源</strong><p>历史、产品与访谈内容均显示原文来源和置信度。</p></div></article>
+        <article><span class="trust-mark">审</span><div><strong>人机双校验</strong><p>AI 生成初稿，品牌方确认文化内涵与事实。</p></div></article>
+        <article><span class="trust-mark">痕</span><div><strong>确认有留痕</strong><p>保留模型、提示词版本、AI 原稿和品牌确认稿。</p></div></article>
+        <article><span class="trust-mark">降</span><div><strong>网关失联可降级</strong><p>自动切换确定性本地演示，不中断叙事。</p></div></article>
       </div>
     </section>
 
     <section class="workspace section-shell" id="workspace" aria-labelledby="workspace-title">
       <div class="section-heading reveal">
-        <div><p class="section-kicker">01 / 品牌知识库 + 内容共创</p><h2 id="workspace-title">先把事实站稳，再让表达出发</h2></div>
-        <p>资料、任务、实时片段和风险结果在一个工作面内完成，避免在多工具之间丢失证据链。</p>
+        <div><p class="section-kicker">01 / 品牌档案 + 叙事共创</p><h2 id="workspace-title">先把品牌故事听完整，再开始共创</h2></div>
+        <p>把品牌历史、产品资料和受访内容放在同一个工作面，完成事实提取、故事生成与文化确认。</p>
       </div>
 
       <div class="workspace-grid">
         <article class="panel knowledge-panel reveal">
           <div class="panel-head">
-            <div><span class="panel-index">A</span><h3>品牌知识库</h3></div>
+            <div><span class="panel-index">A</span><h3>品牌档案与访谈库</h3></div>
             <span class="status-chip" id="brand-status">待入库</span>
           </div>
           <form id="brand-form" novalidate>
@@ -107,7 +107,8 @@
             </div>
             <label class="field"><span>品牌名称</span><input id="brand-name" value="鲁香斋（模拟品牌）" maxlength="60" required></label>
             <label class="field"><span>品牌语气</span><input id="brand-tone" value="真诚、考究、年轻，不说满话" maxlength="80" required></label>
-            <label class="field"><span>品牌资料</span><textarea id="brand-materials" rows="8" required placeholder="每行尽量包含可直接引用的品牌原文，例如创立年份、工艺流程、荣誉登记、产品信息等。"></textarea></label>
+            <label class="field"><span>品牌历史与产品资料</span><textarea id="brand-materials" rows="8" required placeholder="每行尽量包含可直接引用的品牌原文，例如创立年份、工序、产品信息、荣誉登记等。"></textarea></label>
+            <label class="field"><span>受访内容 / 口述记录</span><textarea id="interview-notes" rows="5" placeholder="录入传承人访谈、品牌方口述、客户反馈等，系统将提取访谈洞察并仅作为有来源内容使用。"></textarea></label>
             <div class="import-row">
               <label class="file-button">导入 TXT / MD / JSON / CSV<input id="file-import" type="file" accept=".txt,.md,.markdown,.json,.csv,text/plain,application/json,text/csv"></label>
               <span id="file-import-status">支持 UTF-8 文本，导入后仍可编辑</span>
@@ -126,7 +127,7 @@
 
         <article class="panel create-panel reveal">
           <div class="panel-head">
-            <div><span class="panel-index">B</span><h3>内容共创工作台</h3></div>
+            <div><span class="panel-index">B</span><h3>叙事共创工作台</h3></div>
             <span class="status-chip" id="job-status">等待任务</span>
           </div>
           <form id="content-form" novalidate>
@@ -140,39 +141,39 @@
               </div>
             </fieldset>
             <fieldset class="choice-group">
-              <legend>内容类型</legend>
+              <legend>叙事输出组合</legend>
               <div class="choice-grid content-grid">
-                <label class="choice-card"><input type="radio" name="contentType" value="package" checked><span class="choice-icon">包</span><strong>平台内容包</strong></label>
-                <label class="choice-card"><input type="radio" name="contentType" value="campaign"><span class="choice-icon">策</span><strong>跨平台传播方案</strong></label>
-                <label class="choice-card"><input type="radio" name="contentType" value="video"><span class="choice-icon">镜</span><strong>短视频脚本</strong></label>
-                <label class="choice-card"><input type="radio" name="contentType" value="note"><span class="choice-icon">记</span><strong>小红书笔记</strong></label>
+                <label class="choice-card"><input type="radio" name="contentType" value="narrative" checked><span class="choice-icon">叙</span><strong>完整叙事包</strong></label>
+                <label class="choice-card"><input type="radio" name="contentType" value="story"><span class="choice-icon">事</span><strong>品牌故事</strong></label>
+                <label class="choice-card"><input type="radio" name="contentType" value="calendar"><span class="choice-icon">历</span><strong>内容日历</strong></label>
+                <label class="choice-card"><input type="radio" name="contentType" value="copy"><span class="choice-icon">传</span><strong>多平台文案</strong></label>
               </div>
             </fieldset>
             <div class="field-row two-col">
               <label class="field"><span>目标受众</span><input id="target-audience" value="25-35岁关注地方文化、愿意尝试传统新做的城市消费者" maxlength="120" required></label>
-              <label class="field"><span>传播主题</span><input id="campaign-theme" value="一块枣泥酥里的山东老味道" maxlength="120" required></label>
+              <label class="field"><span>叙事主题</span><input id="campaign-theme" value="一块枣泥酥里的山东老味道" maxlength="120" required></label>
             </div>
-            <label class="field"><span>内容目标</span><input id="content-goal" value="建立品牌记忆点，引导收藏与到店/下单了解" maxlength="160" required></label>
+            <label class="field"><span>共创目标</span><input id="content-goal" value="形成可持续更新的品牌故事、内容日历与年轻化表达方案" maxlength="160" required></label>
             <label class="field"><span>限制条件</span><textarea id="content-constraints" rows="3" placeholder="例如：不承诺功效；待核实信息不得写成确定事实；平台字数上限等。" required></textarea></label>
 
             <div class="case-switcher" aria-label="演示案例">
               <span>测试案例</span>
-              <button type="button" data-case="typical" class="is-active">典型案例</button>
-              <button type="button" data-case="complex">复杂输入</button>
-              <button type="button" data-case="boundary">边界输入</button>
+              <button type="button" data-case="typical" class="is-active">品牌故事案例</button>
+              <button type="button" data-case="complex">访谈与节令</button>
+              <button type="button" data-case="boundary">边界表达</button>
             </div>
-            <button class="button button-primary button-full" type="submit" id="generate-button">通过 WebSocket 生成内容</button>
+            <button class="button button-primary button-full" type="submit" id="generate-button">通过 WebSocket 生成叙事包</button>
           </form>
 
           <div class="live-progress" id="live-progress" aria-live="polite">
             <div class="live-heading"><strong>实时处理链路</strong><span id="progress-percent">0%</span></div>
             <div class="progress-track"><span id="progress-bar"></span></div>
             <ol class="progress-list" id="progress-list">
-              <li data-progress="brand"><span></span>品牌事实入库</li>
-              <li data-progress="retrieve"><span></span>检索事实上下文</li>
-              <li data-progress="generate"><span></span>生成候选内容</li>
-              <li data-progress="verify"><span></span>事实与风险校验</li>
-              <li data-progress="store"><span></span>整理审核证据</li>
+              <li data-progress="brand"><span></span>品牌与访谈入库</li>
+              <li data-progress="retrieve"><span></span>提取叙事线索</li>
+              <li data-progress="generate"><span></span>共创四类成果</li>
+              <li data-progress="verify"><span></span>事实与文化校验</li>
+              <li data-progress="store"><span></span>整理品牌确认证据</li>
             </ol>
             <div class="stream-window" id="stream-window">
               <span class="stream-placeholder">WebSocket 内容片段将在此实时出现…</span>
@@ -193,35 +194,36 @@
       </div>
       <div class="risk-layout">
         <div class="risk-list" id="risk-list">
-          <div class="empty-state panel"><span class="empty-glyph">检</span><p>暂无风险扫描结果。生成内容后会自动执行医疗功效、绝对化宣传、虚假荣誉、无依据年份和工艺描述校验。</p></div>
+          <div class="empty-state panel"><span class="empty-glyph">检</span><p>暂无校验结果。生成内容后会自动执行医疗功效、绝对化宣传、非遗身份、文化表述、无依据年份和工艺描述校验。</p></div>
         </div>
         <aside class="boundary-note panel reveal">
           <span class="boundary-seal">界</span>
           <h3>工具边界</h3>
-          <p>本工具用于内容辅助与合规初筛，不构成法律意见，也不替代品牌方对事实、资质和最终文案的审核。</p>
-          <ul><li>AI 只能把知识库内容当作确定事实</li><li>无来源信息统一标记“待核实”</li><li>高风险内容必须人工修改后才能发布</li><li>审核记录保留 AI 原稿与人工稿</li></ul>
+          <p>本工具用于叙事整理与合规初筛，不构成法律意见，也不替代品牌方对事实、文化内涵、资质和最终表达的确认。</p>
+          <ul><li>AI 只能把知识库内容当作确定事实</li><li>无来源信息统一标记“待核实”</li><li>高风险内容必须由品牌方修改确认</li><li>品牌确认记录保留 AI 原稿与品牌确认稿</li></ul>
         </aside>
       </div>
     </section>
 
     <section class="results-section section-shell" id="results" aria-labelledby="results-title">
       <div class="section-heading reveal">
-        <div><p class="section-kicker">03 / 内容结果与人工审核</p><h2 id="results-title">一份任务，三类可用成果</h2></div>
+        <div><p class="section-kicker">03 / 内容结果与品牌确认</p><h2 id="results-title">一份任务，四类叙事成果</h2></div>
         <div class="result-actions">
           <span id="result-status">尚无生成结果</span>
           <button class="button button-outline" type="button" id="export-markdown" disabled>导出 Markdown</button>
         </div>
       </div>
       <div class="artifact-grid" id="artifact-grid">
-        <article class="artifact-card empty-artifact"><span>主</span><h3>主内容草稿</h3><p>生成后可接受、编辑、标记风险或复制。</p></article>
-        <article class="artifact-card empty-artifact"><span>题</span><h3>选题矩阵</h3><p>围绕同一事实资产拆解平台化选题。</p></article>
-        <article class="artifact-card empty-artifact"><span>镜</span><h3>平台脚本</h3><p>提供镜头、口播、画面和事实提示。</p></article>
+        <article class="artifact-card empty-artifact"><span>事</span><h3>品牌故事</h3><p>基于品牌历史与受访内容形成可追溯叙事。</p></article>
+        <article class="artifact-card empty-artifact"><span>历</span><h3>内容日历</h3><p>按节点、主题与平台规划持续内容。</p></article>
+        <article class="artifact-card empty-artifact"><span>传</span><h3>多平台文案</h3><p>适配小红书、抖音和微信公众号表达。</p></article>
+        <article class="artifact-card empty-artifact"><span>新</span><h3>年轻化表达方案</h3><p>在保持文化内涵的前提下提出年轻受众可理解的表达。</p></article>
       </div>
     </section>
 
     <section class="reviews-section section-shell" id="reviews" aria-labelledby="reviews-title">
       <div class="section-heading reveal">
-        <div><p class="section-kicker">04 / 审核留痕与运行证据</p><h2 id="reviews-title">每一步都可回看，每一次修改都有责任人</h2></div>
+        <div><p class="section-kicker">04 / 品牌确认与运行证据</p><h2 id="reviews-title">每一步都可回看，每一次修改都有责任人</h2></div>
         <button class="button button-ghost" type="button" data-action="clear-demo">清空本次演示</button>
       </div>
       <div class="evidence-grid">
@@ -229,14 +231,14 @@
           <div class="panel-head"><div><span class="panel-index">T</span><h3>最近生成任务</h3></div><span class="status-chip" id="task-count">0 条</span></div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>任务时间</th><th>品牌 / 模式</th><th>模型 / 提示词</th><th>风险</th><th>审核</th></tr></thead>
+              <thead><tr><th>任务时间</th><th>品牌 / 模式</th><th>模型 / 提示词</th><th>风险</th><th>品牌确认</th></tr></thead>
               <tbody id="task-table"><tr><td colspan="5" class="table-empty">暂无任务记录</td></tr></tbody>
             </table>
           </div>
         </article>
         <article class="panel audit-panel reveal">
-          <div class="panel-head"><div><span class="panel-index">R</span><h3>人工审核记录</h3></div><span class="status-chip" id="review-count">0 次</span></div>
-          <div class="audit-timeline" id="audit-timeline"><div class="empty-state"><span class="empty-glyph">审</span><p>接受、修改、驳回或标记内容后，将在此记录审核人、动作、前后内容和时间。</p></div></div>
+          <div class="panel-head"><div><span class="panel-index">R</span><h3>品牌方确认记录</h3></div><span class="status-chip" id="review-count">0 次</span></div>
+          <div class="audit-timeline" id="audit-timeline"><div class="empty-state"><span class="empty-glyph">审</span><p>品牌方确认、修改或退回内容后，将在此记录确认人、动作、前后内容和时间。</p></div></div>
         </article>
       </div>
       <div class="protocol-strip reveal">
@@ -250,19 +252,19 @@
     <section class="tech-section section-shell" id="tech" aria-labelledby="tech-title">
       <div class="section-heading reveal">
         <div><p class="section-kicker">05 / 工具说明</p><h2 id="tech-title">不是一个大模型黑盒，而是一条可验证的传播生产线</h2></div>
-        <p>前端、网关、AI 适配、校验和人工审核彼此解耦，便于替换模型、接入品牌系统或在比赛现场独立演示。</p>
+        <p>前端、网关、叙事适配、文化校验和品牌确认彼此解耦，便于接入品牌档案或在比赛现场独立演示。</p>
       </div>
       <div class="tech-flow reveal" aria-label="技术流程">
-        <div><span>01</span><strong>品牌资料</strong><small>文本 / TXT / Markdown / JSON / CSV</small></div><i>→</i>
+        <div><span>01</span><strong>品牌档案与访谈</strong><small>历史 / 产品 / 受访内容</small></div><i>→</i>
         <div><span>02</span><strong>WebSocket 网关</strong><small>真实 /ws 协议与状态同步</small></div><i>→</i>
-        <div><span>03</span><strong>AI 适配层</strong><small>远程模型优先，失败确定性回退</small></div><i>→</i>
-        <div><span>04</span><strong>事实与风险校验</strong><small>引用编号 / 风险等级 / 修改建议</small></div><i>→</i>
-        <div><span>05</span><strong>人工审核与导出</strong><small>双稿留痕 / Markdown 交付</small></div>
+        <div><span>03</span><strong>叙事适配层</strong><small>远程模型优先，失败确定性回退</small></div><i>→</i>
+        <div><span>04</span><strong>事实与文化校验</strong><small>引用编号 / 风险等级 / 修改建议</small></div><i>→</i>
+        <div><span>05</span><strong>品牌方确认与导出</strong><small>双稿留痕 / Markdown 交付</small></div>
       </div>
       <div class="tech-cards">
         <article class="panel reveal"><span>可运行</span><h3>无构建静态前端</h3><p>原生 HTML、CSS、JavaScript，相对路径适配 GitHub Pages 子目录，无外部 CDN 与前端密钥。</p></article>
-        <article class="panel reveal"><span>可验证</span><h3>共享确定性引擎</h3><p>事实提取与风险规则在前后端复用，网关不可用时仍能完整演示，结果口径保持一致。</p></article>
-        <article class="panel reveal"><span>可追溯</span><h3>完整证据字段</h3><p>任务记录模型、提示词版本、事实引用、风险、AI 原稿、人工修改稿、审核动作和时间。</p></article>
+        <article class="panel reveal"><span>可确认</span><h3>品牌方确认机制</h3><p>AI 提供初稿，品牌方确认事实、文化内涵和对外表达，确认与修改全部留痕。</p></article>
+        <article class="panel reveal"><span>可追溯</span><h3>完整证据字段</h3><p>任务记录模型、提示词版本、事实引用、文化风险、AI 原稿、品牌确认稿、确认动作和时间。</p></article>
         <article class="panel reveal"><span>可扩展</span><h3>后端独占密钥</h3><p>远程模型只由 Node 网关读取环境变量调用；支持 Docker、Render、Railway 与 Fly.io。</p></article>
       </div>
       <div class="doc-links reveal">
@@ -273,7 +275,7 @@
 
   <footer class="site-footer">
     <div class="section-shell footer-grid">
-      <div><strong>鲁韵新声</strong><p>山东老字号品牌叙事与多平台内容共创助手</p></div>
+      <div><strong>老字号叙事工坊</strong><p>老字号与非遗品牌内容助手</p></div>
       <p>原型演示数据不构成真实品牌事实或商业宣传依据。</p>
       <a href="#top">返回顶部 ↑</a>
     </div>
@@ -290,6 +292,11 @@
   <script src="js/app.js"></script>
 </body>
 </html>
+
+
+
+
+
 
 
 

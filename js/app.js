@@ -116,12 +116,15 @@
   }
 
   function collectBrand() {
+    var historyProducts = $('brand-materials').value.trim();
+    var interviews = $('interview-notes').value.trim();
     return {
       id: ($('brand-select').value === 'new' ? 'brand-' + Date.now() : $('brand-select').value),
       name: $('brand-name').value.trim(),
       type: $('brand-type').value.trim(),
       tone: $('brand-tone').value.trim(),
-      materials: $('brand-materials').value.trim(),
+      materials: historyProducts + (interviews ? '\n' + interviews : ''),
+      interviews: interviews,
       isDemo: $('brand-select').value === 'luxiangzhai'
     };
   }
@@ -157,9 +160,9 @@
     if (event === 'content.generate') {
       var stages = [
         { stage: 'retrieve', percent: 18, message: '从知识库召回品牌事实与未核实线索' },
-        { stage: 'generate', percent: 38, message: '本地确定性引擎生成平台候选草稿' },
-        { stage: 'verify', percent: 70, message: '逐句扫描医疗功效、绝对化表达、荣誉和年份' },
-        { stage: 'store', percent: 90, message: '整理事实引用、原稿和审核证据' }
+        { stage: 'generate', percent: 38, message: '本地确定性引擎生成品牌故事、内容日历、多平台文案和年轻化表达方案' },
+        { stage: 'verify', percent: 70, message: '逐句扫描医疗功效、非遗身份、文化正统性、荣誉和年份' },
+        { stage: 'store', percent: 90, message: '整理事实引用、AI 初稿和品牌方确认证据' }
       ];
       var result = null;
       var chain = delay(170 * scale);
@@ -197,7 +200,7 @@
       return delay(90 * scale).then(function () {
         var result = {
           reviewId: uid('review'), jobId: payload.jobId, artifactId: payload.artifactId,
-          action: payload.action, reviewer: payload.reviewer || '当前审核员', note: payload.note || '',
+          action: payload.action, reviewer: payload.reviewer || '当前品牌确认人', note: payload.note || '',
           before: payload.before || '', after: payload.after || '', createdAt: now(), mode: 'local'
         };
         if (onEvent) onEvent({ event: 'review.saved', payload: result });
@@ -227,7 +230,7 @@
     setProgress('ingest', 8, '提交品牌资料并识别可引用原文');
     try {
       var result = await requestTransport('brand.ingest', {
-        brand: brand, sourceName: brand.isDemo ? '鲁香斋模拟品牌档案' : '用户提交品牌资料'
+        brand: brand, sourceName: brand.isDemo ? '鲁香斋品牌档案与受访记录（模拟）' : '用户提交品牌资料'
       }, 'brand.ready', function (message) {
         updateLastEvent(message);
         if (message.event === 'brand.ready') setProgress('retrieve', 24, '品牌事实提取完成，进入可检索状态');
@@ -239,7 +242,7 @@
       $('brand-status').className = 'status-chip is-active';
       setProgress('retrieve', 24, '知识库已建立，可在生成时逐条引用事实编号');
       renderAll();
-      toast('品牌知识库已建立：' + state.facts.length + ' 条记录，其中 ' + state.facts.filter(function (fact) { return fact.status === '待核实'; }).length + ' 条待核实。');
+      toast('品牌叙事档案已建立：' + state.facts.length + ' 条记录，其中 ' + state.facts.filter(function (fact) { return fact.status === '待核实'; }).length + ' 条待核实。');
       return result;
     } catch (error) {
       $('brand-status').textContent = '提取失败';
@@ -285,14 +288,14 @@
         jobId: state.currentJobId, createdAt: result.createdAt || now(), brandName: payload.brand.name,
         platformName: payload.platformName, mode: state.transportMode, model: (result.modelInfo && result.modelInfo.model) || 'local-deterministic-demo',
         promptVersion: (result.modelInfo && result.modelInfo.promptVersion) || Engine.PROMPT_VERSION,
-        riskCount: state.risks.length, highRisk: highRisk, reviewCount: 0, status: highRisk ? '已拦截待修改' : '待审核'
+        riskCount: state.risks.length, highRisk: highRisk, reviewCount: 0, status: highRisk ? '已拦截待修改' : '待品牌确认'
       });
       setProgress('store', 100, '生成完成，三份内容成果已建立事实引用');
       Renderer.updatePipeline('review');
-      $('job-status').textContent = highRisk ? highRisk + ' 项高风险' : '待人工审核';
+      $('job-status').textContent = highRisk ? highRisk + ' 项高风险' : '待品牌方确认';
       $('job-status').className = 'status-chip ' + (highRisk ? 'is-warning' : 'is-active');
       renderAll();
-      toast(highRisk ? '生成完成，检测到 ' + highRisk + ' 项高风险，禁止直接发布。' : '生成完成，请进行人工审核。', highRisk ? 'warning' : 'info');
+      toast(highRisk ? '生成完成，检测到 ' + highRisk + ' 项高风险，禁止直接对外发布。' : '生成完成，请品牌方确认事实、文化内涵和对外表达。', highRisk ? 'warning' : 'info');
       return result;
     } catch (error) {
       $('job-status').textContent = '生成失败';
@@ -320,7 +323,7 @@
     }
     var review = await requestTransport('review.update', {
       jobId: state.currentJobId, artifactId: artifactId, action: action,
-      reviewer: options.reviewer || '当前审核员', note: options.note || (action === 'accept' ? '事实引用和表达边界已核对。' : action === 'edit' ? '已保存人工修改稿。' : '已标记风险，等待修改。'),
+      reviewer: options.reviewer || '当前品牌确认人', note: options.note || (action === 'accept' ? '事实、文化内涵和对外表达已由品牌方确认。' : action === 'edit' ? '已保存品牌方确认稿，AI 原稿保留。' : '已退回修改，等待品牌方确认。'),
       before: before, after: after
     }, 'review.saved');
     if (action === 'accept') artifact.status = 'accepted';
@@ -336,10 +339,10 @@
     var task = state.tasks.filter(function (item) { return item.jobId === state.currentJobId; })[0];
     if (task) {
       task.reviewCount += 1;
-      task.status = action === 'accept' ? '已接受' : action === 'flag' ? '已标记风险' : action === 'reject' ? '已驳回' : '人工修改待复审';
+      task.status = action === 'accept' ? '品牌方已确认' : action === 'flag' ? '已退回修改' : action === 'reject' ? '已驳回' : '品牌方修改待复审';
     }
     renderAll();
-    if (!options.silent) toast('审核记录已保存：' + (action === 'accept' ? '接受' : action === 'edit' ? '人工修改' : action === 'reject' ? '驳回' : '标记风险'));
+    if (!options.silent) toast('品牌确认记录已保存：' + (action === 'accept' ? '品牌方确认' : action === 'edit' ? '品牌方修改' : action === 'reject' ? '驳回' : '退回修改'));
     return review;
   }
 
@@ -364,13 +367,13 @@
     }
     if (action === 'save') {
       var editor = card.querySelector('.artifact-textarea');
-      submitReview(artifactId, 'edit', { content: editor.value, note: '保存人工修改稿，原稿已保留。' }).then(function (review) {
+      submitReview(artifactId, 'edit', { content: editor.value, note: '保存品牌方修改稿，AI 原稿已保留。' }).then(function (review) {
         if (review) card.classList.remove('is-editing');
       });
       return;
     }
     if (action === 'flag') {
-      submitReview(artifactId, 'flag', { note: '审核员认为该成果需在发布前继续修改。' });
+      submitReview(artifactId, 'flag', { note: '品牌方认为该成果需在对外表达前继续修改。' });
       return;
     }
     if (action === 'accept') submitReview(artifactId, 'accept');
@@ -379,7 +382,7 @@
   function exportMarkdown() {
     if (!state.artifacts.length) return;
     var brand = state.brand || collectBrand();
-    var lines = ['# 鲁韵新声｜' + brand.name + '内容审核包', '', '> 导出时间：' + new Date().toLocaleString('zh-CN') + '  ', '> 协议版本：luyun-gateway/1.0  ', '> 运行模式：' + state.transportMode, ''];
+    var lines = ['# 老字号叙事工坊｜' + brand.name + '内容品牌确认包', '', '> 导出时间：' + new Date().toLocaleString('zh-CN') + '  ', '> 协议版本：luyun-gateway/1.0  ', '> 运行模式：' + state.transportMode, ''];
     lines.push('## 事实知识库');
     state.facts.forEach(function (fact) {
       lines.push('- **' + fact.id + '｜' + fact.category + '**：' + fact.text + '  ');
@@ -396,7 +399,7 @@
     state.artifacts.forEach(function (artifact) {
       lines.push('', '### ' + artifact.title, '', '状态：' + artifact.status + '  ', '模型：' + artifact.modelInfo.model + '  ', '提示词：' + artifact.modelInfo.promptVersion, '', artifact.content);
     });
-    lines.push('', '## 审核记录');
+    lines.push('', '## 品牌方确认记录');
     state.reviews.forEach(function (review) {
       lines.push('- ' + Renderer.formatTime(review.createdAt) + '｜' + review.reviewer + '｜' + review.action + '｜' + review.artifactId);
       if (review.note) lines.push('  - ' + review.note);
@@ -406,7 +409,7 @@
     var url = URL.createObjectURL(blob);
     var link = document.createElement('a');
     link.href = url;
-    link.download = '鲁韵新声-' + brand.name.replace(/[\\/:*?"<>|]/g, '') + '-审核包.md';
+    link.download = '老字号叙事工坊-' + brand.name.replace(/[\\/:*?"<>|]/g, '') + '-品牌确认包.md';
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -418,6 +421,7 @@
     $('brand-type').value = brand.type || '';
     $('brand-tone').value = brand.tone || '';
     $('brand-materials').value = brand.materials || '';
+    $('interview-notes').value = brand.interviews || '';
   }
 
   function applyCase(caseId) {
@@ -444,8 +448,8 @@
       if (!ingestion) return;
       var generation = await generateContent();
       if (!generation) return;
-      await submitReview('main', 'accept', { reviewer: '演示评审员', note: '已完成事实引用、风险说明和发布边界核对。', silent: true });
-      toast('一键评审演示完成：资料入库、内容生成、风险校验和人工审核均已跑通。');
+      await submitReview('story', 'accept', { reviewer: '演示品牌确认人', note: '已完成事实核对、文化内涵确认和对外表达确认。', silent: true });
+      toast('一键叙事演示完成：品牌与访谈入库、四类成果生成、文化校验和品牌方确认均已跑通。');
       $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
     } finally {
       setBusy(button, false);
@@ -563,7 +567,7 @@
         gateway.send('state.sync', { client: 'github-pages', version: Config.appVersion });
         toast('WebSocket 实时网关已连接，将使用服务端生成链路。');
       } else {
-        toast('未连接远程网关，已自动进入本地演示模式；全部核心评审功能仍可使用。', 'warning');
+        toast('未连接远程网关，已自动进入本地演示模式；全部核心叙事与品牌确认功能仍可使用。', 'warning');
       }
     });
     state.initialized = true;
@@ -581,4 +585,9 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 }(window, document));
+
+
+
+
+
 

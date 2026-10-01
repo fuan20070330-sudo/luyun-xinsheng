@@ -61,7 +61,7 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   await waitForState(page, () => window.__LUYUN_APP__ && window.__LUYUN_APP__.state.initialized);
   await page.waitForFunction(() => document.getElementById('connection-pill').getAttribute('data-state') === 'connected', null, { timeout: 10000 });
   await page.click('[data-action="run-demo"]');
-  await page.waitForFunction(() => window.__LUYUN_APP__.state.artifacts.length === 3, null, { timeout: 20000 });
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.artifacts.length === 4, null, { timeout: 20000 });
   await page.waitForFunction(() => window.__LUYUN_APP__.state.reviews.length >= 1, null, { timeout: 10000 });
   const first = await page.evaluate(() => ({
     mode: window.__LUYUN_APP__.state.transportMode,
@@ -72,8 +72,8 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
     protocol: document.getElementById('connection-protocol').textContent
   }));
   assert.equal(first.mode, 'WebSocket 实时网关');
-  assert.equal(first.verified, 5);
-  assert.equal(first.artifacts, 3);
+  assert.equal(first.verified, 7);
+  assert.equal(first.artifacts, 4);
   assert.equal(first.protocol, 'luyun-gateway/1.0');
 
   await page.click('[data-case="complex"]');
@@ -84,7 +84,7 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
     artifacts: window.__LUYUN_APP__.state.artifacts.length,
     facts: window.__LUYUN_APP__.state.facts.length
   }));
-  assert.equal(complex.artifacts, 3);
+  assert.equal(complex.artifacts, 4);
 
   await page.click('[data-case="boundary"]');
   await page.click('#generate-button');
@@ -102,15 +102,15 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   assert.ok(boundary.content.includes('发布拦截'));
   assert.equal(boundary.cards, boundary.high);
 
-  await page.click('[data-artifact="main"] [data-review="edit"]');
-  await page.waitForFunction(() => document.querySelector('[data-artifact="main"]').classList.contains('is-editing'), null, { timeout: 5000 });
-  const original = await page.evaluate(() => window.__LUYUN_APP__.state.artifacts.find((artifact) => artifact.id === 'main').originalContent);
-  await page.fill('[data-artifact="main"] .artifact-textarea', '人工复核稿：仅保留已核实内容。所有未证实称号与功效表述均不进入发布文案。');
-  await page.click('[data-artifact="main"] [data-review="save"]');
+  await page.click('[data-artifact="story"] [data-review="edit"]');
+  await page.waitForFunction(() => document.querySelector('[data-artifact="story"]').classList.contains('is-editing'), null, { timeout: 5000 });
+  const original = await page.evaluate(() => window.__LUYUN_APP__.state.artifacts.find((artifact) => artifact.id === 'story').originalContent);
+  await page.fill('[data-artifact="story"] .artifact-textarea', '人工复核稿：仅保留已核实内容。所有未证实称号与功效表述均不进入发布文案。');
+  await page.click('[data-artifact="story"] [data-review="save"]');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.reviews.length >= 2, null, { timeout: 10000 });
   const editReview = await page.evaluate(() => ({
-    content: window.__LUYUN_APP__.state.artifacts.find((artifact) => artifact.id === 'main').content,
-    original: window.__LUYUN_APP__.state.artifacts.find((artifact) => artifact.id === 'main').originalContent,
+    content: window.__LUYUN_APP__.state.artifacts.find((artifact) => artifact.id === 'story').content,
+    original: window.__LUYUN_APP__.state.artifacts.find((artifact) => artifact.id === 'story').originalContent,
     review: window.__LUYUN_APP__.state.reviews[0]
   }));
   assert.equal(editReview.original, original);
@@ -121,7 +121,7 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   const downloadPromise = page.waitForEvent('download');
   await page.click('#export-markdown');
   const download = await downloadPromise;
-  assert.match(download.suggestedFilename(), /鲁韵新声.*审核包\.md$/);
+  assert.match(download.suggestedFilename(), /老字号叙事工坊.*品牌确认包\.md$/);
   await page.screenshot({ path: path.join(artifactsDir, 'desktop-full.png'), fullPage: true });
 
   await page.setViewportSize({ width: 390, height: 844 });
@@ -140,7 +140,7 @@ async function runFallbackFlow(context, baseUrl, consoleErrors) {
   await waitForState(page, () => window.__LUYUN_APP__ && window.__LUYUN_APP__.state.initialized);
   await page.waitForFunction(() => document.getElementById('connection-pill').getAttribute('data-state') === 'disconnected', null, { timeout: 8000 });
   await page.click('[data-action="run-demo"]');
-  await page.waitForFunction(() => window.__LUYUN_APP__.state.artifacts.length === 3 && window.__LUYUN_APP__.state.reviews.length >= 1, null, { timeout: 15000 });
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.artifacts.length === 4 && window.__LUYUN_APP__.state.reviews.length >= 1, null, { timeout: 15000 });
   const result = await page.evaluate(() => ({
     mode: window.__LUYUN_APP__.state.transportMode,
     artifacts: window.__LUYUN_APP__.state.artifacts.length,
@@ -149,7 +149,7 @@ async function runFallbackFlow(context, baseUrl, consoleErrors) {
   }));
   assert.equal(result.mode, '本地演示模式');
   assert.equal(result.status, '已断开');
-  assert.equal(result.artifacts, 3);
+  assert.equal(result.artifacts, 4);
   assert.ok(result.reviews >= 1);
   await page.screenshot({ path: path.join(artifactsDir, 'fallback-mobile.png'), fullPage: true });
   assert.equal(consoleErrors.length, 0, consoleErrors.join('\n'));
@@ -183,6 +183,9 @@ try {
   await new Promise((resolve) => gatewayBundle.server.close(resolve));
   await stop(staticServer);
 }
+
+
+
 
 
 

@@ -3,7 +3,7 @@
   "private": true,
   "name": "luyun-xinsheng",
   "type": "commonjs",
-  "description": "鲁韵新声：山东老字号品牌叙事与多平台内容共创助手",
+  "description": "老字号叙事工坊：老字号与非遗品牌内容助手",
   "engines": {
     "node": ">=18"
   },
