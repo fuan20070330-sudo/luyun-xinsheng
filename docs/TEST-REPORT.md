@@ -58,8 +58,42 @@ node tests/e2e.mjs
 - `tests/artifacts/mobile-full.png`
 - `tests/artifacts/fallback-mobile.png`
 
-## 部署验证
+## GitHub Actions 部署
 
-- GitHub Pages 工作流文件已配置。
-- GitHub Pages 正式部署状态与最终访问地址以仓库 Actions 部署结果为准。
-- WebSocket 网关需单独部署；前端未配置 WSS 地址或网关不可达时，按要求自动进入本地演示模式。
+工作流：`Deploy GitHub Pages`  
+结果：成功  
+运行记录：https://github.com/fuan20070330-sudo/luyun-xinsheng/actions/workflows/pages.yml
+
+Pages 构建方式：`workflow`  
+正式地址：https://fuan20070330-sudo.github.io/luyun-xinsheng/
+
+## 公网链接验证
+
+命令：
+
+```bash
+node tests/live-check.mjs
+```
+
+HTTP 资源验证：
+
+- 首页：HTTP 200，`text/html; charset=utf-8`。
+- `css/styles.css`：HTTP 200，`text/css; charset=utf-8`。
+- `js/app.js`：HTTP 200，`application/javascript; charset=utf-8`。
+- `shared/engine.js`：HTTP 200，`application/javascript; charset=utf-8`。
+- 7 个前端脚本均为相对路径，可在 `/luyun-xinsheng/` 子路径加载。
+
+真实浏览器验证：
+
+- 页面标题正确。
+- 未配置远程 WSS，自动进入“本地演示模式”。
+- 一键演示生成 3 个成果。
+- 生成 1 条人工审核记录。
+- 390px 视口 `scrollWidth = 390`、`innerWidth = 390`。
+- 浏览器控制台错误：0。
+- 页面脚本错误：0。
+
+## 结论
+
+本地引擎、Node WebSocket 网关、三案例流程、风险拦截、人工审核留痕、Markdown 导出、GitHub Actions 和公开 Pages 地址均已实际验证。当前仓库前端未填写外部 WSS 地址，因此正式页面默认使用本地演示模式；部署独立网关后修改 `js/config.js` 的 `gatewayUrl` 即可启用实时 WebSocket 链路。
+

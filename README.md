@@ -82,6 +82,7 @@ http://localhost:4173/?gateway=ws%3A%2F%2F127.0.0.1%3A8787%2Fws
 ```bash
 npm test
 npm run test:e2e
+npm run test:live
 npm run check
 ```
 
@@ -98,7 +99,7 @@ npm run check
 - Markdown 下载。
 - 390px 手机无横向滚动。
 
-当前验证结果见 [`docs/TEST-REPORT.md`](docs/TEST-REPORT.md)。
+当前验证结果见 [`docs/TEST-REPORT.md`](docs/TEST-REPORT.md)。`test:live` 直接访问已部署的 GitHub Pages 地址进行公网验收。
 
 ## WebSocket 协议
 
@@ -177,6 +178,7 @@ fly deploy
 ├── css/styles.css
 ├── docs/
 │   ├── CASES.md
+│   ├── DEPLOYMENT.md
 │   ├── PRODUCT.md
 │   ├── PROMPT-CHANGELOG.md
 │   ├── TECHNICAL.md
@@ -201,9 +203,12 @@ fly deploy
 │   ├── engine.js
 │   └── generator.js
 ├── tests/
+│   ├── artifacts/
 │   ├── e2e.mjs
+│   ├── live-check.mjs
 │   └── run-tests.mjs
 ├── Dockerfile
+├── LICENSE
 ├── fly.toml
 ├── index.html
 ├── package.json
@@ -225,3 +230,4 @@ fly deploy
 ## 许可
 
 代码以 MIT License 发布，模拟品牌与演示文案仅用于产品原型展示。
+

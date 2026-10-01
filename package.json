@@ -1,14 +1,17 @@
 {
-  "name": "luyun-xinsheng",
   "version": "1.0.0",
   "private": true,
-  "description": "鲁韵新声：山东老字号品牌叙事与多平台内容共创助手",
+  "name": "luyun-xinsheng",
   "type": "commonjs",
-  "engines": { "node": ">=18" },
+  "description": "鲁韵新声：山东老字号品牌叙事与多平台内容共创助手",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
-    "start": "node server/src/server.js",
-    "test": "node tests/run-tests.mjs",
     "test:e2e": "node tests/e2e.mjs",
+    "test": "node tests/run-tests.mjs",
+    "test:live": "node tests/live-check.mjs",
+    "start": "node server/src/server.js",
     "check": "node --check js/app.js && node --check js/renderer.js && node --check shared/engine.js && node --check shared/generator.js && node --check server/src/server.js"
   }
 }
