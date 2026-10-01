@@ -1,0 +1,13 @@
+{
+  "name": "luyun-xinsheng-gateway",
+  "version": "1.0.0",
+  "private": true,
+  "description": "鲁韵新声独立 WebSocket 网关",
+  "type": "commonjs",
+  "main": "src/server.js",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node src/server.js",
+    "check": "node --check src/server.js && node --check src/gateway.js && node --check src/ws-server.js && node --check src/ws-frame.js && node --check src/ai-adapter.js"
+  }
+}
