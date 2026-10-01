@@ -30,7 +30,7 @@ try {
     viewport: window.innerWidth,
     protocol: document.getElementById('connection-protocol').textContent
   }));
-  assert.equal(result.artifacts, 3);
+  assert.equal(result.artifacts, 4);
   assert.ok(result.reviews >= 1);
   assert.equal(result.mobileWidth, result.viewport);
   assert.equal(errors.length, 0, errors.join('\n'));
