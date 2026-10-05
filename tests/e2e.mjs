@@ -77,6 +77,7 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
     fieldHints: document.querySelectorAll('.field-hint').length,
     interviewPlaceholder: document.getElementById('interview-notes').getAttribute('placeholder'),
     materialPlaceholder: document.getElementById('brand-materials').getAttribute('placeholder'),
+    liveProgress: document.querySelectorAll('#live-progress').length,
     methodCards: document.querySelectorAll('.method-card').length,
     selectedMethods: document.querySelectorAll('input[name="promotionMethod"]:checked').length
   }));
@@ -85,6 +86,7 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   assert.ok(appChrome.fieldHints >= 9);
   assert.ok(appChrome.interviewPlaceholder.includes('受访人身份'));
   assert.ok(appChrome.materialPlaceholder.includes('每行一条'));
+  assert.equal(appChrome.liveProgress, 0);
   assert.equal(appChrome.methodCards, 8);
   assert.ok(appChrome.selectedMethods >= 1);
   await page.waitForFunction(() => document.getElementById('connection-pill').getAttribute('data-state') === 'connected', null, { timeout: 10000 });
@@ -189,6 +191,7 @@ async function runFallbackFlow(context, baseUrl, consoleErrors) {
     fieldHints: document.querySelectorAll('.field-hint').length,
     interviewPlaceholder: document.getElementById('interview-notes').getAttribute('placeholder'),
     materialPlaceholder: document.getElementById('brand-materials').getAttribute('placeholder'),
+    liveProgress: document.querySelectorAll('#live-progress').length,
     methodCards: document.querySelectorAll('.method-card').length,
     selectedMethods: document.querySelectorAll('input[name="promotionMethod"]:checked').length
   }));
@@ -197,6 +200,7 @@ async function runFallbackFlow(context, baseUrl, consoleErrors) {
   assert.ok(appChrome.fieldHints >= 9);
   assert.ok(appChrome.interviewPlaceholder.includes('受访人身份'));
   assert.ok(appChrome.materialPlaceholder.includes('每行一条'));
+  assert.equal(appChrome.liveProgress, 0);
   assert.equal(appChrome.methodCards, 8);
   assert.ok(appChrome.selectedMethods >= 1);
   await page.waitForFunction(() => document.getElementById('connection-pill').getAttribute('data-state') === 'disconnected', null, { timeout: 8000 });
@@ -244,6 +248,7 @@ try {
   await new Promise((resolve) => gatewayBundle.server.close(resolve));
   await stop(staticServer);
 }
+
 
 
 

@@ -131,8 +131,8 @@
     var keys = ['brand', 'retrieve', 'generate', 'verify', 'store'];
     var normalized = stage === 'ingest' ? 'brand' : stage;
     var index = keys.indexOf(normalized);
-    $('progress-percent').textContent = Math.max(0, Math.min(100, percent || 0)) + '%';
-    $('progress-bar').style.width = Math.max(0, Math.min(100, percent || 0)) + '%';
+    if ($('progress-percent')) $('progress-percent').textContent = Math.max(0, Math.min(100, percent || 0)) + '%';
+    if ($('progress-bar')) $('progress-bar').style.width = Math.max(0, Math.min(100, percent || 0)) + '%';
     $$('#progress-list li').forEach(function (item, itemIndex) {
       item.classList.toggle('is-done', itemIndex < index || percent >= 100);
       item.classList.toggle('is-active', itemIndex === index && percent < 100);
@@ -144,7 +144,7 @@
 
   function appendStream(message) {
     var stream = $('stream-window');
-    if (!message) return;
+    if (!message || !$('stream-window')) return;
     if (stream.querySelector('.stream-placeholder')) stream.textContent = '';
     var line = document.createElement('div');
     line.textContent = '› ' + message;
@@ -330,7 +330,7 @@
     state.risks = [];
     state.artifacts = [];
     renderAll();
-    $('stream-window').innerHTML = '<span class="stream-placeholder">任务已提交，等待服务端内容片段…</span>';
+    if ($('stream-window')) $('stream-window').textContent = '';
     setProgress('retrieve', 4, '创建 content.generate 任务');
     $('job-status').textContent = '生成中';
     $('job-status').className = 'status-chip is-active';
@@ -541,7 +541,7 @@
     $('brand-status').className = 'status-chip';
     $('job-status').textContent = '等待任务';
     $('job-status').className = 'status-chip';
-    $('stream-window').innerHTML = '<span class="stream-placeholder">WebSocket 内容片段将在此实时出现…</span>';
+    if ($('stream-window')) $('stream-window').textContent = '';
     setProgress('brand', 0, '');
     renderAll();
     showStep(1);
@@ -688,6 +688,7 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 }(window, document));
+
 
 
 

@@ -59,7 +59,7 @@ function createAiAdapter(env = {}) {
       '无来源信息必须写成“待核实”，高风险表述必须拒绝写成确定事实。',
       '输出 JSON 对象，字段为 story(字符串)、calendar(字符串)、copy(字符串)、youth(字符串)。',
       'story 是品牌故事；calendar 是四周内容日历；copy 是多平台文案；youth 是年轻化表达方案。',
-      '所有确定事实后必须保留对应 [Fxxx] 引用编号；品牌方负责确认事实、文化内涵和对外表达。不要输出 Markdown 代码围栏。'
+      '所有确定事实后必须保留对应 [Fxxx] 引用编号；品牌方负责确认事实、文化内涵和对外表达。文案要像真实运营稿，避免机械套模板和空泛口号。不要输出 Markdown 代码围栏。'
     ].join('\n');
     const user = JSON.stringify({
       brand: { name: payload.brand.name, type: payload.brand.type, tone: payload.brand.tone },
@@ -101,4 +101,5 @@ function createAiAdapter(env = {}) {
 }
 
 module.exports = { createAiAdapter, requestJson, endpointFromBase };
+
 

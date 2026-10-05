@@ -5,7 +5,7 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  var PROMPT_VERSION = 'brand-safe-content-v1.2';
+  var PROMPT_VERSION = 'brand-safe-narrative-v2.2';
   var CATEGORIES = ['历史', '工艺', '荣誉', '人物', '产品', '品牌理念', '访谈洞察'];
   var CATEGORY_TERMS = {
     '历史': ['创立', '始创', '创建', '始于', '年', '年代', '历史', '传承', '成立', '老字号', '字号'],

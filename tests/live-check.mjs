@@ -37,6 +37,7 @@ try {
     protocol: document.getElementById('connection-protocol').textContent,
     activeStep: document.querySelector('.app-step.is-active').getAttribute('data-step'),
     loginHidden: document.getElementById('login-screen').hidden,
+    liveProgress: document.querySelectorAll('#live-progress').length,
     methodCards: document.querySelectorAll('.method-card').length,
     techSections: document.querySelectorAll('#tech').length,
     footers: document.querySelectorAll('footer').length,
@@ -50,12 +51,14 @@ try {
   assert.ok(result.fieldHints >= 9);
   assert.equal(result.activeStep, '5');
   assert.equal(result.loginHidden, true);
+  assert.equal(result.liveProgress, 0);
   assert.equal(result.methodCards, 8);
   assert.equal(errors.length, 0, errors.join('\n'));
   console.log(JSON.stringify({ ok: true, url, ...result }, null, 2));
 } finally {
   await browser.close();
 }
+
 
 
 
