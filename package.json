@@ -1,9 +1,9 @@
 {
-  "version": "1.0.0",
+  "version": "2.2.0",
   "private": true,
   "name": "luyun-xinsheng",
   "type": "commonjs",
-  "description": "老字号叙事工坊：老字号与非遗品牌内容助手",
+  "description": "老字号叙事工坊：分页式内容共创应用",
   "engines": {
     "node": ">=18"
   },

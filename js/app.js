@@ -28,6 +28,8 @@
     pendingOnly: false,
     transportMode: '本地演示模式',
     lastEvent: '--',
+    user: '',
+    currentStep: 1,
     initialized: false
   };
 
@@ -39,6 +41,68 @@
   function selected(name) { return document.querySelector('input[name="' + name + '"]:checked'); }
   function platformName(value) { return Data.labelMaps.platform[value] || value; }
   function typeName(value) { return Data.labelMaps.contentType[value] || value; }
+  function selectedPromotionMethods() {
+    return $$('input[name="promotionMethod"]:checked').map(function (input) {
+      var item = Data.promotionMethods[input.value] || {};
+      return { id: input.value, title: item.title || input.value };
+    });
+  }
+
+  function renderMethodGrid() {
+    var grid = $('method-grid');
+    if (!grid || !Data.promotionMethods) return;
+    grid.innerHTML = Object.keys(Data.promotionMethods).map(function (id) {
+      var method = Data.promotionMethods[id];
+      return '<label class="method-card"><input type="checkbox" name="promotionMethod" value="' + id + '"' + (method.defaultSelected ? ' checked' : '') + '><strong>' + method.title + '</strong><small>' + method.summary + '<br><em>参考：' + method.source + '</em></small></label>';
+    }).join('');
+  }
+
+  function showStep(step) {
+    step = Number(step || 1);
+    state.currentStep = step;
+    $$('.app-step').forEach(function (page) { page.classList.toggle('is-active', Number(page.getAttribute('data-step')) === step); });
+    $$('.step-nav [data-page]').forEach(function (button) { button.classList.toggle('is-active', Number(button.getAttribute('data-page')) === step); });
+    var main = $('app-main');
+    if (main) main.scrollTop = 0;
+    window.scrollTo(0, 0);
+  }
+
+  function showApp(user) {
+    state.user = user || '演示用户';
+    document.body.setAttribute('data-authenticated', 'true');
+    $('current-user').textContent = state.user;
+    $('login-screen').hidden = true;
+    $('app-shell').hidden = false;
+    renderAll();
+    showStep(1);
+  }
+
+  function logout() {
+    state.user = '';
+    document.body.setAttribute('data-authenticated', 'false');
+    $('app-shell').hidden = true;
+    $('login-screen').hidden = false;
+    $('login-password').value = '';
+    $('login-account').focus();
+  }
+
+  function handleLogin(event, demo) {
+    if (event) event.preventDefault();
+    var account = $('login-account').value.trim();
+    var password = $('login-password').value;
+    if (!demo && (!account || !password)) {
+      $('login-account').classList.toggle('is-invalid', !account);
+      $('login-password').classList.toggle('is-invalid', !password);
+      toast('请输入账号和密码，或使用免密演示。', 'warning');
+      return;
+    }
+    showApp(account || '演示用户');
+    if (demo) {
+      setTimeout(function () { runDemo(); }, 120);
+    } else {
+      toast('已进入叙事工作台。');
+    }
+  }
 
   function toast(message, kind) {
     var region = $('toast-region');
@@ -91,7 +155,7 @@
   function updateLastEvent(message) {
     state.lastEvent = message.event || 'unknown';
     $('last-event').textContent = state.lastEvent;
-    $('last-sync').textContent = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+    if ($('last-sync')) $('last-sync').textContent = new Date().toLocaleTimeString('zh-CN', { hour12: false });
   }
 
   function renderAll() {
@@ -143,6 +207,8 @@
       theme: $('campaign-theme').value.trim(),
       goal: $('content-goal').value.trim(),
       constraints: $('content-constraints').value.trim(),
+      promotionMethods: selectedPromotionMethods().map(function (method) { return method.title; }),
+      promotionMethodIds: selectedPromotionMethods().map(function (method) { return method.id; }),
       isDemo: !!(state.brand && state.brand.isDemo)
     };
   }
@@ -290,11 +356,12 @@
         promptVersion: (result.modelInfo && result.modelInfo.promptVersion) || Engine.PROMPT_VERSION,
         riskCount: state.risks.length, highRisk: highRisk, reviewCount: 0, status: highRisk ? '已拦截待修改' : '待品牌确认'
       });
-      setProgress('store', 100, '生成完成，三份内容成果已建立事实引用');
+      setProgress('store', 100, '生成完成，四类叙事成果已建立事实引用和宣传方法参考');
       Renderer.updatePipeline('review');
       $('job-status').textContent = highRisk ? highRisk + ' 项高风险' : '待品牌方确认';
       $('job-status').className = 'status-chip ' + (highRisk ? 'is-warning' : 'is-active');
       renderAll();
+      showStep(5);
       toast(highRisk ? '生成完成，检测到 ' + highRisk + ' 项高风险，禁止直接对外发布。' : '生成完成，请品牌方确认事实、文化内涵和对外表达。', highRisk ? 'warning' : 'info');
       return result;
     } catch (error) {
@@ -397,7 +464,7 @@
     });
     lines.push('', '## 内容成果');
     state.artifacts.forEach(function (artifact) {
-      lines.push('', '### ' + artifact.title, '', '状态：' + artifact.status + '  ', '模型：' + artifact.modelInfo.model + '  ', '提示词：' + artifact.modelInfo.promptVersion, '', artifact.content);
+      lines.push('', '### ' + artifact.title, '', '状态：' + artifact.status + '  ', '模型：' + artifact.modelInfo.model + '  ', '提示词：' + artifact.modelInfo.promptVersion + '  ', '参考宣传方法：' + ((artifact.methods || []).join('、') || '未选择'), '', artifact.content);
     });
     lines.push('', '## 品牌方确认记录');
     state.reviews.forEach(function (review) {
@@ -434,6 +501,7 @@
     $('campaign-theme').value = item.theme;
     $('content-goal').value = item.goal;
     $('content-constraints').value = item.constraints;
+    if (item.methods) $$('input[name="promotionMethod"]').forEach(function (input) { input.checked = item.methods.indexOf(input.value) !== -1; });
     toast('已载入' + item.name + '：' + item.description);
   }
 
@@ -450,7 +518,7 @@
       if (!generation) return;
       await submitReview('story', 'accept', { reviewer: '演示品牌确认人', note: '已完成事实核对、文化内涵确认和对外表达确认。', silent: true });
       toast('一键叙事演示完成：品牌与访谈入库、四类成果生成、文化校验和品牌方确认均已跑通。');
-      $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      showStep(5);
     } finally {
       setBusy(button, false);
     }
@@ -476,6 +544,7 @@
     $('stream-window').innerHTML = '<span class="stream-placeholder">WebSocket 内容片段将在此实时出现…</span>';
     setProgress('brand', 0, '');
     renderAll();
+    showStep(1);
     toast('本次演示状态已清空。');
   }
 
@@ -500,8 +569,28 @@
     reader.readAsText(file, 'utf-8');
   }
 
+  async function handleNext(button) {
+    var target = Number(button.getAttribute('data-next'));
+    if (target === 2) {
+      if (!validateFields(['brand-type', 'brand-name', 'brand-tone'])) return;
+      showStep(2);
+      return;
+    }
+    if (target === 3) {
+      if (!validateFields(['brand-materials'])) return;
+      showStep(3);
+      return;
+    }
+    if (target === 4) {
+      var result = await ingestBrand();
+      if (result) showStep(4);
+      return;
+    }
+    showStep(target);
+  }
+
   function bindEvents() {
-    $('brand-form').addEventListener('submit', function (event) { event.preventDefault(); ingestBrand(); });
+    $('login-form').addEventListener('submit', function (event) { handleLogin(event, false); });
     $('content-form').addEventListener('submit', function (event) { event.preventDefault(); generateContent(); });
     $('brand-select').addEventListener('change', function () {
       if (this.value === 'new') {
@@ -509,6 +598,7 @@
         $('brand-type').value = '';
         $('brand-tone').value = '真诚、清楚、不夸大';
         $('brand-materials').value = '';
+        $('interview-notes').value = '';
         $('brand-name').focus();
         return;
       }
@@ -521,14 +611,24 @@
     });
     $('export-markdown').addEventListener('click', exportMarkdown);
     document.addEventListener('click', function (event) {
+      var pageButton = event.target.closest('[data-page]');
+      if (pageButton) {
+        showStep(Number(pageButton.getAttribute('data-page')));
+        return;
+      }
+      var nextButton = event.target.closest('[data-next]');
+      if (nextButton) {
+        handleNext(nextButton);
+        return;
+      }
       var action = event.target.closest('[data-action]');
       if (!action) return;
       var name = action.getAttribute('data-action');
-      if (name === 'run-demo') runDemo();
-      if (name === 'toggle-nav') {
-        var nav = $('site-nav');
-        nav.classList.toggle('is-open');
-        action.setAttribute('aria-expanded', String(nav.classList.contains('is-open')));
+      if (name === 'demo-login') handleLogin(null, true);
+      if (name === 'logout') logout();
+      if (name === 'run-demo') {
+        if (!state.user) showApp('演示用户');
+        runDemo();
       }
       if (name === 'filter-pending') {
         state.pendingOnly = !state.pendingOnly;
@@ -540,7 +640,6 @@
     document.addEventListener('click', function (event) {
       var caseButton = event.target.closest('[data-case]');
       if (caseButton) applyCase(caseButton.getAttribute('data-case'));
-      if (event.target.closest('.site-nav a')) $('site-nav').classList.remove('is-open');
     });
     window.addEventListener('beforeunload', function () { gateway.close(); });
   }
@@ -548,8 +647,10 @@
   function init() {
     populateBrand(Data.brands.luxiangzhai);
     applyCase('typical');
+    renderMethodGrid();
     setProgress('brand', 0, '');
     renderAll();
+    showStep(1);
     markConnection('connecting');
     gateway.on('status', function (message) { markConnection(message.status, message.detail); });
     gateway.on('event', function (message) {
@@ -578,13 +679,21 @@
       runDemo: runDemo,
       submitReview: submitReview,
       applyCase: applyCase,
-      clearDemo: clearDemo
+      clearDemo: clearDemo,
+      showStep: showStep,
+      login: showApp
     };
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 }(window, document));
+
+
+
+
+
+
 
 
 

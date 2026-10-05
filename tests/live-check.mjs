@@ -13,6 +13,10 @@ page.on('pageerror', (error) => errors.push('pageerror: ' + error.message));
 try {
   const response = await page.goto(url, { waitUntil: 'networkidle', timeout: 45000 });
   assert.equal(response.status(), 200);
+  await page.fill('#login-account', 'live-user');
+  await page.fill('#login-password', 'demo-pass');
+  await page.click('#login-form button[type=submit]');
+  await page.waitForFunction(() => document.getElementById('app-shell').hidden === false);
   await page.waitForFunction(() => window.__LUYUN_APP__ && window.__LUYUN_APP__.state.initialized, null, { timeout: 15000 });
   await page.waitForFunction(() => document.getElementById('connection-pill').getAttribute('data-state') === 'disconnected', null, { timeout: 10000 });
   await page.click('[data-action="run-demo"]');
@@ -31,6 +35,9 @@ try {
     mobileWidth: document.documentElement.scrollWidth,
     viewport: window.innerWidth,
     protocol: document.getElementById('connection-protocol').textContent,
+    activeStep: document.querySelector('.app-step.is-active').getAttribute('data-step'),
+    loginHidden: document.getElementById('login-screen').hidden,
+    methodCards: document.querySelectorAll('.method-card').length,
     techSections: document.querySelectorAll('#tech').length,
     footers: document.querySelectorAll('footer').length,
     fieldHints: document.querySelectorAll('.field-hint').length
@@ -41,11 +48,15 @@ try {
   assert.equal(result.techSections, 0);
   assert.equal(result.footers, 0);
   assert.ok(result.fieldHints >= 9);
+  assert.equal(result.activeStep, '5');
+  assert.equal(result.loginHidden, true);
+  assert.equal(result.methodCards, 8);
   assert.equal(errors.length, 0, errors.join('\n'));
   console.log(JSON.stringify({ ok: true, url, ...result }, null, 2));
 } finally {
   await browser.close();
 }
+
 
 
 

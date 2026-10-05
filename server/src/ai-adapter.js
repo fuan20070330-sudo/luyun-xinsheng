@@ -69,6 +69,7 @@ function createAiAdapter(env = {}) {
       theme: payload.theme,
       goal: payload.goal,
       constraints: payload.constraints,
+      promotionMethods: payload.promotionMethods || [],
       facts: facts.map((fact) => ({ id: fact.id, category: fact.category, text: fact.text, source: fact.source })),
       detectedRisks: risks.map((risk) => ({ level: risk.level, term: risk.term, reason: risk.reason, suggestion: risk.suggestion }))
     });

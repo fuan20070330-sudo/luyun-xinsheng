@@ -45,6 +45,7 @@ function testEngine() {
     theme: '一块枣泥酥里的山东老味道',
     goal: '建立品牌记忆点',
     constraints: '只使用事实库内容',
+    promotionMethods: ['品牌故事线', '文化知识科普'],
     modelInfo: { model: 'test-local', promptVersion: engine.PROMPT_VERSION },
     isDemo: true
   });
@@ -52,6 +53,7 @@ function testEngine() {
   assert.ok(artifacts.every((artifact) => artifact.content.length > 100));
   assert.deepEqual(artifacts.map((artifact) => artifact.id), ['story', 'calendar', 'copy', 'youth']);
   assert.ok(artifacts.every((artifact) => artifact.facts.length > 0));
+  assert.ok(artifacts.every((artifact) => artifact.methods.length === 2));
   assert.match(artifacts[0].content, /F00\d/);
   return { facts: facts.length, verified: facts.filter((fact) => fact.status !== '待核实').length, highRisks: highTerms.length, artifacts: artifacts.length };
 }
@@ -172,11 +174,12 @@ async function testGateway() {
       payload: {
         brand: brandReady.payload.brand, facts: brandReady.payload.facts, platform: 'matrix', platformName: '多平台矩阵',
         contentType: 'campaign', contentTypeName: '跨平台传播方案', audience: '年轻消费者', theme: '一块老味道',
-        goal: '形成内容矩阵', constraints: '不得添加功效承诺', isDemo: true
+        goal: '形成内容矩阵', constraints: '不得添加功效承诺', promotionMethods: ['品牌故事线', '节点内容日历'], isDemo: true
       }
     });
     const job = await client.waitFor('job.ready');
     assert.equal(job.payload.artifacts.length, 4);
+    assert.ok(job.payload.artifacts.every((artifact) => artifact.methods.length === 2));
     assert.ok(job.payload.risks.length >= 0);
     client.sendJson({
       event: 'review.update', requestId: 'review-test',
@@ -197,6 +200,7 @@ const engineResult = testEngine();
 const gatewayResult = await testGateway().catch((error) => { console.error('gateway test failed:', error.stack || error.message); process.exit(1); });
 console.log(JSON.stringify({ ok: true, engine: engineResult, gateway: gatewayResult }, null, 2));
 process.exit(0);
+
 
 
 

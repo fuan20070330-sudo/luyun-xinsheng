@@ -58,22 +58,39 @@ async function waitForState(page, expression, timeout = 20000) {
 
 async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   await page.goto(baseUrl + '?gateway=' + encodeURIComponent('ws://127.0.0.1:' + gatewayPort + '/ws'), { waitUntil: 'networkidle' });
+  await page.screenshot({ path: path.join(artifactsDir, 'login-page.png'), fullPage: true });
+  await page.fill('#login-account', 'test-user');
+  await page.fill('#login-password', 'demo-pass');
+  await page.click('#login-form button[type=submit]');
+  await page.waitForFunction(() => document.getElementById('app-shell').hidden === false);
+  assert.equal(await page.locator('.app-step.is-active').getAttribute('data-step'), '1');
+  await page.click('[data-next="2"]');
+  assert.equal(await page.locator('.app-step.is-active').getAttribute('data-step'), '2');
+  await page.click('[data-next="3"]');
+  assert.equal(await page.locator('.app-step.is-active').getAttribute('data-step'), '3');
+  await page.click('[data-next="4"]');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.facts.length >= 7 && document.querySelector('.app-step.is-active').getAttribute('data-step') === '4');
   await waitForState(page, () => window.__LUYUN_APP__ && window.__LUYUN_APP__.state.initialized);
   const appChrome = await page.evaluate(() => ({
     techSections: document.querySelectorAll('#tech').length,
     footers: document.querySelectorAll('footer').length,
     fieldHints: document.querySelectorAll('.field-hint').length,
     interviewPlaceholder: document.getElementById('interview-notes').getAttribute('placeholder'),
-    materialPlaceholder: document.getElementById('brand-materials').getAttribute('placeholder')
+    materialPlaceholder: document.getElementById('brand-materials').getAttribute('placeholder'),
+    methodCards: document.querySelectorAll('.method-card').length,
+    selectedMethods: document.querySelectorAll('input[name="promotionMethod"]:checked').length
   }));
   assert.equal(appChrome.techSections, 0);
   assert.equal(appChrome.footers, 0);
   assert.ok(appChrome.fieldHints >= 9);
   assert.ok(appChrome.interviewPlaceholder.includes('受访人身份'));
   assert.ok(appChrome.materialPlaceholder.includes('每行一条'));
+  assert.equal(appChrome.methodCards, 8);
+  assert.ok(appChrome.selectedMethods >= 1);
   await page.waitForFunction(() => document.getElementById('connection-pill').getAttribute('data-state') === 'connected', null, { timeout: 10000 });
   await page.click('[data-action="run-demo"]');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.artifacts.length === 4, null, { timeout: 20000 });
+  await page.waitForTimeout(1200);
   await page.waitForFunction(() => window.__LUYUN_APP__.state.reviews.length >= 1, null, { timeout: 10000 });
   const first = await page.evaluate(() => ({
     mode: window.__LUYUN_APP__.state.transportMode,
@@ -81,13 +98,16 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
     verified: window.__LUYUN_APP__.state.facts.filter((fact) => fact.status !== '待核实').length,
     artifacts: window.__LUYUN_APP__.state.artifacts.length,
     reviews: window.__LUYUN_APP__.state.reviews.length,
-    protocol: document.getElementById('connection-protocol').textContent
+    protocol: document.getElementById('connection-protocol').textContent,
+    methodLabels: window.__LUYUN_APP__.state.artifacts[0].methods || []
   }));
   assert.equal(first.mode, 'WebSocket 实时网关');
   assert.equal(first.verified, 7);
   assert.equal(first.artifacts, 4);
   assert.equal(first.protocol, 'luyun-gateway/1.0');
+  assert.ok(first.methodLabels.length >= 1);
 
+  await page.click('.step-nav [data-page="4"]');
   await page.click('[data-case="complex"]');
   await page.click('#generate-button');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.metrics.jobs >= 2, null, { timeout: 20000 });
@@ -98,6 +118,7 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   }));
   assert.equal(complex.artifacts, 4);
 
+  await page.click('.step-nav [data-page="4"]');
   await page.click('[data-case="boundary"]');
   await page.click('#generate-button');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.metrics.jobs >= 3, null, { timeout: 20000 });
@@ -149,19 +170,35 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
 async function runFallbackFlow(context, baseUrl, consoleErrors) {
   const page = await context.newPage();
   await page.goto(baseUrl + '?gateway=' + encodeURIComponent('ws://127.0.0.1:1/ws'), { waitUntil: 'domcontentloaded' });
+  await page.screenshot({ path: path.join(artifactsDir, 'login-page.png'), fullPage: true });
+  await page.fill('#login-account', 'test-user');
+  await page.fill('#login-password', 'demo-pass');
+  await page.click('#login-form button[type=submit]');
+  await page.waitForFunction(() => document.getElementById('app-shell').hidden === false);
+  assert.equal(await page.locator('.app-step.is-active').getAttribute('data-step'), '1');
+  await page.click('[data-next="2"]');
+  assert.equal(await page.locator('.app-step.is-active').getAttribute('data-step'), '2');
+  await page.click('[data-next="3"]');
+  assert.equal(await page.locator('.app-step.is-active').getAttribute('data-step'), '3');
+  await page.click('[data-next="4"]');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.facts.length >= 7 && document.querySelector('.app-step.is-active').getAttribute('data-step') === '4');
   await waitForState(page, () => window.__LUYUN_APP__ && window.__LUYUN_APP__.state.initialized);
   const appChrome = await page.evaluate(() => ({
     techSections: document.querySelectorAll('#tech').length,
     footers: document.querySelectorAll('footer').length,
     fieldHints: document.querySelectorAll('.field-hint').length,
     interviewPlaceholder: document.getElementById('interview-notes').getAttribute('placeholder'),
-    materialPlaceholder: document.getElementById('brand-materials').getAttribute('placeholder')
+    materialPlaceholder: document.getElementById('brand-materials').getAttribute('placeholder'),
+    methodCards: document.querySelectorAll('.method-card').length,
+    selectedMethods: document.querySelectorAll('input[name="promotionMethod"]:checked').length
   }));
   assert.equal(appChrome.techSections, 0);
   assert.equal(appChrome.footers, 0);
   assert.ok(appChrome.fieldHints >= 9);
   assert.ok(appChrome.interviewPlaceholder.includes('受访人身份'));
   assert.ok(appChrome.materialPlaceholder.includes('每行一条'));
+  assert.equal(appChrome.methodCards, 8);
+  assert.ok(appChrome.selectedMethods >= 1);
   await page.waitForFunction(() => document.getElementById('connection-pill').getAttribute('data-state') === 'disconnected', null, { timeout: 8000 });
   await page.click('[data-action="run-demo"]');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.artifacts.length === 4 && window.__LUYUN_APP__.state.reviews.length >= 1, null, { timeout: 15000 });
@@ -200,13 +237,16 @@ try {
   const connected = await runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors);
   await page.close();
   const fallback = await runFallbackFlow(context, baseUrl, []);
-  console.log(JSON.stringify({ ok: true, baseUrl, connected, fallback, screenshots: ['desktop-full.png', 'mobile-full.png', 'fallback-mobile.png'] }, null, 2));
+  console.log(JSON.stringify({ ok: true, baseUrl, connected, fallback, screenshots: ['login-page.png', 'desktop-full.png', 'mobile-full.png', 'fallback-mobile.png'] }, null, 2));
 } finally {
   await browser.close();
   gatewayBundle.gateway.close();
   await new Promise((resolve) => gatewayBundle.server.close(resolve));
   await stop(staticServer);
 }
+
+
+
 
 
 

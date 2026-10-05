@@ -85,6 +85,7 @@
     }
     grid.innerHTML = artifacts.map(function (artifact) {
       var refs = (artifact.facts || []).length ? artifact.facts.map(function (id) { return '<span class="fact-ref">' + escapeHtml(id) + '</span>'; }).join('') : '<span class="fact-ref">待补充</span>';
+      var methods = (artifact.methods || []).length ? artifact.methods.map(function (method) { return '<span class="method-ref">' + escapeHtml(method) + '</span>'; }).join('') : '<span class="method-ref">方法待选择</span>';
       var highRisk = artifact.status === 'flagged';
       return '<article class="artifact-card' + (highRisk ? ' is-high-risk' : '') + '" data-artifact="' + escapeHtml(artifact.id) + '">' +
         '<div class="artifact-head"><div><span class="artifact-label">' + escapeHtml(artifact.label || '内容成果') + '</span><h3>' + escapeHtml(artifact.title) + '</h3></div><span class="artifact-state" data-state="' + escapeHtml(artifact.status || 'draft') + '">' + artifactStatus(artifact.status) + '</span></div>' +
@@ -92,6 +93,7 @@
         '<textarea class="artifact-textarea" data-editor="' + escapeHtml(artifact.id) + '" aria-label="编辑' + escapeHtml(artifact.title) + '">' + escapeHtml(artifact.content) + '</textarea>' +
         '<div class="artifact-meta"><span class="meta-chip">模型：' + escapeHtml((artifact.modelInfo && artifact.modelInfo.model) || 'local-deterministic-demo') + '</span><span class="meta-chip">提示词：' + escapeHtml((artifact.modelInfo && artifact.modelInfo.promptVersion) || 'brand-safe-content-v1.2') + '</span></div>' +
         '<div class="fact-refs" aria-label="事实引用">' + refs + '</div>' +
+        '<div class="artifact-methods" aria-label="参考宣传方法">' + methods + '</div>' +
         '<div class="artifact-actions"><button type="button" data-review="accept" data-artifact="' + escapeHtml(artifact.id) + '">品牌确认</button><button type="button" class="edit-action" data-review="edit" data-artifact="' + escapeHtml(artifact.id) + '">品牌方修改</button><button type="button" class="save-action" data-review="save" data-artifact="' + escapeHtml(artifact.id) + '">保存确认稿</button><button type="button" data-review="flag" data-artifact="' + escapeHtml(artifact.id) + '">退回修改</button><button type="button" data-review="copy" data-artifact="' + escapeHtml(artifact.id) + '">复制</button></div>' +
         '</article>';
     }).join('');
@@ -158,7 +160,7 @@
     byId('mode-label').textContent = mode || '本地演示';
     if (protocol) byId('connection-protocol').textContent = protocol;
     byId('protocol-mode').textContent = status === 'connected' ? 'WebSocket 实时网关' : '本地演示模式';
-    byId('runtime-mode').textContent = status === 'connected' ? '在线网关 / 实时片段' : '本地确定性引擎 / 自动回退';
+    if (byId('runtime-mode')) byId('runtime-mode').textContent = status === 'connected' ? '在线网关 / 实时片段' : '本地确定性引擎 / 自动回退';
   }
 
   root.LuyunRenderer = {
