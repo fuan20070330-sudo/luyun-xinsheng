@@ -44,9 +44,11 @@ git push origin main
 | `PORT` | 否 | 默认 `8787`，容器平台通常注入 `8080` |
 | `ALLOWED_ORIGIN` | 建议 | `https://fuan20070330-sudo.github.io` |
 | `WS_HEARTBEAT_MS` | 否 | 默认 `30000` |
-| `AI_API_URL` | 否 | OpenAI 兼容接口地址 |
-| `AI_API_KEY` | 否 | 只配置在后端 |
-| `AI_MODEL` | 否 | 默认 `gpt-4.1-mini` |
+| `OPENAI_API_KEY` | 是（启用高级模型时） | OpenAI 服务端密钥，不进入前端 |
+| `OPENAI_BASE_URL` | 否 | 默认 `https://api.openai.com/v1` |
+| `OPENAI_MODEL` | 否 | 默认 `gpt-6` |
+| `AI_API_MODE` | 否 | 默认 `responses`，可切到 `chat` |
+| `AI_API_URL` | 否 | 可选 OpenAI 兼容接口备用地址 |
 | `AI_TIMEOUT_MS` | 否 | 默认 `12000` |
 
 ### Render 部署

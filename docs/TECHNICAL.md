@@ -19,7 +19,7 @@ GitHub Pages 静态前端
 - `shared/engine.js`：事实提取、风险与文化校验。
 - `shared/generator.js`：品牌故事、内容日历、多平台文案、年轻化表达方案生成。
 
-前端不保存 API Key。远程模型只由网关读取 `AI_API_URL`、`AI_API_KEY` 后调用。
+前端不保存 API Key。远程模型由网关读取 `OPENAI_API_KEY`，优先调用 Responses API；也可配置 `AI_API_URL` 作为 OpenAI 兼容备用接口。
 
 ## 事实分类
 

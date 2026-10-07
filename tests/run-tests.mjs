@@ -8,6 +8,7 @@ const require = createRequire(import.meta.url);
 const engine = require('../shared/generator.js');
 const { FrameParser, encodeFrame, OPCODES } = require('../server/src/ws-frame.js');
 const { createServer } = require('../server/src/server.js');
+const { responsesEndpoint, chatEndpoint, extractResponseText, buildPrompt } = require('../server/src/ai-adapter.js');
 
 const materials = [
   '品牌档案（模拟）第1条：鲁香斋始创于1918年，品牌创立初期以山东传统糕点制作为业。',
@@ -197,6 +198,17 @@ async function testGateway() {
   return { port, health: true, websocket: true, job: true, review: true };
 }
 
+function testAdvancedAdapter() {
+  assert.equal(responsesEndpoint('https://api.openai.com/v1'), 'https://api.openai.com/v1/responses');
+  assert.equal(chatEndpoint('https://example.com/v1'), 'https://example.com/v1/chat/completions');
+  assert.equal(extractResponseText({ output_text: '{"story":"ok"}' }), '{"story":"ok"}');
+  assert.equal(extractResponseText({ output: [{ content: [{ type: 'output_text', text: 'nested' }] }] }), 'nested');
+  const prompt = buildPrompt({ brand: { name: '测试品牌', type: '老字号', tone: '克制' }, facts: [{ id: 'F001', category: '历史', text: '成立于1918年', source: '档案', status: '已确认' }], promotionMethods: [], performanceFeedback: [] }, []);
+  assert.match(prompt.system, /自然、具体、克制/);
+  assert.match(prompt.system, /不能补写年份/);
+  assert.match(prompt.user, /F001/);
+}
+testAdvancedAdapter();
 testFrameCodec();
 const engineResult = testEngine();
 const gatewayResult = await testGateway().catch((error) => { console.error('gateway test failed:', error.stack || error.message); process.exit(1); });

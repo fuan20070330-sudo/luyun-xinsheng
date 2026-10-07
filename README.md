@@ -65,10 +65,12 @@ node server/src/server.js
 ```bash
 PORT=8787
 ALLOWED_ORIGIN=https://fuan20070330-sudo.github.io
-AI_API_URL=
-AI_API_KEY=
-AI_MODEL=gpt-4.1-mini
-AI_TIMEOUT_MS=12000
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-6
+OPENAI_BASE_URL=https://api.openai.com/v1
+AI_API_MODE=responses
+AI_MAX_OUTPUT_TOKENS=6000
+AI_TIMEOUT_MS=30000
 ```
 
 ### 2. 启动静态前端
@@ -135,8 +137,8 @@ npm run check
 docker build -t luyun-xinsheng-gateway .
 docker run --rm -p 8080:8080 \
   -e ALLOWED_ORIGIN=https://fuan20070330-sudo.github.io \
-  -e AI_API_URL=https://example.com/v1 \
-  -e AI_API_KEY=your-server-side-key \
+  -e OPENAI_API_KEY=your-server-side-key \
+  -e OPENAI_MODEL=gpt-6 \
   luyun-xinsheng-gateway
 ```
 
@@ -144,7 +146,7 @@ docker run --rm -p 8080:8080 \
 
 1. 新建 Blueprint 或 Web Service，选择本仓库。
 2. Render 会读取根目录 `render.yaml`。
-3. 配置 `AI_API_URL`、`AI_API_KEY`，可选配置 `AI_MODEL`。
+3. 配置 `OPENAI_API_KEY`、`OPENAI_MODEL` 和 `OPENAI_BASE_URL`。默认使用 Responses API，也可用 `AI_API_URL` 接入兼容接口。
 4. 部署完成后确认 `https://<service>.onrender.com/healthz` 返回 `{"ok":true}`。
 5. 将 `js/config.js` 中的 `gatewayUrl` 改为 `wss://<service>.onrender.com/ws`。
 
@@ -160,7 +162,7 @@ docker run --rm -p 8080:8080 \
 
 ```bash
 fly launch --copy-config --no-deploy
-fly secrets set AI_API_KEY=your-server-side-key
+fly secrets set OPENAI_API_KEY=your-server-side-key
 fly deploy
 ```
 
@@ -240,6 +242,9 @@ fly deploy
 ## 许可
 
 代码以 MIT License 发布，模拟品牌与演示文案仅用于产品原型展示。
+
+
+
 
 
 
