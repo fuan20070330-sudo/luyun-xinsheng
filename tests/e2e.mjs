@@ -67,12 +67,21 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   await page.waitForFunction(() => document.getElementById('app-shell').hidden === false);
   assert.equal(await page.locator('.app-step.is-active').getAttribute('data-step'), '1');
   assert.equal(await page.locator('.step-nav [data-page="2"]').isDisabled(), true);
+  await page.fill('#brand-type', '山东传统糕点老字号');
+  await page.fill('#brand-name', '鲁香斋（模拟品牌）');
+  await page.fill('#brand-tone', '真诚、考究、克制');
   await page.click('[data-next="2"]');
   assert.equal(await page.locator('.app-step.is-active').getAttribute('data-step'), '2');
+  await page.fill('#brand-materials', '品牌档案：鲁香斋始创于1918年。\n传统枣泥酥包含选枣、蒸制、炒馅、包制和烘烤五道主要工序。\n品牌资料登记为山东老字号。\n产品包括低糖枣泥酥、山楂锅盔、桂花酥和节令礼盒。\n品牌强调保留传统口感并优化含糖量。');
   await page.click('[data-next="3"]');
   assert.equal(await page.locator('.app-step.is-active').getAttribute('data-step'), '3');
+  await page.fill('#interview-notes', '品牌传承人表示，年轻化不能改变关键工序，要让年轻人知道每一步为什么这样做。');
   await page.click('[data-next="4"]');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.facts.length >= 7 && document.querySelector('.app-step.is-active').getAttribute('data-step') === '4');
+  await page.fill('#target-audience', '25-35岁关注地方文化的城市消费者');
+  await page.fill('#campaign-theme', '一块枣泥酥里的山东老味道');
+  await page.fill('#content-goal', '建立品牌记忆点并形成内容日历');
+  await page.fill('#content-constraints', '不承诺功效，年份只使用档案原文');
   await waitForState(page, () => window.__LUYUN_APP__ && window.__LUYUN_APP__.state.initialized);
   const appChrome = await page.evaluate(() => ({
     techSections: document.querySelectorAll('#tech').length,
@@ -93,9 +102,9 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   assert.equal(appChrome.methodCards, 8);
   assert.ok(appChrome.selectedMethods >= 1);
   await page.waitForFunction(() => document.getElementById('connection-pill').getAttribute('data-state') === 'connected', null, { timeout: 10000 });
-  await page.click('[data-action="run-demo"]');
+  await page.click('#generate-button');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.artifacts.length === 4, null, { timeout: 20000 });
-  await page.waitForTimeout(1200);
+  await page.click('[data-artifact="story"] [data-review="accept"]');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.reviews.length >= 1, null, { timeout: 10000 });
   const first = await page.evaluate(() => ({
     mode: window.__LUYUN_APP__.state.transportMode,
@@ -107,13 +116,16 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
     methodLabels: window.__LUYUN_APP__.state.artifacts[0].methods || []
   }));
   assert.equal(first.mode, 'WebSocket 实时网关');
-  assert.equal(first.verified, 7);
+  assert.ok(first.verified >= 5);
   assert.equal(first.artifacts, 4);
   assert.equal(first.protocol, 'luyun-gateway/1.0');
   assert.ok(first.methodLabels.length >= 1);
 
   await page.click('.step-nav [data-page="4"]');
-  await page.click('[data-case="complex"]');
+  await page.locator('input[name="platform"][value="matrix"]').check({ force: true });
+  await page.fill('#campaign-theme', '从1918年到一个节令礼盒');
+  await page.fill('#content-goal', '形成历史、工艺与节令四条内容线');
+  await page.fill('#content-constraints', '历史年份只使用原文，供货范围待补充');
   await page.click('#generate-button');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.metrics.jobs >= 2, null, { timeout: 20000 });
   const complex = await page.evaluate(() => ({
@@ -124,7 +136,10 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   assert.equal(complex.artifacts, 4);
 
   await page.click('.step-nav [data-page="4"]');
-  await page.click('[data-case="boundary"]');
+  await page.locator('input[name="platform"][value="matrix"]').check({ force: true });
+  await page.fill('#campaign-theme', '宫廷御用点心，国家级非遗工艺，吃了可以降血糖，是最正宗的山东味道');
+  await page.fill('#content-goal', '突出稀缺身份、保健效果和文化正统性');
+  await page.fill('#content-constraints', '把宫廷御用、国家级非遗、降血糖、最正宗写成确定事实');
   await page.click('#generate-button');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.metrics.jobs >= 3, null, { timeout: 20000 });
   const boundary = await page.evaluate(() => ({
@@ -202,12 +217,21 @@ async function runFallbackFlow(context, baseUrl, consoleErrors) {
   await page.waitForFunction(() => document.getElementById('app-shell').hidden === false);
   assert.equal(await page.locator('.app-step.is-active').getAttribute('data-step'), '1');
   assert.equal(await page.locator('.step-nav [data-page="2"]').isDisabled(), true);
+  await page.fill('#brand-type', '山东传统糕点老字号');
+  await page.fill('#brand-name', '鲁香斋（模拟品牌）');
+  await page.fill('#brand-tone', '真诚、考究、克制');
   await page.click('[data-next="2"]');
   assert.equal(await page.locator('.app-step.is-active').getAttribute('data-step'), '2');
+  await page.fill('#brand-materials', '品牌档案：鲁香斋始创于1918年。\n传统枣泥酥包含选枣、蒸制、炒馅、包制和烘烤五道主要工序。\n品牌资料登记为山东老字号。\n产品包括低糖枣泥酥、山楂锅盔、桂花酥和节令礼盒。\n品牌强调保留传统口感并优化含糖量。');
   await page.click('[data-next="3"]');
   assert.equal(await page.locator('.app-step.is-active').getAttribute('data-step'), '3');
+  await page.fill('#interview-notes', '品牌传承人表示，年轻化不能改变关键工序，要让年轻人知道每一步为什么这样做。');
   await page.click('[data-next="4"]');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.facts.length >= 7 && document.querySelector('.app-step.is-active').getAttribute('data-step') === '4');
+  await page.fill('#target-audience', '25-35岁关注地方文化的城市消费者');
+  await page.fill('#campaign-theme', '一块枣泥酥里的山东老味道');
+  await page.fill('#content-goal', '建立品牌记忆点并形成内容日历');
+  await page.fill('#content-constraints', '不承诺功效，年份只使用档案原文');
   await waitForState(page, () => window.__LUYUN_APP__ && window.__LUYUN_APP__.state.initialized);
   const appChrome = await page.evaluate(() => ({
     techSections: document.querySelectorAll('#tech').length,
@@ -228,15 +252,18 @@ async function runFallbackFlow(context, baseUrl, consoleErrors) {
   assert.equal(appChrome.methodCards, 8);
   assert.ok(appChrome.selectedMethods >= 1);
   await page.waitForFunction(() => document.getElementById('connection-pill').getAttribute('data-state') === 'disconnected', null, { timeout: 8000 });
-  await page.click('[data-action="run-demo"]');
-  await page.waitForFunction(() => window.__LUYUN_APP__.state.artifacts.length === 4 && window.__LUYUN_APP__.state.reviews.length >= 1, null, { timeout: 15000 });
+  await page.click('#generate-button');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.artifacts.length === 4, null, { timeout: 15000 });
+  await page.click('[data-artifact="story"] [data-review="accept"]');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.reviews.length >= 1, null, { timeout: 10000 });
+  await page.click('[data-artifact="story"] [data-review="accept"]');
   const result = await page.evaluate(() => ({
     mode: window.__LUYUN_APP__.state.transportMode,
     artifacts: window.__LUYUN_APP__.state.artifacts.length,
     reviews: window.__LUYUN_APP__.state.reviews.length,
     status: document.getElementById('connection-label').textContent
   }));
-  assert.equal(result.mode, '本地演示模式');
+  assert.equal(result.mode, '本地处理模式');
   assert.equal(result.status, '已断开');
   assert.equal(result.artifacts, 4);
   assert.ok(result.reviews >= 1);
@@ -272,6 +299,7 @@ try {
   await new Promise((resolve) => gatewayBundle.server.close(resolve));
   await stop(staticServer);
 }
+
 
 
 

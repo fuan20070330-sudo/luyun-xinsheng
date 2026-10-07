@@ -22,7 +22,7 @@
     summary.textContent = state.facts.length ? state.facts.length + ' 条 / ' + state.facts.filter(function (fact) { return fact.status === '待核实'; }).length + ' 条待核实' : '尚未提取';
     if (!facts.length) {
       list.className = 'facts-list empty-state';
-      list.innerHTML = '<span class="empty-glyph">档</span><p>' + (pendingOnly ? '当前没有待核实事实。' : '载入演示或提交资料后，此处会生成带来源的事实卡片。') + '</p>';
+      list.innerHTML = '<span class="empty-glyph">档</span><p>' + (pendingOnly ? '当前没有待核实事实。' : '提交资料后，此处会生成带来源的事实卡片。') + '</p>';
       return;
     }
     list.className = 'facts-list';
@@ -111,7 +111,7 @@
     }
     tbody.innerHTML = tasks.slice(0, 8).map(function (task) {
       return '<tr><td>' + escapeHtml(formatTime(task.createdAt)) + '<small>' + escapeHtml(task.platformName || '') + '</small></td>' +
-        '<td>' + escapeHtml(task.brandName || '品牌') + '<small>' + escapeHtml(task.mode || '本地演示') + '</small></td>' +
+        '<td>' + escapeHtml(task.brandName || '品牌') + '<small>' + escapeHtml(task.mode || '本地处理') + '</small></td>' +
         '<td>' + escapeHtml(task.model || 'local-deterministic-demo') + '<small>' + escapeHtml(task.promptVersion || '') + '</small></td>' +
         '<td><span class="risk-count ' + ((task.highRisk || 0) ? 'risk-high' : 'risk-low') + '"><b>' + (task.riskCount || 0) + '</b> 条<small>高 ' + (task.highRisk || 0) + '</small></span></td>' +
         '<td>' + (task.reviewCount || 0) + ' 次<small>' + escapeHtml(task.status || '待品牌确认') + '</small></td></tr>';
@@ -187,9 +187,9 @@
     var pill = byId('connection-pill');
     pill.setAttribute('data-state', status);
     byId('connection-label').textContent = label;
-    byId('mode-label').textContent = mode || '本地演示';
+    byId('mode-label').textContent = mode || '本地处理';
     if (protocol) byId('connection-protocol').textContent = protocol;
-    byId('protocol-mode').textContent = status === 'connected' ? 'WebSocket 实时网关' : '本地演示模式';
+    byId('protocol-mode').textContent = status === 'connected' ? 'WebSocket 实时网关' : '本地处理模式';
     if (byId('runtime-mode')) byId('runtime-mode').textContent = status === 'connected' ? '在线网关 / 实时片段' : '本地确定性引擎 / 自动回退';
   }
 
@@ -209,6 +209,8 @@
     setConnection: setConnection
   };
 }(window));
+
+
 
 
 

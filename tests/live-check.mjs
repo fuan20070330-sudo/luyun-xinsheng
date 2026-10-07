@@ -17,10 +17,24 @@ try {
   await page.fill('#login-password', 'demo-pass');
   await page.click('#login-form button[type=submit]');
   await page.waitForFunction(() => document.getElementById('app-shell').hidden === false);
-  await page.waitForFunction(() => window.__LUYUN_APP__ && window.__LUYUN_APP__.state.initialized, null, { timeout: 15000 });
-  await page.waitForFunction(() => document.getElementById('connection-pill').getAttribute('data-state') === 'disconnected', null, { timeout: 10000 });
-  await page.click('[data-action="run-demo"]');
-  await page.waitForFunction(() => window.__LUYUN_APP__.state.artifacts.length === 4 && window.__LUYUN_APP__.state.reviews.length >= 1, null, { timeout: 20000 });
+  await page.fill('#brand-type', '山东传统糕点老字号');
+  await page.fill('#brand-name', '鲁香斋（模拟品牌）');
+  await page.fill('#brand-tone', '真诚、考究、克制');
+  await page.click('[data-next="2"]');
+  await page.fill('#brand-materials', '品牌档案：鲁香斋始创于1918年。\n传统枣泥酥包含选枣、蒸制、炒馅、包制和烘烤五道主要工序。\n品牌资料登记为山东老字号。\n产品包括低糖枣泥酥、山楂锅盔、桂花酥和节令礼盒。\n品牌强调保留传统口感并优化含糖量。');
+  await page.click('[data-next="3"]');
+  await page.fill('#interview-notes', '品牌传承人表示，年轻化不能改变关键工序，要让年轻人知道每一步为什么这样做。');
+  await page.click('[data-next="4"]');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.facts.length >= 7 && document.querySelector('.app-step.is-active').getAttribute('data-step') === '4');
+  await page.fill('#target-audience', '25-35岁关注地方文化的城市消费者');
+  await page.fill('#campaign-theme', '一块枣泥酥里的山东老味道');
+  await page.fill('#content-goal', '建立品牌记忆点并形成内容日历');
+  await page.fill('#content-constraints', '不承诺功效，年份只使用档案原文');
+  await page.click('#generate-button');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.artifacts.length === 4, null, { timeout: 20000 });
+  await page.click('[data-artifact="story"] [data-review="accept"]');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.reviews.length >= 1, null, { timeout: 10000 });
+
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(300);
   const result = await page.evaluate(() => ({

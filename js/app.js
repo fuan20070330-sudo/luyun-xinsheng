@@ -26,7 +26,7 @@
     metrics: { facts: 0, jobs: 0, reviews: 0 },
     currentJobId: '',
     pendingOnly: false,
-    transportMode: '本地演示模式',
+    transportMode: '本地处理模式',
     lastEvent: '--',
     user: '',
     currentStep: 1,
@@ -68,10 +68,10 @@
   function renderBrandOptions() {
     var select = $('brand-select');
     if (!select) return;
-    var options = ['<option value="luxiangzhai">鲁香斋（模拟品牌）</option>'];
+    var options = [];
     Object.keys(state.brandLibrary).forEach(function (id) {
       var item = state.brandLibrary[id];
-      if (id !== 'luxiangzhai' && item && item.brand) options.push('<option value="' + id + '">' + item.brand.name + '</option>');
+      if (item && item.brand) options.push('<option value="' + id + '">' + item.brand.name + '</option>');
     });
     options.push('<option value="new">+ 新建品牌</option>');
     select.innerHTML = options.join('');
@@ -131,7 +131,7 @@
     window.scrollTo(0, 0);
   }
   function showApp(user) {
-    state.user = user || '演示用户';
+    state.user = user || '当前用户';
     state.unlockedStep = 1;
     document.body.setAttribute('data-authenticated', 'true');
     $('current-user').textContent = state.user;
@@ -150,22 +150,18 @@
     $('login-account').focus();
   }
 
-  function handleLogin(event, demo) {
+  function handleLogin(event) {
     if (event) event.preventDefault();
     var account = $('login-account').value.trim();
     var password = $('login-password').value;
-    if (!demo && (!account || !password)) {
+    if (!account || !password) {
       $('login-account').classList.toggle('is-invalid', !account);
       $('login-password').classList.toggle('is-invalid', !password);
-      toast('请输入账号和密码，或使用免密演示。', 'warning');
+      toast('请填写账号和密码后再进入。', 'warning');
       return;
     }
-    showApp(account || '演示用户');
-    if (demo) {
-      setTimeout(function () { runDemo(); }, 120);
-    } else {
-      toast('已进入叙事工作台。');
-    }
+    showApp(account);
+    toast('已进入叙事工作台。');
   }
 
   function toast(message, kind) {
@@ -181,7 +177,7 @@
   function markConnection(status, detail) {
     if (status === 'connecting') Renderer.setConnection('connecting', '连接中', '探测网关', Config.protocolVersion);
     if (status === 'connected') Renderer.setConnection('connected', '已连接', '实时网关', Config.protocolVersion);
-    if (status === 'disconnected') Renderer.setConnection('disconnected', '已断开', '本地演示', Config.protocolVersion);
+    if (status === 'disconnected') Renderer.setConnection('disconnected', '已断开', '本地处理', Config.protocolVersion);
     if (detail) $('last-event').textContent = detail;
   }
 
@@ -255,7 +251,7 @@
       tone: $('brand-tone').value.trim(),
       materials: historyProducts + (interviews ? '\n' + interviews : ''),
       interviews: interviews,
-      isDemo: $('brand-select').value === 'luxiangzhai'
+      isDemo: false
     };
   }
 
@@ -286,7 +282,7 @@
   }
 
   function localRequest(event, payload, onEvent) {
-    state.transportMode = '本地演示模式';
+    state.transportMode = '本地处理模式';
     if (event === 'brand.ingest') {
       return delay(100 * scale).then(function () {
         var facts = Engine.extractFacts(payload.materials, { sourceName: payload.sourceName || '品牌资料' });
@@ -322,7 +318,7 @@
           goal: payload.goal,
           facts: payload.facts
         });
-        var modelInfo = { model: 'local-deterministic-demo', mode: '本地演示模式', promptVersion: Engine.PROMPT_VERSION };
+        var modelInfo = { model: 'local-deterministic-demo', mode: '本地处理模式', promptVersion: Engine.PROMPT_VERSION };
         var artifacts = Engine.generateContent({
           brand: payload.brand, facts: payload.facts, risks: risks, platform: payload.platform,
           contentType: payload.contentType, audience: payload.audience, theme: payload.theme,
@@ -353,9 +349,9 @@
     if (!gateway.isConnected()) return localRequest(event, payload, onEvent);
     state.transportMode = 'WebSocket 实时网关';
     return gateway.request(event, payload, resolveEvent, onEvent).catch(function (error) {
-      state.transportMode = '本地演示模式';
+      state.transportMode = '本地处理模式';
       appendStream('网关请求失败，已自动切换到本地确定性引擎。');
-      toast('网关暂不可用，已切换到本地演示模式。', 'warning');
+      toast('网关暂不可用，已切换到本地处理模式。', 'warning');
       return localRequest(event, payload, onEvent);
     });
   }
@@ -369,7 +365,7 @@
     setProgress('ingest', 8, '提交品牌资料并识别可引用原文');
     try {
       var result = await requestTransport('brand.ingest', {
-        brand: brand, sourceName: brand.isDemo ? '鲁香斋品牌档案与受访记录（模拟）' : '用户提交品牌资料'
+        brand: brand, sourceName: '用户提交品牌资料'
       }, 'brand.ready', function (message) {
         updateLastEvent(message);
         if (message.event === 'brand.ready') setProgress('retrieve', 24, '品牌事实提取完成，进入可检索状态');
@@ -382,7 +378,7 @@
       setProgress('retrieve', 24, '知识库已建立，可在生成时逐条引用事实编号');
       rememberCurrentBrand();
       renderBrandOptions();
-    if (state.brand) $('brand-select').value = state.brand.id;
+    $('brand-select').value = 'new';
       renderAll();
       toast('品牌叙事档案已建立：' + state.facts.length + ' 条记录，其中 ' + state.facts.filter(function (fact) { return fact.status === '待核实'; }).length + ' 条待核实。');
       return result;
@@ -575,40 +571,13 @@
     $('interview-notes').value = brand.interviews || '';
   }
 
-  function applyCase(caseId) {
-    var item = Data.cases[caseId];
-    if (!item) return;
-    $$('[data-case]').forEach(function (button) { button.classList.toggle('is-active', button.getAttribute('data-case') === caseId); });
-    document.querySelector('input[name="platform"][value="' + item.platform + '"]').checked = true;
-    document.querySelector('input[name="contentType"][value="' + item.contentType + '"]').checked = true;
-    $('target-audience').value = item.audience;
-    $('campaign-theme').value = item.theme;
-    $('content-goal').value = item.goal;
-    $('content-constraints').value = item.constraints;
-    if (item.methods) $$('input[name="promotionMethod"]').forEach(function (input) { input.checked = item.methods.indexOf(input.value) !== -1; });
-    toast('已载入' + item.name + '：' + item.description);
+  function clearBrandFields() {
+    ['brand-name', 'brand-type', 'brand-tone', 'brand-materials', 'interview-notes'].forEach(function (id) { if ($(id)) $(id).value = ''; });
+    state.brand = null;
+    state.facts = [];
+    state.risks = [];
+    renderAll();
   }
-
-  async function runDemo() {
-    var button = document.querySelector('[data-action="run-demo"]');
-    setBusy(button, true);
-    try {
-      applyCase('typical');
-      $('brand-select').value = 'luxiangzhai';
-      populateBrand(Data.brands.luxiangzhai);
-      var ingestion = await ingestBrand();
-      if (!ingestion) return;
-      var generation = await generateContent();
-      if (!generation) return;
-      await submitReview('story', 'accept', { reviewer: '演示品牌确认人', note: '已完成事实核对、文化内涵确认和对外表达确认。', silent: true });
-      toast('一键叙事演示完成：品牌与访谈入库、四类成果生成、文化校验和品牌方确认均已跑通。');
-      state.unlockedStep = Math.max(state.unlockedStep, 5);
-      showStep(5);
-    } finally {
-      setBusy(button, false);
-    }
-  }
-
   function clearDemo() {
     state.brand = null;
     state.facts = [];
@@ -619,9 +588,9 @@
     state.currentJobId = '';
     state.metrics = { facts: 0, jobs: 0, reviews: 0 };
     state.pendingOnly = false;
-    $('brand-select').value = 'luxiangzhai';
-    populateBrand(Data.brands.luxiangzhai);
-    applyCase('typical');
+    if ($('content-form')) $('content-form').reset();
+    $('brand-select').value = 'new';
+    clearBrandFields();
     $('brand-status').textContent = '待入库';
     $('brand-status').className = 'status-chip';
     $('job-status').textContent = '等待任务';
@@ -630,7 +599,7 @@
     setProgress('brand', 0, '');
     renderAll();
     showStep(1);
-    toast('本次演示状态已清空。');
+    toast('当前输入已清空，历史记录仍保留。');
   }
 
   function handleFile(file) {
@@ -702,25 +671,22 @@
   }
 
   function bindEvents() {
-    $('login-form').addEventListener('submit', function (event) { handleLogin(event, false); });
+    $('login-form').addEventListener('submit', handleLogin);
     $('content-form').addEventListener('submit', function (event) { event.preventDefault(); generateContent(); });
     $('publish-form').addEventListener('submit', addPublishRecord);
     $('brand-select').addEventListener('change', function () {
-      if (this.value === 'new') {
-        $('brand-name').value = '';
-        $('brand-type').value = '';
-        $('brand-tone').value = '真诚、清楚、不夸大';
-        $('brand-materials').value = '';
-        $('interview-notes').value = '';
-        $('brand-name').focus();
+      if (this.value === 'new' || !state.brandLibrary[this.value]) {
+        $('brand-select').value = 'new';
+        clearBrandFields();
         return;
       }
-      var savedBrand = state.brandLibrary[this.value] && state.brandLibrary[this.value].brand;
-      populateBrand(savedBrand || Data.brands[this.value]);
-      if (savedBrand && state.brandLibrary[this.value].facts) { state.brand = savedBrand; state.facts = state.brandLibrary[this.value].facts; renderAll(); }
+      var item = state.brandLibrary[this.value];
+      populateBrand(item.brand);
+      state.brand = item.brand;
+      state.facts = item.facts || [];
+      renderAll();
     });
     $('file-import').addEventListener('change', function () { if (this.files[0]) handleFile(this.files[0]); });
-    $('artifact-grid').addEventListener('click', function (event) {
     $('facts-list').addEventListener('click', function (event) {
       var button = event.target.closest('[data-fact-action]');
       if (!button) return;
@@ -734,40 +700,26 @@
       renderAll();
       toast(fact.id + ' 已' + (fact.status === '已确认' ? '由 ' + state.user + ' 确认' : '标记为待核实'));
     });
+    $('artifact-grid').addEventListener('click', function (event) {
       var button = event.target.closest('[data-review]');
       if (button) handleArtifactAction(button);
     });
     $('export-markdown').addEventListener('click', exportMarkdown);
     document.addEventListener('click', function (event) {
       var pageButton = event.target.closest('[data-page]');
-      if (pageButton) {
-        showStep(Number(pageButton.getAttribute('data-page')));
-        return;
-      }
+      if (pageButton) { showStep(Number(pageButton.getAttribute('data-page'))); return; }
       var nextButton = event.target.closest('[data-next]');
-      if (nextButton) {
-        handleNext(nextButton);
-        return;
-      }
+      if (nextButton) { handleNext(nextButton); return; }
       var action = event.target.closest('[data-action]');
       if (!action) return;
       var name = action.getAttribute('data-action');
-      if (name === 'demo-login') handleLogin(null, true);
       if (name === 'logout') logout();
-      if (name === 'run-demo') {
-        if (!state.user) showApp('演示用户');
-        runDemo();
-      }
       if (name === 'filter-pending') {
         state.pendingOnly = !state.pendingOnly;
         action.classList.toggle('is-active', state.pendingOnly);
         Renderer.renderFacts(state);
       }
       if (name === 'clear-demo') clearDemo();
-    });
-    document.addEventListener('click', function (event) {
-      var caseButton = event.target.closest('[data-case]');
-      if (caseButton) applyCase(caseButton.getAttribute('data-case'));
     });
     window.addEventListener('beforeunload', function () { gateway.close(); });
     window.addEventListener('pageshow', function () { resetToEntry(); });
@@ -776,9 +728,8 @@
   function init() {
     resetToEntry();
     renderBrandOptions();
-    if (state.brand) $('brand-select').value = state.brand.id;
-    populateBrand(Data.brands.luxiangzhai);
-    applyCase('typical');
+    $('brand-select').value = 'new';
+    clearBrandFields();
     renderMethodGrid();
     setProgress('brand', 0, '');
     renderAll();
@@ -800,7 +751,7 @@
         gateway.send('state.sync', { client: 'github-pages', version: Config.appVersion });
         toast('已接入实时网关，稿件可直接传递。');
       } else {
-        toast('未连接远程网关，已自动进入本地演示模式；全部核心叙事与品牌确认功能仍可使用。', 'warning');
+        toast('未连接远程网关，已自动进入本地处理模式；全部核心叙事与品牌确认功能仍可使用。', 'warning');
       }
     });
     state.initialized = true;
@@ -808,9 +759,7 @@
       state: state,
       ingestBrand: ingestBrand,
       generateContent: generateContent,
-      runDemo: runDemo,
       submitReview: submitReview,
-      applyCase: applyCase,
       clearDemo: clearDemo,
       showStep: showStep,
       login: showApp
@@ -820,6 +769,8 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 }(window, document));
+
+
 
 
 
