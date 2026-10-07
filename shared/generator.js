@@ -16,8 +16,8 @@
     var highTerms = (config.risks || []).filter(function (risk) { return risk.level === 'high'; }).map(function (risk) { return risk.term; });
     var unsafe = highTerms.some(function (term) { return theme.indexOf(term) !== -1; });
     return unsafe ? '一段可以核对的品牌时间' : theme;
-  }  function methodNote(config) { var methods = methodNames(config); return methods.length ? '【这次借用的办法】' + methods.join('、') + '\n\n' : ''; }
-  function riskGate(config) { var high = (config.risks || []).filter(function (risk) { return risk.level === 'high'; }); if (!high.length) return ''; var terms = Array.from(new Set(high.map(function (risk) { return risk.term; }))); return '【这几句先别发】检测到高风险表述：' + terms.join('、') + '。这些内容没有可核验依据，已从确定叙事和对外文案中隔离。需要补充权威证明，或由品牌方修改确认后再发布。\n\n'; }
+  }  function methodNote(config) { var methods = methodNames(config); return methods.length ? '【本次采用的宣传方法】' + methods.join('、') + '\n\n' : ''; }
+  function riskGate(config) { var high = (config.risks || []).filter(function (risk) { return risk.level === 'high'; }); if (!high.length) return ''; var terms = Array.from(new Set(high.map(function (risk) { return risk.term; }))); return '【暂不建议发布的内容】检测到高风险表述：' + terms.join('、') + '。这些内容没有可核验依据，已从确定叙事和对外文案中隔离。需要补充权威证明，或由品牌方修改确认后再发布。\n\n'; }
   function demoDisclosure(config) { return config.isDemo ? '\n\n——\n仅用于产品原型演示｜鲁香斋为虚构模拟品牌。' : ''; }
 
   function buildBrandStory(config) {
@@ -28,14 +28,14 @@
     var philosophy = brief.philosophy ? cite(brief.philosophy) : '品牌理念待品牌方确认';
     var honor = brief.honors.length ? brief.honors.map(cite).join('；') : '荣誉信息待核实';
     var interview = brief.interviews.length ? brief.interviews.map(cite).join('；') : '受访内容待补充';
-    return methodNote(config) + riskGate(config) + '【标题】' + theme + '：' + brand.name + '的一段真实来路\n\n' +
+    return methodNote(config) + riskGate(config) + '【标题】' + theme + '：' + brand.name + '：从品牌资料开始讲起\n\n' +
       '如果只看“老字号”三个字，很容易把它写成一段听起来很响、却离人很远的历史。我们更想从能回看原文的地方开始。\n\n' +
-      '一、从旧档里找一句话\n' + history + '。这行资料是故事的起点，也提醒我们：年份、身份和荣誉不能凭感觉补写。\n\n' +
-      '二、手艺要落到动作上\n' + craft + '。真正打动人的，往往不是“古法”两个字，而是选料、火候、等待和手上反复练习出来的分寸。\n\n' +
-      '三、今天的人怎么吃它\n' + products + '。' + philosophy + '。传统口味进入当代生活，不一定要先变成潮流，它可以先变得更好理解、更好分享。\n\n' +
-      '四、听传承人自己说\n\u201c' + interview + '\u201d\n这段话只按受访原意整理。品牌方需要确认：哪些属于历史事实，哪些是个人判断，哪些可以对外表达。\n\n' +
-      '五、哪些话还不能写死\n' + honor + '。没有原文来源的信息继续保持“待核实”，不进入确定叙事。\n\n' +
-      '结语\n老字号被年轻人看见，不一定靠更夸张的标题，而可以靠一句更诚实的话：这道工序为什么这样做，这代人为什么还愿意接着做。 ' + demoDisclosure(config);
+      '一、先说明品牌从哪里开始\n' + history + '。这行资料是故事的起点，也提醒我们：年份、身份和荣誉不能凭感觉补写。\n\n' +
+      '二、把工艺写具体\n' + craft + '。真正打动人的，往往不是“古法”两个字，而是选料、火候、等待和手上反复练习出来的分寸。\n\n' +
+      '三、把产品放回日常场景\n' + products + '。' + philosophy + '。传统口味进入当代生活，不一定要先变成潮流，它可以先变得更好理解、更好分享。\n\n' +
+      '四、保留受访者原话\n\u201c' + interview + '\u201d\n这段话只按受访原意整理。品牌方需要确认：哪些属于历史事实，哪些是个人判断，哪些可以对外表达。\n\n' +
+      '五、仍需核实的信息\n' + honor + '。没有原文来源的信息继续保持“待核实”，不进入确定叙事。\n\n' +
+      '写在最后\n老字号被年轻人看见，不一定靠更夸张的标题，而可以靠一句更诚实的话：这道工序为什么这样做，这代人为什么还愿意接着做。 ' + demoDisclosure(config);
   }
 
   function buildCalendar(config) {
@@ -75,12 +75,12 @@
     var audience = config.audience || '年轻消费者';
     return methodNote(config) + riskGate(config) + '【年轻化表达方案】' + brand.name + '\n目标受众：' + audience + '\n\n' +
       '先说一句实在话：年轻化不是把老字号硬说成潮流，而是把“为什么值得记住”讲得更具体、更好懂。\n\n' +
-      '落笔前记住四件事：\n具体动作＋真实来源＋当代场景＋品牌方确认。\n不要先喊“匠心”，先说清楚谁在做什么、为什么这样做；不要把“非遗、御用、最正宗”等未经确认的标签当成文化价值。\n\n' +
+      '写作时记住四件事：\n具体动作＋真实来源＋当代场景＋品牌方确认。\n先把谁在做什么、为什么这样做讲清楚，再考虑使用“匠心”“传承”等概括词；不要把“非遗、御用、最正宗”等未经确认的标签当成文化价值。\n\n' +
       '【语态转换示例】\n“传统工艺” → “这道工序为什么要等这么久？”｜依据：' + craft + '\n“传承责任” → “这一代人为什么还愿意接着做？”｜依据：' + interview + '\n“老字号历史” → “不急着讲传奇，先从档案里的那句话开始。”｜依据：' + (brief.history ? brief.history.id : '待补充') + '\n\n' +
-      '三种开场，可以直接接着写：\n1. 一块老味道，先别急着夸。我们从它在档案里的第一句话看起。\n2. 你以为老字号只有“传统”两个字？其实每一步工序都有自己的原因。\n3. 这次不讲神秘配方，只听传承人怎么说，再看产品怎么走进今天的生活。\n\n' +
+      '三种可用开场：\n1. 一块老味道，先别急着夸。我们从它在档案里的第一句话看起。\n2. 老字号不只有“传统”两个字，每一步工序都有自己的原因。\n3. 不从传闻入手，先看受访者原话，再看产品如何进入今天的消费场景。\n\n' +
       '账号可以用三种口吻：\n事实型：用档案和工序回答问题；体验型：把产品放回节令、分享和日常场景；对谈型：让传承人自己讲述选择，不让旁白替代本人。\n\n' +
-      '怎么排更顺：\n' + (methods.length ? '先这么配：' + methods.join('、') + '。' : '建议至少选择品牌故事线、文化知识科普和场景化种草。') + '\n每周保留一个可回答的问题，不用一次把所有历史说完。\n\n' +
-      '请品牌方过目：\n□ 历史年份和出处是否准确\n□ 工艺名称和顺序是否准确\n□ 采访摘录是否改变原意\n□ 文化解释是否代表品牌立场\n□ 对外表达是否允许发布\n\n' + demoDisclosure(config);
+      '内容排期建议：\n' + (methods.length ? '先这么配：' + methods.join('、') + '。' : '建议至少选择品牌故事线、文化知识科普和场景化种草。') + '\n每周保留一个可回答的问题，不用一次把所有历史说完。\n\n' +
+      '提交品牌方确认：\n□ 历史年份和出处是否准确\n□ 工艺名称和顺序是否准确\n□ 采访摘录是否改变原意\n□ 文化解释是否代表品牌立场\n□ 对外表达是否允许发布\n\n' + demoDisclosure(config);
   }
 
   function generateContent(config) {
@@ -101,5 +101,6 @@
   engine.TYPE_NAMES = TYPE_NAMES;
   engine.generateContent = generateContent;
 }));
+
 
 

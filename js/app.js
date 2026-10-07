@@ -177,6 +177,7 @@
   function markConnection(status, detail) {
     if (status === 'connecting') Renderer.setConnection('connecting', '连接中', '探测网关', Config.protocolVersion);
     if (status === 'connected') Renderer.setConnection('connected', '已连接', '实时网关', Config.protocolVersion);
+    if (status === 'local') Renderer.setConnection('local', '本地处理', '无需网关', Config.protocolVersion);
     if (status === 'disconnected') Renderer.setConnection('disconnected', '已断开', '本地处理', Config.protocolVersion);
     if (detail) $('last-event').textContent = detail;
   }
@@ -294,7 +295,7 @@
     if (event === 'content.generate') {
       var stages = [
         { stage: 'retrieve', percent: 18, message: '从知识库召回品牌事实与未核实线索' },
-        { stage: 'generate', percent: 38, message: '本地确定性引擎生成品牌故事、内容日历、多平台文案和年轻化表达方案' },
+        { stage: 'generate', percent: 38, message: '本地处理引擎生成品牌故事、内容日历、多平台文案和年轻化表达方案' },
         { stage: 'verify', percent: 70, message: '逐句扫描医疗功效、非遗身份、文化正统性、荣誉和年份' },
         { stage: 'store', percent: 90, message: '整理事实引用、助手初稿和品牌方确认证据' }
       ];
@@ -304,7 +305,7 @@
         chain = chain.then(function () {
           if (onEvent) onEvent({ event: 'job.progress', payload: stage });
           if (stage.stage === 'generate') {
-            var preview = '正在建立标题、事实引文和平台语气…';
+            var preview = '正在组织标题、事实引用和平台语气…';
             if (onEvent) onEvent({ event: 'content.delta', payload: { text: preview } });
           }
           return delay(170 * scale);
@@ -318,7 +319,7 @@
           goal: payload.goal,
           facts: payload.facts
         });
-        var modelInfo = { model: 'local-deterministic-demo', mode: '本地处理模式', promptVersion: Engine.PROMPT_VERSION };
+        var modelInfo = { model: 'local-rule-engine', mode: '本地处理模式', promptVersion: Engine.PROMPT_VERSION };
         var artifacts = Engine.generateContent({
           brand: payload.brand, facts: payload.facts, risks: risks, platform: payload.platform,
           contentType: payload.contentType, audience: payload.audience, theme: payload.theme,
@@ -350,7 +351,7 @@
     state.transportMode = 'WebSocket 实时网关';
     return gateway.request(event, payload, resolveEvent, onEvent).catch(function (error) {
       state.transportMode = '本地处理模式';
-      appendStream('网关请求失败，已自动切换到本地确定性引擎。');
+      appendStream('网关请求失败，已自动切换到本地处理引擎。');
       toast('网关暂不可用，已切换到本地处理模式。', 'warning');
       return localRequest(event, payload, onEvent);
     });
@@ -404,7 +405,7 @@
     renderAll();
     if ($('stream-window')) $('stream-window').textContent = '';
     setProgress('retrieve', 4, '创建 content.generate 任务');
-    $('job-status').textContent = '正在起稿';
+    $('job-status').textContent = '正在生成';
     $('job-status').className = 'status-chip is-active';
     setBusy($('generate-button'), true);
     try {
@@ -425,11 +426,11 @@
       var highRisk = state.risks.filter(function (risk) { return risk.level === 'high'; }).length;
       state.tasks.unshift({
         jobId: state.currentJobId, createdAt: result.createdAt || now(), brandName: payload.brand.name,
-        platformName: payload.platformName, mode: state.transportMode, model: (result.modelInfo && result.modelInfo.model) || 'local-deterministic-demo',
+        platformName: payload.platformName, mode: state.transportMode, model: (result.modelInfo && result.modelInfo.model) || 'local-rule-engine',
         promptVersion: (result.modelInfo && result.modelInfo.promptVersion) || Engine.PROMPT_VERSION,
         riskCount: state.risks.length, highRisk: highRisk, reviewCount: 0, status: highRisk ? '已拦截待修改' : '待品牌确认'
       });
-      setProgress('store', 100, '文稿已成，四份稿件都已留下事实与办法');
+      setProgress('store', 100, '内容生成完成，事实引用和宣传方法已记录');
       Renderer.updatePipeline('review');
       $('job-status').textContent = highRisk ? highRisk + ' 项高风险' : '待品牌方确认';
       $('job-status').className = 'status-chip ' + (highRisk ? 'is-warning' : 'is-active');
@@ -438,7 +439,7 @@
       renderAll();
       state.unlockedStep = Math.max(state.unlockedStep, 5);
       showStep(5);
-      toast(highRisk ? '文稿已成，但发现 ' + highRisk + ' 项高风险，禁止直接对外发布。' : '文稿已成，请品牌方过目事实、文化内涵和对外说法。', highRisk ? 'warning' : 'info');
+      toast(highRisk ? '内容已生成，但发现 ' + highRisk + ' 项高风险，需修改并复核后才能发布。' : '内容已生成，请品牌方确认事实、文化内涵和对外表达。', highRisk ? 'warning' : 'info');
       return result;
     } catch (error) {
       $('job-status').textContent = '生成失败';
@@ -749,9 +750,9 @@
     gateway.connect().then(function (connected) {
       if (connected) {
         gateway.send('state.sync', { client: 'github-pages', version: Config.appVersion });
-        toast('已接入实时网关，稿件可直接传递。');
+        toast('已连接实时网关，生成进度可在线同步。');
       } else {
-        toast('未连接远程网关，已自动进入本地处理模式；全部核心叙事与品牌确认功能仍可使用。', 'warning');
+        toast('未配置远程网关，当前使用本地处理；内容生成、风险校验和审核记录均可正常使用。', 'info');
       }
     });
     state.initialized = true;
@@ -769,6 +770,7 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 }(window, document));
+
 
 
 

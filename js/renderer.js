@@ -93,7 +93,7 @@
         '<div class="artifact-head"><div><span class="artifact-label">' + escapeHtml(artifact.label || '内容成果') + '</span><h3>' + escapeHtml(artifact.title) + '</h3></div><span class="artifact-state" data-state="' + escapeHtml(artifact.status || 'draft') + '">' + artifactStatus(artifact.status) + '</span></div>' +
         '<div class="artifact-content">' + escapeHtml(artifact.content) + '</div>' +
         '<textarea class="artifact-textarea" data-editor="' + escapeHtml(artifact.id) + '" aria-label="编辑' + escapeHtml(artifact.title) + '">' + escapeHtml(artifact.content) + '</textarea>' +
-        '<div class="artifact-meta"><span class="meta-chip">模型：' + escapeHtml((artifact.modelInfo && artifact.modelInfo.model) || 'local-deterministic-demo') + '</span><span class="meta-chip">提示词：' + escapeHtml((artifact.modelInfo && artifact.modelInfo.promptVersion) || 'brand-safe-content-v1.2') + '</span></div>' +
+        '<div class="artifact-meta"><span class="meta-chip">模型：' + escapeHtml((artifact.modelInfo && artifact.modelInfo.model) || 'local-rule-engine') + '</span><span class="meta-chip">提示词：' + escapeHtml((artifact.modelInfo && artifact.modelInfo.promptVersion) || 'brand-safe-content-v1.2') + '</span></div>' +
         '<div class="fact-refs" aria-label="事实引用">' + refs + '</div>' +
         '<div class="artifact-methods" aria-label="参考宣传方法">' + methods + '</div>' +
         '<div class="artifact-actions"><button type="button" data-review="accept" data-artifact="' + escapeHtml(artifact.id) + '">品牌确认</button><button type="button" class="edit-action" data-review="edit" data-artifact="' + escapeHtml(artifact.id) + '">品牌方修改</button><button type="button" class="save-action" data-review="save" data-artifact="' + escapeHtml(artifact.id) + '">保存确认稿</button><button type="button" data-review="flag" data-artifact="' + escapeHtml(artifact.id) + '">退回修改</button><button type="button" data-review="copy" data-artifact="' + escapeHtml(artifact.id) + '">复制</button></div>' +
@@ -112,7 +112,7 @@
     tbody.innerHTML = tasks.slice(0, 8).map(function (task) {
       return '<tr><td>' + escapeHtml(formatTime(task.createdAt)) + '<small>' + escapeHtml(task.platformName || '') + '</small></td>' +
         '<td>' + escapeHtml(task.brandName || '品牌') + '<small>' + escapeHtml(task.mode || '本地处理') + '</small></td>' +
-        '<td>' + escapeHtml(task.model || 'local-deterministic-demo') + '<small>' + escapeHtml(task.promptVersion || '') + '</small></td>' +
+        '<td>' + escapeHtml(task.model || 'local-rule-engine') + '<small>' + escapeHtml(task.promptVersion || '') + '</small></td>' +
         '<td><span class="risk-count ' + ((task.highRisk || 0) ? 'risk-high' : 'risk-low') + '"><b>' + (task.riskCount || 0) + '</b> 条<small>高 ' + (task.highRisk || 0) + '</small></span></td>' +
         '<td>' + (task.reviewCount || 0) + ' 次<small>' + escapeHtml(task.status || '待品牌确认') + '</small></td></tr>';
     }).join('');
@@ -209,6 +209,7 @@
     setConnection: setConnection
   };
 }(window));
+
 
 
 

@@ -118,7 +118,7 @@ class LuyunGateway {
       }
     }
     if (!generated) {
-      const modelInfo = { model: 'local-deterministic-demo', mode: '本地确定性引擎（网关托底）', promptVersion: engine.PROMPT_VERSION };
+      const modelInfo = { model: 'local-rule-engine', mode: '本地处理引擎（网关托底）', promptVersion: engine.PROMPT_VERSION };
       generated = {
         modelInfo: modelInfo,
         artifacts: engine.generateContent(Object.assign({}, safePayload, { risks: risks, modelInfo: modelInfo }))
@@ -204,4 +204,5 @@ class LuyunGateway {
 }
 
 module.exports = { LuyunGateway, PROMPT_VERSION: engine.PROMPT_VERSION };
+
 

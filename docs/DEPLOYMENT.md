@@ -49,7 +49,7 @@ git push origin main
 | `OPENAI_MODEL` | 否 | 默认 `gpt-6` |
 | `AI_API_MODE` | 否 | 默认 `responses`，可切到 `chat` |
 | `AI_API_URL` | 否 | 可选 OpenAI 兼容接口备用地址 |
-| `AI_TIMEOUT_MS` | 否 | 默认 `12000` |
+| `AI_TIMEOUT_MS` | 否 | 默认 `30000` |
 
 ### Render 部署
 
@@ -72,7 +72,8 @@ git push origin main
 ```bash
 fly launch --copy-config --no-deploy
 fly secrets set ALLOWED_ORIGIN=https://fuan20070330-sudo.github.io
-fly secrets set AI_API_KEY=your-key
+fly secrets set OPENAI_API_KEY=your-key
+fly secrets set OPENAI_MODEL=your-account-model
 fly deploy
 ```
 
@@ -88,11 +89,12 @@ python -m http.server 4173
 ## 四、部署后检查
 
 - 页面资源返回 200，尤其是 `css/styles.css` 和 `shared/engine.js`。
-- 顶部状态由“连接中”变为“已连接”或“已断开”。
-- 点击“一键叙事演示”后出现 4 项成果。
+- 顶部状态显示“已连接”“本地处理”或“已断开”；未配置网关时不应误报正在连接。
+- 完成手动填写和内容生成后出现 4 项成果。
 - 边界案例至少出现 3 个高风险。
-- 品牌方确认或修改后确认留痕增加。
+- 人工审核记录增加。
 - Markdown 下载文件名正常。
 - 手机宽度 390px 无横向滚动。
 - 浏览器控制台无 JavaScript 错误。
+
 

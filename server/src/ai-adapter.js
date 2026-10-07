@@ -139,3 +139,4 @@ function createAiAdapter(env = {}) {
 }
 
 module.exports = { createAiAdapter, requestJson, responsesEndpoint, chatEndpoint, extractResponseText, parseJsonText, buildPrompt };
+

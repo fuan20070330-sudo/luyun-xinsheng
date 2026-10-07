@@ -35,8 +35,12 @@
 
   GatewayClient.prototype.connect = function () {
     var self = this;
-    if (!this.url || !('WebSocket' in window)) {
-      this.setStatus('disconnected', this.url ? '浏览器不支持 WebSocket' : '未配置网关地址');
+    if (!this.url) {
+      this.setStatus('local', '未配置网关地址');
+      return Promise.resolve(false);
+    }
+    if (!('WebSocket' in window)) {
+      this.setStatus('disconnected', '浏览器不支持 WebSocket');
       return Promise.resolve(false);
     }
     if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
