@@ -719,7 +719,7 @@
         action.classList.toggle('is-active', state.pendingOnly);
         Renderer.renderFacts(state);
       }
-      if (name === 'clear-demo') clearDemo();
+      if (name === 'clear-entry') clearDemo();
     });
     window.addEventListener('beforeunload', function () { gateway.close(); });
     window.addEventListener('pageshow', function () { resetToEntry(); });
@@ -769,6 +769,7 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 }(window, document));
+
 
 
 
