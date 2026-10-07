@@ -111,6 +111,15 @@
     window.scrollTo(0, 0);
   }
 
+  function resetToEntry() {
+    state.user = '';
+    state.currentStep = 1;
+    document.body.setAttribute('data-authenticated', 'false');
+    $('login-screen').hidden = false;
+    $('app-shell').hidden = true;
+    showStep(1);
+    window.scrollTo(0, 0);
+  }
   function showApp(user) {
     state.user = user || '演示用户';
     document.body.setAttribute('data-authenticated', 'true');
@@ -745,9 +754,11 @@
       if (caseButton) applyCase(caseButton.getAttribute('data-case'));
     });
     window.addEventListener('beforeunload', function () { gateway.close(); });
+    window.addEventListener('pageshow', function (event) { if (event.persisted) resetToEntry(); });
   }
 
   function init() {
+    resetToEntry();
     renderBrandOptions();
     if (state.brand) $('brand-select').value = state.brand.id;
     populateBrand(Data.brands.luxiangzhai);

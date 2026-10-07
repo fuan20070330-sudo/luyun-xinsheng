@@ -58,6 +58,8 @@ async function waitForState(page, expression, timeout = 20000) {
 
 async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   await page.goto(baseUrl + '?gateway=' + encodeURIComponent('ws://127.0.0.1:' + gatewayPort + '/ws'), { waitUntil: 'networkidle' });
+  assert.equal(await page.locator('#login-screen').getAttribute('hidden'), null);
+  assert.equal(await page.locator('#app-shell').getAttribute('hidden'), '' );
   await page.screenshot({ path: path.join(artifactsDir, 'login-page.png'), fullPage: true });
   await page.fill('#login-account', 'test-user');
   await page.fill('#login-password', 'demo-pass');
@@ -190,6 +192,8 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
 async function runFallbackFlow(context, baseUrl, consoleErrors) {
   const page = await context.newPage();
   await page.goto(baseUrl + '?gateway=' + encodeURIComponent('ws://127.0.0.1:1/ws'), { waitUntil: 'domcontentloaded' });
+  assert.equal(await page.locator('#login-screen').getAttribute('hidden'), null);
+  assert.equal(await page.locator('#app-shell').getAttribute('hidden'), '' );
   await page.screenshot({ path: path.join(artifactsDir, 'login-page.png'), fullPage: true });
   await page.fill('#login-account', 'test-user');
   await page.fill('#login-password', 'demo-pass');
