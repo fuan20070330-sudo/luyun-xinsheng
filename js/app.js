@@ -112,6 +112,8 @@
   }
 
   function resetToEntry() {
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    if (window.location.hash) history.replaceState(null, '', window.location.pathname + window.location.search);
     state.user = '';
     state.currentStep = 1;
     document.body.setAttribute('data-authenticated', 'false');
@@ -754,7 +756,7 @@
       if (caseButton) applyCase(caseButton.getAttribute('data-case'));
     });
     window.addEventListener('beforeunload', function () { gateway.close(); });
-    window.addEventListener('pageshow', function (event) { if (event.persisted) resetToEntry(); });
+    window.addEventListener('pageshow', function () { resetToEntry(); });
   }
 
   function init() {
@@ -804,6 +806,7 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 }(window, document));
+
 
 
 
