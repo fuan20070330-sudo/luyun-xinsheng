@@ -134,7 +134,7 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   assert.ok(boundary.terms.includes('宫廷御用'));
   assert.ok(boundary.terms.includes('国家级非遗'));
   assert.ok(boundary.terms.includes('降血糖'));
-  assert.ok(boundary.content.includes('发布拦截'));
+  assert.ok(boundary.content.includes('这几句先别发'));
   assert.equal(boundary.cards, boundary.high);
 
   await page.click('[data-artifact="story"] [data-review="edit"]');
@@ -266,6 +266,7 @@ try {
   await new Promise((resolve) => gatewayBundle.server.close(resolve));
   await stop(staticServer);
 }
+
 
 
 

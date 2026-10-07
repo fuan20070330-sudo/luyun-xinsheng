@@ -280,7 +280,7 @@
         { stage: 'retrieve', percent: 18, message: '从知识库召回品牌事实与未核实线索' },
         { stage: 'generate', percent: 38, message: '本地确定性引擎生成品牌故事、内容日历、多平台文案和年轻化表达方案' },
         { stage: 'verify', percent: 70, message: '逐句扫描医疗功效、非遗身份、文化正统性、荣誉和年份' },
-        { stage: 'store', percent: 90, message: '整理事实引用、AI 初稿和品牌方确认证据' }
+        { stage: 'store', percent: 90, message: '整理事实引用、助手初稿和品牌方确认证据' }
       ];
       var result = null;
       var chain = delay(170 * scale);
@@ -388,7 +388,7 @@
     renderAll();
     if ($('stream-window')) $('stream-window').textContent = '';
     setProgress('retrieve', 4, '创建 content.generate 任务');
-    $('job-status').textContent = '生成中';
+    $('job-status').textContent = '正在起稿';
     $('job-status').className = 'status-chip is-active';
     setBusy($('generate-button'), true);
     try {
@@ -413,7 +413,7 @@
         promptVersion: (result.modelInfo && result.modelInfo.promptVersion) || Engine.PROMPT_VERSION,
         riskCount: state.risks.length, highRisk: highRisk, reviewCount: 0, status: highRisk ? '已拦截待修改' : '待品牌确认'
       });
-      setProgress('store', 100, '生成完成，四类叙事成果已建立事实引用和宣传方法参考');
+      setProgress('store', 100, '文稿已成，四份稿件都已留下事实与办法');
       Renderer.updatePipeline('review');
       $('job-status').textContent = highRisk ? highRisk + ' 项高风险' : '待品牌方确认';
       $('job-status').className = 'status-chip ' + (highRisk ? 'is-warning' : 'is-active');
@@ -421,12 +421,12 @@
       persistState();
       renderAll();
       showStep(5);
-      toast(highRisk ? '生成完成，检测到 ' + highRisk + ' 项高风险，禁止直接对外发布。' : '生成完成，请品牌方确认事实、文化内涵和对外表达。', highRisk ? 'warning' : 'info');
+      toast(highRisk ? '文稿已成，但发现 ' + highRisk + ' 项高风险，禁止直接对外发布。' : '文稿已成，请品牌方过目事实、文化内涵和对外说法。', highRisk ? 'warning' : 'info');
       return result;
     } catch (error) {
       $('job-status').textContent = '生成失败';
       $('job-status').className = 'status-chip is-warning';
-      toast(error.message || '内容生成失败', 'error');
+      toast(error.message || '这稿没写成', 'error');
       return null;
     } finally {
       setBusy($('generate-button'), false);
@@ -771,7 +771,7 @@
     gateway.connect().then(function (connected) {
       if (connected) {
         gateway.send('state.sync', { client: 'github-pages', version: Config.appVersion });
-        toast('WebSocket 实时网关已连接，将使用服务端生成链路。');
+        toast('已接入实时网关，稿件可直接传递。');
       } else {
         toast('未连接远程网关，已自动进入本地演示模式；全部核心叙事与品牌确认功能仍可使用。', 'warning');
       }
@@ -793,6 +793,7 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 }(window, document));
+
 
 
 

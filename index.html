@@ -16,38 +16,38 @@
     <div class="login-panel">
       <a class="brand login-brand" href="#login-title">
         <span class="brand-seal" aria-hidden="true">坊</span>
-        <span class="brand-copy"><strong>老字号叙事工坊</strong><small>老字号与非遗品牌内容助手</small></span>
+        <span class="brand-copy"><strong>老字号叙事工坊</strong><small>齐鲁文脉 · 旧事新声</small></span>
       </a>
       <div class="login-heading">
         <p class="section-kicker">应用入口</p>
-        <h1 id="login-title">登录叙事工作台</h1>
-        <p>分步整理品牌档案、产品资料与受访内容，生成可确认的品牌叙事成果。</p>
+        <h1 id="login-title">入坊登录</h1>
+        <p>先存旧档，再录口述；一字一句，皆有人认领。</p>
       </div>
       <form id="login-form" class="login-form" novalidate>
         <label class="field"><span>账号</span><input id="login-account" autocomplete="username" placeholder="演示环境可填写任意非空账号" required><small class="field-hint">不需要真实企业账号，仅用于区分当前操作人。</small></label>
         <label class="field"><span>密码</span><input id="login-password" type="password" autocomplete="current-password" placeholder="演示环境可填写任意非空密码" required><small class="field-hint">密码不会上传，也不会写入浏览器存储。</small></label>
         <label class="field"><span>当前身份</span><select id="login-role"><option value="品牌运营人员">品牌运营人员</option><option value="非遗传承人">非遗传承人</option><option value="品牌确认人">品牌确认人</option><option value="内容编辑">内容编辑</option></select><small class="field-hint">身份会记录在品牌确认留痕中。</small></label>
-        <button class="button button-primary button-full" type="submit">登录工作台</button>
-        <button class="button button-ghost button-full" type="button" data-action="demo-login">免密进入演示</button>
+        <button class="button button-primary button-full" type="submit">入坊办公</button>
+        <button class="button button-ghost button-full" type="button" data-action="demo-login">试看流程</button>
       </form>
-      <p class="login-note">这是产品原型登录界面，不连接真实账号服务，不会保存密码。</p>
+      <p class="login-note">此为演示门径，不留账号，不留密码。</p>
     </div>
     <aside class="login-aside">
-      <p class="section-kicker">应用流程</p>
+      <p class="section-kicker">入坊次序</p>
       <ol>
         <li><span>01</span><div><strong>基础信息</strong><small>品牌名称、类型和语气</small></div></li>
-        <li><span>02</span><div><strong>品牌资料</strong><small>历史、产品和可引用原文</small></div></li>
-        <li><span>03</span><div><strong>受访内容</strong><small>传承人访谈与品牌方口述</small></div></li>
-        <li><span>04</span><div><strong>创作要求</strong><small>平台、主题和宣传方法</small></div></li>
-        <li><span>05</span><div><strong>生成结果</strong><small>四类叙事成果与风险</small></div></li>
-        <li><span>06</span><div><strong>品牌确认</strong><small>确认、修改和留痕</small></div></li>
+        <li><span>02</span><div><strong>旧档货品</strong><small>历史、产品和可引用原文</small></div></li>
+        <li><span>03</span><div><strong>口述访谈</strong><small>传承人访谈与品牌方口述</small></div></li>
+        <li><span>04</span><div><strong>章法门路</strong><small>平台、主题和宣传方法</small></div></li>
+        <li><span>05</span><div><strong>成稿四篇</strong><small>四类叙事成果与风险</small></div></li>
+        <li><span>06</span><div><strong>定稿留痕</strong><small>确认、修改和留痕</small></div></li>
       </ol>
     </aside>
   </section>
 
   <div class="app-shell" id="app-shell" hidden>
     <header class="app-topbar">
-      <div class="topbar-brand"><span class="brand-seal" aria-hidden="true">坊</span><div><strong>老字号叙事工坊</strong><small>老字号与非遗品牌内容助手</small></div></div>
+      <div class="topbar-brand"><span class="brand-seal" aria-hidden="true">坊</span><div><strong>老字号叙事工坊</strong><small>齐鲁文脉 · 旧事新声</small></div></div>
       <div class="topbar-actions">
         <span class="user-chip">当前用户：<strong id="current-user">--</strong></span>
         <button class="button button-ghost button-compact" type="button" data-action="run-demo">一键演示</button>
@@ -59,12 +59,12 @@
     <div class="app-layout">
       <aside class="app-sidebar">
         <nav class="step-nav" aria-label="应用步骤">
-          <button type="button" data-page="1" class="is-active"><span>01</span><div><strong>基本信息</strong><small>品牌身份</small></div></button>
-          <button type="button" data-page="2"><span>02</span><div><strong>品牌资料</strong><small>历史与产品</small></div></button>
-          <button type="button" data-page="3"><span>03</span><div><strong>受访内容</strong><small>口述与访谈</small></div></button>
-          <button type="button" data-page="4"><span>04</span><div><strong>创作要求</strong><small>平台与方法</small></div></button>
-          <button type="button" data-page="5"><span>05</span><div><strong>生成结果</strong><small>四类成果</small></div></button>
-          <button type="button" data-page="6"><span>06</span><div><strong>品牌确认</strong><small>审核留痕</small></div></button>
+          <button type="button" data-page="1" class="is-active"><span>01</span><div><strong>品牌名号</strong><small>先认品牌</small></div></button>
+          <button type="button" data-page="2"><span>02</span><div><strong>旧档货品</strong><small>录入原文</small></div></button>
+          <button type="button" data-page="3"><span>03</span><div><strong>口述访谈</strong><small>留人原话</small></div></button>
+          <button type="button" data-page="4"><span>04</span><div><strong>章法门路</strong><small>定题定法</small></div></button>
+          <button type="button" data-page="5"><span>05</span><div><strong>成稿四篇</strong><small>读稿核校</small></div></button>
+          <button type="button" data-page="6"><span>06</span><div><strong>定稿留痕</strong><small>品牌确认</small></div></button>
         </nav>
         <div class="sidebar-metrics"><div><span id="metric-facts">0</span><small>叙事事实</small></div><div><span id="metric-jobs">0</span><small>生成任务</small></div><div><span id="metric-reviews">0</span><small>品牌确认</small></div></div>
         <p class="sidebar-protocol">协议：<span id="connection-protocol">luyun-gateway/1.0</span></p>
@@ -72,39 +72,39 @@
 
       <main class="app-main" id="app-main">
         <section class="app-step is-active" data-step="1" id="workspace" aria-labelledby="step1-title">
-          <div class="step-heading"><div><p class="section-kicker">步骤 1 / 6</p><h2 id="step1-title">先确认品牌的基本信息</h2><p>这里只填写品牌身份，不填写大段历史资料。</p></div><span class="step-status">当前：基本信息</span></div>
+          <div class="step-heading"><div><p class="section-kicker">步骤 1 / 6</p><h2 id="step1-title">先认一认品牌名号</h2><p>此处只记名号、门类与口吻，不急着铺陈旧事。</p></div><span class="step-status">当前：基本信息</span></div>
           <div class="panel form-panel">
             <div class="field-row two-col">
               <label class="field"><span>已有品牌</span><select id="brand-select"><option value="luxiangzhai">鲁香斋（模拟品牌）</option><option value="new">+ 新建品牌</option></select><small class="field-hint">可以切换已有品牌，或创建新品牌。</small></label>
               <label class="field"><span>品牌类型</span><input id="brand-type" value="山东传统糕点老字号" maxlength="40" required placeholder="例如：山东传统糕点老字号、非遗手作工坊、文创品牌"><small class="field-hint">用于判断品牌所属行业、文化身份和表达边界。</small></label>
             </div>
             <label class="field"><span>品牌名称</span><input id="brand-name" value="鲁香斋（模拟品牌）" maxlength="60" required placeholder="填写品牌在正式资料中的名称"><small class="field-hint">优先使用品牌档案、证照或官网中的正式名称。</small></label>
-            <label class="field"><span>品牌语气</span><input id="brand-tone" value="真诚、考究、年轻，不说满话" maxlength="80" required placeholder="例如：真诚、考究、克制、有温度，不夸大"><small class="field-hint">描述希望用户感受到的语气，AI 会据此调整表达。</small></label>
-            <div class="step-actions"><button class="button button-primary" type="button" data-next="2">确定，进入品牌资料</button></div>
+            <label class="field"><span>品牌语气</span><input id="brand-tone" value="真诚、考究、年轻，不说满话" maxlength="80" required placeholder="例如：真诚、考究、克制、有温度，不夸大"><small class="field-hint">描述希望用户感受到的语气，助手会据此调整口吻。</small></label>
+            <div class="step-actions"><button class="button button-primary" type="button" data-next="2">记下了，续录品牌旧档</button></div>
           </div>
         </section>
 
         <section class="app-step" data-step="2" aria-labelledby="step2-title">
-          <div class="step-heading"><div><p class="section-kicker">步骤 2 / 6</p><h2 id="step2-title">录入品牌历史与产品资料</h2><p>每行尽量是一条可直接引用的原文，AI 会按行提取事实。</p></div><span class="status-chip" id="brand-status">待入库</span></div>
+          <div class="step-heading"><div><p class="section-kicker">步骤 2 / 6</p><h2 id="step2-title">把旧档与货品誊入案头</h2><p>一行一事，最好留着原文；没有出处的话，先不写成定论。</p></div><span class="status-chip" id="brand-status">待入库</span></div>
           <div class="panel form-panel">
             <label class="field"><span>品牌历史与产品资料</span><textarea id="brand-materials" rows="10" required placeholder="建议每行一条可直接引用的资料，例如：品牌创立于1918年；传统枣泥酥包含选枣、蒸制、炒馅、包制和烘烤工序；产品包括节令礼盒。"></textarea><small class="field-hint">这里填写品牌档案、产品说明、荣誉登记和工艺原文。不要填写没有来源的推测。</small></label>
             <div class="import-row"><label class="file-button">导入 TXT / MD / JSON / CSV<input id="file-import" type="file" accept=".txt,.md,.markdown,.json,.csv,text/plain,application/json,text/csv"></label><span id="file-import-status">支持 UTF-8 文本，导入后仍可编辑</span></div>
-            <div class="step-actions"><button class="button button-ghost" type="button" data-page="1">返回上一步</button><button class="button button-primary" type="button" data-next="3">确定，进入受访内容</button></div>
+            <div class="step-actions"><button class="button button-ghost" type="button" data-page="1">返回上一步</button><button class="button button-primary" type="button" data-next="3">续录口述访谈</button></div>
           </div>
         </section>
 
         <section class="app-step" data-step="3" aria-labelledby="step3-title">
-          <div class="step-heading"><div><p class="section-kicker">步骤 3 / 6</p><h2 id="step3-title">录入受访内容与口述记录</h2><p>保留说话人的原始表达，AI 只做整理，不替受访者补写观点。</p></div><span class="step-status">访谈洞察</span></div>
+          <div class="step-heading"><div><p class="section-kicker">步骤 3 / 6</p><h2 id="step3-title">把口述与旧话留在案上</h2><p>受访者怎么说，就怎么收；助手只整理，不替人添话。</p></div><span class="step-status">访谈洞察</span></div>
           <div class="panel form-panel">
-            <label class="field"><span>受访内容 / 口述记录</span><textarea id="interview-notes" rows="8" placeholder="例如：受访人身份＋原话。品牌传承人表示，年轻化不能改变关键工序，要让年轻人知道每一步为什么这样做。"></textarea><small class="field-hint">填写传承人访谈、品牌方口述或客户反馈；AI 只按原意整理，不替受访者补写观点。</small></label>
+            <label class="field"><span>受访内容 / 口述记录</span><textarea id="interview-notes" rows="8" placeholder="例如：受访人身份＋原话。品牌传承人表示，年轻化不能改变关键工序，要让年轻人知道每一步为什么这样做。"></textarea><small class="field-hint">填写传承人访谈、品牌方口述或客户反馈；助手只按原意整理，不替受访者添话。</small></label>
             <div class="facts-header"><div><strong>已提取事实</strong><span id="facts-summary">尚未提取</span></div><button class="text-button" type="button" data-action="filter-pending">仅看待核实</button></div>
             <div class="facts-list empty-state" id="facts-list"><span class="empty-glyph">档</span><p>提交资料后，此处会生成带来源和置信度的事实卡片。</p></div>
-            <div class="step-actions"><button class="button button-ghost" type="button" data-page="2">返回修改资料</button><button class="button button-primary" type="button" id="ingest-button" data-next="4">提取事实并进入创作要求</button></div>
+            <div class="step-actions"><button class="button button-ghost" type="button" data-page="2">返回修改资料</button><button class="button button-primary" type="button" id="ingest-button" data-next="4">整理成事实，再定章法</button></div>
           </div>
         </section>
 
         <section class="app-step" data-step="4" aria-labelledby="step4-title">
-          <div class="step-heading"><div><p class="section-kicker">步骤 4 / 6</p><h2 id="step4-title">设置平台、主题与宣传方法</h2><p>选择宣传方法后，系统会把这些方法作为四类生成结果的参考。</p></div><span class="status-chip" id="job-status">等待任务</span></div>
+          <div class="step-heading"><div><p class="section-kicker">步骤 4 / 6</p><h2 id="step4-title">落笔之前，先定章法门路</h2><p>选取平台、题目和办法，后面的文稿便按这些路子来。</p></div><span class="status-chip" id="job-status">等待任务</span></div>
           <form id="content-form" class="panel form-panel" novalidate>
             <fieldset class="choice-group"><legend>发布平台</legend><div class="choice-grid platform-grid">
               <label class="choice-card"><input type="radio" name="platform" value="xiaohongshu" checked><span class="choice-icon">小</span><strong>小红书</strong><small>真实体验 / 笔记语气</small></label>
@@ -126,18 +126,18 @@
             <label class="field"><span>限制条件</span><textarea id="content-constraints" rows="3" placeholder="例如：不承诺功效；年份只使用档案原文；非遗身份待核实；不要改变受访原意；平台字数限制等。" required></textarea><small class="field-hint">填写必须遵守的事实边界、禁用词、文化要求和平台限制。</small></label>
             <fieldset class="choice-group"><legend>宣传方法参考（可多选）</legend><div class="method-grid" id="method-grid"></div><p class="method-note">方法会进入生成结果和导出文件；最终仍由品牌方确认是否符合文化内涵。</p></fieldset>
             <div class="case-switcher" aria-label="演示案例"><span>快速载入</span><button type="button" data-case="typical" class="is-active">品牌故事案例</button><button type="button" data-case="complex">访谈与节令</button><button type="button" data-case="boundary">边界表达</button></div>
-            <button class="button button-primary button-full" type="submit" id="generate-button">生成四类叙事成果</button>
+            <button class="button button-primary button-full" type="submit" id="generate-button">起笔，得四份文稿</button>
           </form>
         </section>
 
         <section class="app-step" data-step="5" id="results" aria-labelledby="step5-title">
-          <div class="step-heading"><div><p class="section-kicker">步骤 5 / 6</p><h2 id="step5-title">查看四类生成结果</h2><p>每项成果都已绑定事实编号，并附上所选宣传方法作为参考。</p></div><div class="result-actions"><span id="result-status">尚无生成结果</span><button class="button button-outline" type="button" id="export-markdown" disabled>导出品牌确认包</button></div></div>
+          <div class="step-heading"><div><p class="section-kicker">步骤 5 / 6</p><h2 id="step5-title">四份文稿已列在案头</h2><p>先看事实出处，再看风险与各方审看，最后请品牌方定稿。</p></div><div class="result-actions"><span id="result-status">尚无生成结果</span><button class="button button-outline" type="button" id="export-markdown" disabled>导出品牌确认包</button></div></div>
           <div class="risk-summary" id="risk-summary"><span class="risk-count risk-high"><b>0</b> 高风险</span><span class="risk-count risk-medium"><b>0</b> 中风险</span><span class="risk-count risk-low"><b>0</b> 待关注</span></div>
           <div class="result-layout">
             <div class="risk-list" id="risk-list"><div class="empty-state panel"><span class="empty-glyph">检</span><p>生成后自动显示医疗功效、非遗身份、文化正统性、绝对化、年份与工艺风险。</p></div></div>
-            <aside class="boundary-note panel"><span class="boundary-seal">界</span><h3>发布边界</h3><p>AI 生成初稿并执行风险初筛；品牌方确认事实、文化内涵和对外表达后才能发布。</p><ul><li>确定事实必须引用 [Fxxx]</li><li>待核实信息不得写成确定事实</li><li>高风险内容需要修改和重新确认</li></ul><button class="button button-ghost button-full" type="button" data-page="6">进入品牌确认</button></aside>
+            <aside class="boundary-note panel"><span class="boundary-seal">界</span><h3>发布边界</h3><p>助手先出初稿，再做事实与风险初筛；品牌方确认后，才可定稿刊发。</p><ul><li>确定事实必须引用 [Fxxx]</li><li>待核实信息不得写成确定事实</li><li>高风险内容需要修改和重新确认</li></ul><button class="button button-ghost button-full" type="button" data-page="6">进入品牌确认</button></aside>
           </div>
-          <div class="panel role-review-panel"><div class="panel-head"><div><span class="panel-index">AI</span><h3>多角色审查</h3></div><span class="status-chip" id="role-review-count">0 项</span></div><div class="role-review-list" id="role-review-list"><div class="empty-state"><span class="empty-glyph">审</span><p>生成后显示档案、编辑、平台、文化和合规角色的审查结果。</p></div></div></div>          <div class="artifact-grid" id="artifact-grid">
+          <div class="panel role-review-panel"><div class="panel-head"><div><span class="panel-index">审</span><h3>多方审看</h3></div><span class="status-chip" id="role-review-count">0 项</span></div><div class="role-review-list" id="role-review-list"><div class="empty-state"><span class="empty-glyph">审</span><p>生成后显示档案、编辑、平台、文化和合规角色的审查结果。</p></div></div></div>          <div class="artifact-grid" id="artifact-grid">
             <article class="artifact-card empty-artifact"><span>事</span><h3>品牌故事</h3><p>基于品牌历史与受访内容形成可追溯叙事。</p></article>
             <article class="artifact-card empty-artifact"><span>历</span><h3>内容日历</h3><p>按节点、主题与平台规划持续内容。</p></article>
             <article class="artifact-card empty-artifact"><span>传</span><h3>多平台文案</h3><p>适配小红书、抖音和微信公众号表达。</p></article>
@@ -146,13 +146,13 @@
         </section>
 
         <section class="app-step" data-step="6" id="reviews" aria-labelledby="step6-title">
-          <div class="step-heading"><div><p class="section-kicker">步骤 6 / 6</p><h2 id="step6-title">品牌方确认与留痕</h2><p>确认、修改或退回内容都会记录当前用户、动作、前后内容和时间。</p></div><button class="button button-ghost" type="button" data-action="clear-demo">清空本次演示</button></div>
+          <div class="step-heading"><div><p class="section-kicker">步骤 6 / 6</p><h2 id="step6-title">定稿留痕，再记刊发回响</h2><p>谁改过、何时确认、发到哪里、效果如何，都留一笔。</p></div><button class="button button-ghost" type="button" data-action="clear-demo">清空本次演示</button></div>
           <div class="evidence-grid">
-            <article class="panel task-panel"><div class="panel-head"><div><span class="panel-index">T</span><h3>最近生成任务</h3></div><span class="status-chip" id="task-count">0 条</span></div><div class="table-wrap"><table><thead><tr><th>任务时间</th><th>品牌 / 模式</th><th>模型 / 提示词</th><th>风险</th><th>品牌确认</th></tr></thead><tbody id="task-table"><tr><td colspan="5" class="table-empty">暂无任务记录</td></tr></tbody></table></div></article>
+            <article class="panel task-panel"><div class="panel-head"><div><span class="panel-index">T</span><h3>最近起稿记录</h3></div><span class="status-chip" id="task-count">0 条</span></div><div class="table-wrap"><table><thead><tr><th>任务时间</th><th>品牌 / 模式</th><th>模型 / 稿本</th><th>风险</th><th>品牌确认</th></tr></thead><tbody id="task-table"><tr><td colspan="5" class="table-empty">暂无任务记录</td></tr></tbody></table></div></article>
             <article class="panel audit-panel"><div class="panel-head"><div><span class="panel-index">R</span><h3>品牌方确认记录</h3></div><span class="status-chip" id="review-count">0 次</span></div><div class="audit-timeline" id="audit-timeline"><div class="empty-state"><span class="empty-glyph">审</span><p>品牌方确认、修改或退回内容后，将在此记录确认人、动作、前后内容和时间。</p></div></div></article>
           </div>
           <div class="protocol-strip"><div><span>协议版本</span><strong>luyun-gateway/1.0</strong></div><div><span>连接模式</span><strong id="protocol-mode">探测中</strong></div><div><span>最后消息</span><strong id="last-event">--</strong></div><div><span>事实编号</span><strong id="fact-id-range">--</strong></div></div>
-          <article class="panel publish-panel"><div class="panel-head"><div><span class="panel-index">效</span><h3>发布与效果回流</h3></div><span class="status-chip" id="publish-count">0 条</span></div><form id="publish-form" class="publish-form"><div class="field-row three-col"><label class="field"><span>发布平台</span><select id="publish-platform"><option>小红书</option><option>抖音</option><option>微信公众号</option><option>线下门店</option></select></label><label class="field"><span>发布日期</span><input id="publish-date" type="date"></label><label class="field"><span>发布状态</span><select id="publish-status"><option>已排期</option><option>已发布</option><option>待确认</option></select></label></div><div class="field-row two-col"><label class="field"><span>内容链接 / 位置</span><input id="publish-url" placeholder="粘贴链接，或填写门店、活动位置"></label><label class="field"><span>备注</span><input id="publish-note" placeholder="例如：品牌方已确认，待补充数据"></label></div><div class="field-row four-col"><label class="field"><span>曝光量</span><input id="publish-impressions" type="number" min="0" value="0"></label><label class="field"><span>点赞</span><input id="publish-likes" type="number" min="0" value="0"></label><label class="field"><span>收藏</span><input id="publish-saves" type="number" min="0" value="0"></label><label class="field"><span>转化</span><input id="publish-conversions" type="number" min="0" value="0"></label></div><button class="button button-secondary" type="submit">保存发布记录</button></form><div class="publish-records" id="publish-records"><div class="empty-state"><span class="empty-glyph">效</span><p>发布后记录平台、链接和效果数据，用于下一轮内容优化。</p></div></div></article>
+          <article class="panel publish-panel"><div class="panel-head"><div><span class="panel-index">效</span><h3>刊发与回响</h3></div><span class="status-chip" id="publish-count">0 条</span></div><form id="publish-form" class="publish-form"><div class="field-row three-col"><label class="field"><span>发布平台</span><select id="publish-platform"><option>小红书</option><option>抖音</option><option>微信公众号</option><option>线下门店</option></select></label><label class="field"><span>发布日期</span><input id="publish-date" type="date"></label><label class="field"><span>发布状态</span><select id="publish-status"><option>已排期</option><option>已发布</option><option>待确认</option></select></label></div><div class="field-row two-col"><label class="field"><span>内容链接 / 位置</span><input id="publish-url" placeholder="粘贴链接，或填写门店、活动位置"></label><label class="field"><span>备注</span><input id="publish-note" placeholder="例如：品牌方已确认，待补充数据"></label></div><div class="field-row four-col"><label class="field"><span>曝光量</span><input id="publish-impressions" type="number" min="0" value="0"></label><label class="field"><span>点赞</span><input id="publish-likes" type="number" min="0" value="0"></label><label class="field"><span>收藏</span><input id="publish-saves" type="number" min="0" value="0"></label><label class="field"><span>转化</span><input id="publish-conversions" type="number" min="0" value="0"></label></div><button class="button button-secondary" type="submit">记下刊发与回响</button></form><div class="publish-records" id="publish-records"><div class="empty-state"><span class="empty-glyph">效</span><p>发布后记录平台、链接和效果数据，用于下一轮内容优化。</p></div></div></article>
           <div class="step-actions"><button class="button button-ghost" type="button" data-page="5">返回生成结果</button><button class="button button-primary" type="button" data-action="run-demo">重新演示</button></div>
         </section>
       </main>
@@ -169,3 +169,5 @@
   <script src="js/app.js?v=2.2.0"></script>
 </body>
 </html>
+
+
