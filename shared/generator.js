@@ -41,11 +41,12 @@
   function buildCalendar(config) {
     var brand = config.brand || {}, brief = safeBrief(config), theme = safeTheme(config);
     var methods = methodNames(config);
+    var feedback = config.performanceFeedback || [];
     var history = brief.history ? cite(brief.history) : '历史事实待补充';
     var craft = brief.craft.length ? cite(brief.craft[0]) : '工艺事实待补充';
     var product = brief.products.length ? cite(brief.products[0]) : '产品事实待补充';
     var interview = brief.interviews.length ? cite(brief.interviews[0]) : '访谈事实待补充';
-    return methodNote(config) + riskGate(config) + '【内容日历】' + brand.name + '｜' + theme + '\n规划原则：先用事实建立信任，再用场景让人愿意收藏和分享。' + (methods.length ? '本次内容优先参考：' + methods.join('、') + '。' : '') + '\n\n' +
+    return methodNote(config) + riskGate(config) + '【内容日历】' + brand.name + '｜' + theme + '\n规划原则：先用事实建立信任，再用场景让人愿意收藏和分享。' + (methods.length ? '本次内容优先参考：' + methods.join('、') + '。' : '') + (feedback.length ? '上一轮效果回流：' + feedback.join('；') + '。' : '') + '\n\n' +
       '第1周｜把品牌放进时间线里\n内容任务：讲清楚品牌从哪段可核验的资料开始，不补写传奇。\n参考事实：' + history + '\n小红书：档案局部图＋一段时间故事；抖音：15秒内展示“原文如何变成品牌叙事”；公众号：解释历史事实与品牌记忆的关系。\n品牌确认：年份、称号和原始出处。\n\n' +
       '第2周｜让工艺变成看得见的动作\n内容任务：选择一道最有识别度的工序，用动作、工具和等待时间讲清楚。\n参考事实：' + craft + '\n小红书：工序拆解卡片；抖音：从原料到成品的节奏快切；公众号：工艺图解与文化解释。\n品牌确认：工序顺序、术语和专业细节。\n\n' +
       '第3周｜把产品放回真实生活\n内容任务：不强调功效，只回答“什么时候吃、和谁分享、为什么适合带去”。\n参考事实：' + product + '\n小红书：节令分享笔记；抖音：家庭分享或下午茶场景；公众号：产品线如何保留传统口感。\n品牌确认：产品信息、含糖表述和销售边界。\n\n' +

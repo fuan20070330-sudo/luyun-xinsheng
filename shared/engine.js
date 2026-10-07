@@ -78,6 +78,10 @@
         statement: sentence,
         source: source,
         sourceExcerpt: sentence,
+        sourceLocation: '原文第' + (facts.length + 1) + '条',
+        revision: 1,
+        confirmedBy: '',
+        updatedAt: new Date().toISOString(),
         confidence: confidence,
         status: confidence >= 0.7 ? '已提取' : '待核实'
       });
@@ -91,6 +95,10 @@
           statement: '暂未从资料中提取到' + category + '相关线索',
           source: '未找到来源',
           sourceExcerpt: '',
+          sourceLocation: '未找到来源',
+          revision: 1,
+          confirmedBy: '',
+          updatedAt: new Date().toISOString(),
           confidence: 0,
           status: '待核实'
         });
@@ -231,7 +239,22 @@
     }).map(function (fact) { return fact.id; });
   }
 
-  return {
+  function runRoleReview(input) {
+    input = input || {};
+    var facts = input.facts || [];
+    var risks = input.risks || [];
+    var pending = facts.filter(function (fact) { return fact.status === '待核实'; });
+    var high = risks.filter(function (risk) { return risk.level === 'high'; });
+    var culture = high.filter(function (risk) { return /文化|荣誉|身份/.test(risk.type || ''); });
+    var compliance = high.filter(function (risk) { return /医疗|功效|绝对化|营养/.test(risk.type || ''); });
+    return [
+      { id: 'archivist', title: '档案员审查', status: pending.length ? 'warn' : 'pass', summary: pending.length ? '有 ' + pending.length + ' 条事实缺少来源，需品牌方补充。' : '事实均有来源记录。', evidence: pending.map(function (fact) { return fact.id; }).join('、') || facts.slice(0, 4).map(function (fact) { return fact.id; }).join('、'), action: '确认原文、年份和来源位置' },
+      { id: 'brand-editor', title: '品牌编辑', status: 'pass', summary: '已按品牌语气生成候选稿，保留 AI 原稿，等待品牌方修改。', evidence: input.theme || '品牌叙事主题', action: '确认品牌语气和文化内涵' },
+      { id: 'platform-editor', title: '平台编辑', status: 'pass', summary: '已分别生成小红书、抖音、公众号和多平台表达结构。', evidence: input.platformName || '多平台矩阵', action: '调整字数、标题和平台节奏' },
+      { id: 'culture-reviewer', title: '文化审查', status: culture.length ? 'block' : 'pass', summary: culture.length ? '发现 ' + culture.length + ' 项文化身份或正统性表述需核验。' : '未发现未证实的文化身份表述。', evidence: culture.map(function (risk) { return risk.term; }).join('、') || '文化表述待最终确认', action: '确认祖传、非遗、御用等表述' },
+      { id: 'compliance-reviewer', title: '合规审查', status: compliance.length ? 'block' : 'pass', summary: compliance.length ? '发现 ' + compliance.length + ' 项医疗、功效或绝对化风险。' : '未发现医疗功效或绝对化宣传风险。', evidence: compliance.map(function (risk) { return risk.term; }).join('、') || '无高风险词', action: '高风险内容修改后重新确认' }
+    ];
+  }  return {
     PROMPT_VERSION: PROMPT_VERSION,
     CATEGORIES: CATEGORIES,
     normalizeText: normalizeText,
@@ -240,8 +263,11 @@
     detectRisks: detectRisks,
     supportedByFacts: supportedByFacts,
     factTextByCategory: factTextByCategory,
-    findMatchingFactIds: findMatchingFactIds
+    findMatchingFactIds: findMatchingFactIds,
+    runRoleReview: runRoleReview
   };
 }));
+
+
 
 

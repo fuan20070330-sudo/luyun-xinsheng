@@ -28,11 +28,13 @@
     list.className = 'facts-list';
     list.innerHTML = facts.map(function (fact) {
       var confidence = Math.round((fact.confidence || 0) * 100);
-      return '<article class="fact-card" data-status="' + escapeHtml(fact.status === '待核实' ? 'pending' : 'verified') + '">' +
+      var status = fact.status === '待核实' ? '待核实' : '已提取';
+      return '<article class="fact-card" data-fact-id="' + escapeHtml(fact.id) + '" data-status="' + escapeHtml(fact.status === '待核实' ? 'pending' : 'verified') + '">' +
         '<div class="fact-meta"><span class="fact-category">' + escapeHtml(fact.category) + '</span><span class="fact-id">' + escapeHtml(fact.id) + '</span></div>' +
         '<p>' + escapeHtml(fact.text) + '</p>' +
-        '<p class="fact-source">来源：' + escapeHtml(fact.source || '未找到来源') + '</p>' +
+        '<p class="fact-source">来源：' + escapeHtml(fact.source || '未找到来源') + '｜位置：' + escapeHtml(fact.sourceLocation || '待补充') + '｜版本：v' + (fact.revision || 1) + '｜状态：' + status + '</p>' +
         '<div class="confidence" title="置信度 ' + confidence + '%"><span>置信度 ' + confidence + '%</span><i style="--confidence:' + confidence + '%"></i></div>' +
+        '<div class="fact-actions"><button type="button" data-fact-action="confirm" data-fact-id="' + escapeHtml(fact.id) + '">确认事实</button><button type="button" data-fact-action="pending" data-fact-id="' + escapeHtml(fact.id) + '">标记待核实</button></div>' +
         '</article>';
     }).join('');
   }
@@ -135,6 +137,34 @@
     }).join('');
   }
 
+  function renderRoleReviews(state) {
+    var list = byId('role-review-list');
+    if (!list) return;
+    var reviews = state.roleReviews || [];
+    byId('role-review-count').textContent = reviews.length + ' 项';
+    if (!reviews.length) {
+      list.innerHTML = '<div class="empty-state"><span class="empty-glyph">审</span><p>生成后显示档案、编辑、平台、文化和合规角色的审查结果。</p></div>';
+      return;
+    }
+    list.innerHTML = reviews.map(function (review) {
+      return '<article class="role-card" data-status="' + escapeHtml(review.status) + '"><strong>' + escapeHtml(review.title) + '</strong><small>' + escapeHtml(review.summary) + '</small><small>依据：' + escapeHtml(review.evidence || '待补充') + '</small><span>' + escapeHtml(review.action) + '</span></article>';
+    }).join('');
+  }
+
+  function renderPublishRecords(state) {
+    var list = byId('publish-records');
+    if (!list) return;
+    var records = state.publishRecords || [];
+    byId('publish-count').textContent = records.length + ' 条';
+    if (!records.length) {
+      list.innerHTML = '<div class="empty-state"><span class="empty-glyph">效</span><p>发布后记录平台、链接和效果数据，用于下一轮内容优化。</p></div>';
+      return;
+    }
+    list.innerHTML = records.slice(0, 30).map(function (record) {
+      var engagement = record.impressions ? Math.round(((record.likes + record.saves + record.conversions) / record.impressions) * 1000) / 10 + '%' : '--';
+      return '<article class="publish-record"><div><strong>' + escapeHtml(record.platform) + '</strong><small>' + escapeHtml(record.date || '未填写日期') + '</small></div><div><strong>' + escapeHtml(record.status) + '</strong><small>状态</small></div><div><strong>' + (record.impressions || 0) + '</strong><small>曝光</small></div><div><strong>' + (record.likes || 0) + ' / ' + (record.saves || 0) + '</strong><small>点赞 / 收藏</small></div><div><strong>' + engagement + '</strong><small>综合互动</small></div><div><strong>' + escapeHtml(record.note || '无备注') + '</strong><small>' + (record.url ? '<a href="' + escapeHtml(record.url) + '" target="_blank" rel="noopener">查看链接/位置</a>' : '未填写链接或位置') + '</small></div></article>';
+    }).join('');
+  }
   function renderMetrics(state) {
     var metrics = state.metrics || {};
     byId('metric-facts').textContent = metrics.facts || (state.facts || []).filter(function (fact) { return fact.status !== '待核实'; }).length;
@@ -172,11 +202,16 @@
     renderArtifacts: renderArtifacts,
     renderTasks: renderTasks,
     renderReviews: renderReviews,
+    renderRoleReviews: renderRoleReviews,
+    renderPublishRecords: renderPublishRecords,
     renderMetrics: renderMetrics,
     updatePipeline: updatePipeline,
     setConnection: setConnection
   };
 }(window));
+
+
+
 
 
 

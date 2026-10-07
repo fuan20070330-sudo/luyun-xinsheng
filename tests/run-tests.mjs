@@ -54,6 +54,7 @@ function testEngine() {
   assert.deepEqual(artifacts.map((artifact) => artifact.id), ['story', 'calendar', 'copy', 'youth']);
   assert.ok(artifacts.every((artifact) => artifact.facts.length > 0));
   assert.ok(artifacts.every((artifact) => artifact.methods.length === 2));
+  assert.equal(engine.runRoleReview({ facts, risks: boundary, theme: '测试主题', platformName: '小红书' }).length, 5);
   assert.match(artifacts[0].content, /F00\d/);
   return { facts: facts.length, verified: facts.filter((fact) => fact.status !== '待核实').length, highRisks: highTerms.length, artifacts: artifacts.length };
 }
@@ -180,6 +181,7 @@ async function testGateway() {
     const job = await client.waitFor('job.ready');
     assert.equal(job.payload.artifacts.length, 4);
     assert.ok(job.payload.artifacts.every((artifact) => artifact.methods.length === 2));
+    assert.equal(job.payload.roleReviews.length, 5);
     assert.ok(job.payload.risks.length >= 0);
     client.sendJson({
       event: 'review.update', requestId: 'review-test',
@@ -200,6 +202,7 @@ const engineResult = testEngine();
 const gatewayResult = await testGateway().catch((error) => { console.error('gateway test failed:', error.stack || error.message); process.exit(1); });
 console.log(JSON.stringify({ ok: true, engine: engineResult, gateway: gatewayResult }, null, 2));
 process.exit(0);
+
 
 
 

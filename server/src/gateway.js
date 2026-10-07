@@ -128,9 +128,11 @@ class LuyunGateway {
     const delta = generated.artifacts[0].content.replace(/\n/g, ' ').slice(0, 96);
     this.send(client, 'content.delta', requestId, { jobId: jobId, text: delta + '…' });
     this.sendProgress(client, requestId, jobId, 'store', 92, '绑定事实编号并保存模型、提示词、AI 原稿与品牌确认元数据');
+    const roleReviews = engine.runRoleReview({ facts: facts, risks: risks, theme: payload.theme, platformName: payload.platformName });
     const result = {
       jobId: jobId, createdAt: createdAt, brand: brand, facts: facts, risks: risks,
       artifacts: generated.artifacts, modelInfo: generated.modelInfo,
+      roleReviews: roleReviews,
       mode: usedRemote ? 'remote' : 'gateway-local-fallback'
     };
     this.jobs.set(jobId, result);

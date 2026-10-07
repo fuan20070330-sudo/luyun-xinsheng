@@ -153,6 +153,24 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   assert.equal(editReview.review.action, 'edit');
   assert.equal(editReview.review.before.length > 0, true);
 
+  await page.click('.step-nav [data-page="3"]');
+  await page.click('[data-fact-action="confirm"]');
+  const confirmedFact = await page.evaluate(() => window.__LUYUN_APP__.state.facts.find((fact) => fact.status === '已确认'));
+  assert.ok(confirmedFact && confirmedFact.revision >= 2 && confirmedFact.confirmedBy);
+  await page.click('.step-nav [data-page="5"]');
+  assert.equal(await page.evaluate(() => window.__LUYUN_APP__.state.roleReviews.length), 5);
+  await page.click('.step-nav [data-page="6"]');
+  await page.fill('#publish-date', '2026-10-07');
+  await page.fill('#publish-url', 'https://example.com/luyun-demo');
+  await page.fill('#publish-impressions', '1200');
+  await page.fill('#publish-likes', '88');
+  await page.fill('#publish-saves', '36');
+  await page.click('#publish-form button[type=submit]');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.publishRecords.length >= 1);
+  const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('luyun-narrative-studio-v2') || '{}'));
+  assert.ok(persisted.publishRecords.length >= 1);
+  assert.ok(Object.keys(persisted.brandLibrary).length >= 1);
+  await page.click('.step-nav [data-page="5"]');
   const downloadPromise = page.waitForEvent('download');
   await page.click('#export-markdown');
   const download = await downloadPromise;
