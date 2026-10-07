@@ -66,6 +66,7 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   await page.click('#login-form button[type=submit]');
   await page.waitForFunction(() => document.getElementById('app-shell').hidden === false);
   assert.equal(await page.locator('.app-step.is-active').getAttribute('data-step'), '1');
+  assert.equal(await page.locator('.step-nav [data-page="2"]').isDisabled(), true);
   await page.click('[data-next="2"]');
   assert.equal(await page.locator('.app-step.is-active').getAttribute('data-step'), '2');
   await page.click('[data-next="3"]');
@@ -161,7 +162,7 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   assert.ok(confirmedFact && confirmedFact.revision >= 2 && confirmedFact.confirmedBy);
   await page.click('.step-nav [data-page="5"]');
   assert.equal(await page.evaluate(() => window.__LUYUN_APP__.state.roleReviews.length), 5);
-  await page.click('.step-nav [data-page="6"]');
+  await page.click('[data-next="6"]');
   await page.fill('#publish-date', '2026-10-07');
   await page.fill('#publish-url', 'https://example.com/luyun-demo');
   await page.fill('#publish-impressions', '1200');
@@ -200,6 +201,7 @@ async function runFallbackFlow(context, baseUrl, consoleErrors) {
   await page.click('#login-form button[type=submit]');
   await page.waitForFunction(() => document.getElementById('app-shell').hidden === false);
   assert.equal(await page.locator('.app-step.is-active').getAttribute('data-step'), '1');
+  assert.equal(await page.locator('.step-nav [data-page="2"]').isDisabled(), true);
   await page.click('[data-next="2"]');
   assert.equal(await page.locator('.app-step.is-active').getAttribute('data-step'), '2');
   await page.click('[data-next="3"]');

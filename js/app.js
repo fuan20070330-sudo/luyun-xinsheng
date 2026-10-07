@@ -30,6 +30,7 @@
     lastEvent: '--',
     user: '',
     currentStep: 1,
+    unlockedStep: 1,
     initialized: false
   };
 
@@ -103,9 +104,15 @@
 
   function showStep(step) {
     step = Number(step || 1);
+    if (!state.user && step !== 1) step = 1;
+    if (state.user && step > state.unlockedStep) { toast('请先完成当前步骤，再进入后一页。', 'warning'); step = state.currentStep || 1; }
     state.currentStep = step;
     $$('.app-step').forEach(function (page) { page.classList.toggle('is-active', Number(page.getAttribute('data-step')) === step); });
-    $$('.step-nav [data-page]').forEach(function (button) { button.classList.toggle('is-active', Number(button.getAttribute('data-page')) === step); });
+    $$('.step-nav [data-page]').forEach(function (button) {
+      var page = Number(button.getAttribute('data-page'));
+      button.classList.toggle('is-active', page === step);
+      button.disabled = !state.user || page > state.unlockedStep;
+    });
     var main = $('app-main');
     if (main) main.scrollTop = 0;
     window.scrollTo(0, 0);
@@ -116,6 +123,7 @@
     if (window.location.hash) history.replaceState(null, '', window.location.pathname + window.location.search);
     state.user = '';
     state.currentStep = 1;
+    state.unlockedStep = 1;
     document.body.setAttribute('data-authenticated', 'false');
     $('login-screen').hidden = false;
     $('app-shell').hidden = true;
@@ -124,6 +132,7 @@
   }
   function showApp(user) {
     state.user = user || '演示用户';
+    state.unlockedStep = 1;
     document.body.setAttribute('data-authenticated', 'true');
     $('current-user').textContent = state.user;
     $('login-screen').hidden = true;
@@ -431,6 +440,7 @@
       rememberCurrentBrand();
       persistState();
       renderAll();
+      state.unlockedStep = Math.max(state.unlockedStep, 5);
       showStep(5);
       toast(highRisk ? '文稿已成，但发现 ' + highRisk + ' 项高风险，禁止直接对外发布。' : '文稿已成，请品牌方过目事实、文化内涵和对外说法。', highRisk ? 'warning' : 'info');
       return result;
@@ -592,6 +602,7 @@
       if (!generation) return;
       await submitReview('story', 'accept', { reviewer: '演示品牌确认人', note: '已完成事实核对、文化内涵确认和对外表达确认。', silent: true });
       toast('一键叙事演示完成：品牌与访谈入库、四类成果生成、文化校验和品牌方确认均已跑通。');
+      state.unlockedStep = Math.max(state.unlockedStep, 5);
       showStep(5);
     } finally {
       setBusy(button, false);
@@ -671,19 +682,22 @@
     var target = Number(button.getAttribute('data-next'));
     if (target === 2) {
       if (!validateFields(['brand-type', 'brand-name', 'brand-tone'])) return;
+      state.unlockedStep = Math.max(state.unlockedStep, 2);
       showStep(2);
       return;
     }
     if (target === 3) {
       if (!validateFields(['brand-materials'])) return;
+      state.unlockedStep = Math.max(state.unlockedStep, 3);
       showStep(3);
       return;
     }
     if (target === 4) {
       var result = await ingestBrand();
-      if (result) showStep(4);
+      if (result) { state.unlockedStep = Math.max(state.unlockedStep, 4); showStep(4); }
       return;
     }
+    if (target === 6 && state.artifacts.length) state.unlockedStep = Math.max(state.unlockedStep, 6);
     showStep(target);
   }
 
@@ -806,6 +820,9 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 }(window, document));
+
+
+
 
 
 
