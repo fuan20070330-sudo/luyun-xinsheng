@@ -9,6 +9,10 @@
   var $$ = function (selector) { return Array.prototype.slice.call(document.querySelectorAll(selector)); };
   var delay = function (ms) { return new Promise(function (resolve) { setTimeout(resolve, ms); }); };
   var scale = Config.demoDelayScale || 1;
+  var Api = window.LuyunApi.create({
+    baseUrl: Config.apiBaseUrl,
+    timeoutMs: Config.apiTimeoutMs
+  });
   var gateway = window.LuyunGateway.create({
     url: Config.gatewayUrl,
     protocolVersion: Config.protocolVersion,
@@ -41,6 +45,7 @@
   var AUTH_STORAGE_KEY = 'luyun-auth-accounts-v1';
   var PBKDF2_ITERATIONS = 150000;
   var currentAuthMode = 'login';
+  var historyReturnFocus = null;
 
   function accountKey(account) {
     return STORAGE_KEY_PREFIX + encodeURIComponent(String(account || '').trim().toLowerCase());
@@ -57,6 +62,7 @@
     state.reviews = Array.isArray(saved.reviews) ? saved.reviews : [];
     state.publishRecords = Array.isArray(saved.publishRecords) ? saved.publishRecords : [];
     state.history = Array.isArray(saved.history) ? saved.history : [];
+    state.documents = Array.isArray(saved.documents) ? saved.documents : [];
     state.metrics = saved.metrics || { facts: 0, jobs: state.tasks.length, reviews: state.reviews.length };
   }
 
@@ -89,6 +95,7 @@
         reviews: state.reviews.slice(0, 100),
         publishRecords: state.publishRecords.slice(0, 100),
         history: state.history.slice(0, HISTORY_LIMIT),
+        documents: state.documents.slice(0, 100),
         metrics: state.metrics
       }));
     } catch (error) {}
@@ -107,6 +114,12 @@
     state.reviews = [];
     state.publishRecords = [];
     state.history = [];
+    state.documents = [];
+    state.conflicts = [];
+    state.historyQuery = '';
+    state.historyStatus = '';
+    state.remoteReady = false;
+    state.remoteAuth = false;
     state.metrics = { facts: 0, jobs: 0, reviews: 0 };
     state.currentJobId = '';
     state.pendingOnly = false;
@@ -116,6 +129,7 @@
     if (!state.brand) return;
     state.brandLibrary[state.brand.id] = { brand: state.brand, facts: state.facts, updatedAt: now() };
     persistState();
+    if (Api.enabled() && Api.token) Api.saveBrand({ id: state.brand.id, brand: state.brand, facts: state.facts, updatedAt: now() }).catch(function () {});
   }
 
   function renderBrandOptions() {
@@ -184,9 +198,43 @@
     showStep(1);
     window.scrollTo(0, 0);
   }
+  function mergeById(localRecords, remoteRecords) {
+    var merged = {};
+    (localRecords || []).concat(remoteRecords || []).forEach(function (record) {
+      if (!record) return;
+      var id = record.id || record.jobId || record.brand && record.brand.id;
+      if (id) merged[id] = record;
+    });
+    return Object.keys(merged).map(function (id) { return merged[id]; });
+  }
+
+  function syncRemoteState() {
+    if (!Api.enabled() || !Api.token) return Promise.resolve(false);
+    return Promise.all([Api.listHistory(), Api.listBrands(), Api.listReviews(), Api.listPublish(), Api.listDocuments()]).then(function (results) {
+      state.history = mergeById(state.history, results[0] || []).sort(function (a, b) { return String(b.updatedAt || b.createdAt).localeCompare(String(a.updatedAt || a.createdAt)); }).slice(0, HISTORY_LIMIT);
+      (results[1] || []).forEach(function (record) {
+        var brand = record.brand || record;
+        if (brand && brand.id) state.brandLibrary[brand.id] = { brand: brand, facts: record.facts || [], updatedAt: record.updatedAt || now() };
+      });
+      state.reviews = mergeById(state.reviews, results[2] || []).sort(function (a, b) { return String(b.createdAt).localeCompare(String(a.createdAt)); }).slice(0, 100);
+      state.publishRecords = mergeById(state.publishRecords, results[3] || []).sort(function (a, b) { return String(b.createdAt).localeCompare(String(a.createdAt)); }).slice(0, 100);
+      state.documents = mergeById(state.documents, results[4] || []).slice(0, 100);
+      state.metrics.jobs = Math.max(state.metrics.jobs || 0, state.history.length);
+      state.metrics.reviews = Math.max(state.metrics.reviews || 0, state.reviews.length);
+      state.remoteReady = true;
+      renderAll();
+      persistState();
+      return true;
+    }).catch(function () {
+      state.remoteReady = false;
+      return false;
+    });
+  }
+
   function showApp(user) {
     state.user = String(user || '当前用户').trim();
     loadAccountState(state.user);
+    state.remoteAuth = !!(Api.enabled() && Api.token);
     state.unlockedStep = 1;
     document.body.setAttribute('data-authenticated', 'true');
     $('current-user').textContent = state.user;
@@ -197,10 +245,12 @@
     clearBrandFields();
     renderAll();
     showStep(1);
+    if (state.remoteAuth) syncRemoteState();
   }
 
   function logout() {
     persistState();
+    if (Api.enabled() && Api.token) Api.logout().catch(function () {});
     closeHistory();
     clearAccountState();
     state.user = '';
@@ -284,7 +334,7 @@
     if ($('confirm-password-field')) $('confirm-password-field').hidden = !registering;
     if ($('auth-submit')) $('auth-submit').textContent = registering ? '注册并进入' : '邮箱登录';
     if ($('login-password')) $('login-password').setAttribute('autocomplete', registering ? 'new-password' : 'current-password');
-    if ($('password-hint')) $('password-hint').textContent = registering ? '至少 6 位，建议同时包含字母和数字。' : '请输入注册时设置的密码。';
+    if ($('password-hint')) $('password-hint').textContent = registering ? '至少 8 位，建议同时包含字母和数字。' : '请输入注册时设置的密码。';
     if ($('login-note')) $('login-note').textContent = registering ? '注册只保存在当前浏览器中，不发送短信或邮件验证码。' : '账号数据保存在当前浏览器中，不发送短信或邮件验证码。';
   }
 
@@ -299,15 +349,36 @@
     [emailField, passwordField, confirmField].forEach(function (field) { if (field) field.classList.remove('is-invalid'); });
     var valid = true;
     if (!isValidEmail(email)) { emailField.classList.add('is-invalid'); valid = false; }
-    if (password.length < 6) { passwordField.classList.add('is-invalid'); valid = false; }
+    if (password.length < 8) { passwordField.classList.add('is-invalid'); valid = false; }
     if (currentAuthMode === 'register' && password !== confirmPassword) { confirmField.classList.add('is-invalid'); valid = false; }
     if (!valid) {
-      toast('请检查邮箱、密码和确认密码。', 'warning');
+      toast('请检查邮箱、密码和确认密码，密码至少 8 位。', 'warning');
       return;
     }
     if (!window.crypto || !window.crypto.subtle) {
       toast('当前浏览器不支持安全密码存储，请使用最新版 Chrome、Edge 或 Safari。', 'error');
       return;
+    }
+    if (Api.enabled()) {
+      setBusy($('auth-submit'), true);
+      try {
+        var remoteResult = currentAuthMode === 'register'
+          ? await Api.register(email, password, $('login-role').value)
+          : await Api.login(email, password);
+        state.remoteAuth = true;
+        showApp(remoteResult.user.email || email);
+        toast(currentAuthMode === 'register' ? '云端账号注册成功。' : '云端账号登录成功。');
+        return;
+      } catch (error) {
+        if (error.code !== 'API_OFFLINE' && error.code !== 'API_TIMEOUT') {
+          toast(error.message || '邮箱服务暂不可用。', 'warning');
+          return;
+        }
+        state.remoteAuth = false;
+        toast('服务端账号暂不可用，已切换到当前浏览器本地账号模式。', 'warning');
+      } finally {
+        setBusy($('auth-submit'), false);
+      }
     }
     var accounts = readAuthAccounts();
     if (currentAuthMode === 'register') {
@@ -350,6 +421,38 @@
       toast('登录失败，请稍后重试。', 'error');
     } finally {
       setBusy($('auth-submit'), false);
+    }
+  }
+
+  async function changePassword() {
+    var oldPassword = window.prompt('请输入当前密码：');
+    if (oldPassword == null) return;
+    var newPassword = window.prompt('请输入新密码（至少 8 位）：');
+    if (newPassword == null) return;
+    if (newPassword.length < 8) { toast('新密码至少需要 8 位。', 'warning'); return; }
+    if (Api.enabled() && Api.token) {
+      try {
+        await Api.changePassword(oldPassword, newPassword);
+        toast('服务端密码已修改。');
+      } catch (error) {
+        toast(error.message || '修改密码失败。', 'warning');
+      }
+      return;
+    }
+    var accounts = readAuthAccounts();
+    var account = accounts[state.accountId];
+    if (!account) { toast('当前账号没有本地密码记录。', 'warning'); return; }
+    try {
+      var currentHash = await hashPassword(oldPassword, account.salt);
+      if (!sameDigest(currentHash, account.passwordHash)) { toast('当前密码不正确。', 'warning'); return; }
+      var salt = randomSalt();
+      account.salt = salt;
+      account.passwordHash = await hashPassword(newPassword, salt);
+      account.updatedAt = now();
+      writeAuthAccounts(accounts);
+      toast('本地账号密码已修改。');
+    } catch (error) {
+      toast('修改密码失败。', 'error');
     }
   }
 
@@ -416,6 +519,7 @@
     Renderer.renderReviews(state);
     Renderer.renderRoleReviews(state);
     Renderer.renderPublishRecords(state);
+    Renderer.renderDocuments(state);
     Renderer.renderHistory(state);
     Renderer.renderMetrics(state);
   }
@@ -433,6 +537,7 @@
       facts: cloneData(state.facts || []),
       risks: cloneData(state.risks || []),
       artifacts: cloneData(state.artifacts || []),
+      versions: [{ version: 1, artifacts: cloneData(state.artifacts || []), createdAt: now(), note: 'AI 初始稿' }],
       roleReviews: cloneData(state.roleReviews || []),
       modelInfo: cloneData(result.modelInfo || {}),
       mode: state.transportMode,
@@ -463,7 +568,12 @@
     record.brand = cloneData(state.brand);
     record.facts = cloneData(state.facts || []);
     record.risks = cloneData(state.risks || []);
-    record.artifacts = cloneData(state.artifacts || []);
+    var nextArtifacts = cloneData(state.artifacts || []);
+    var lastVersion = (record.versions || [])[(record.versions || []).length - 1];
+    if (!lastVersion || JSON.stringify(lastVersion.artifacts) !== JSON.stringify(nextArtifacts)) {
+      record.versions = (record.versions || []).concat([{ version: (record.versions || []).length + 1, artifacts: nextArtifacts, createdAt: now(), note: '人工审核后版本' }]).slice(-20);
+    }
+    record.artifacts = nextArtifacts;
     record.roleReviews = cloneData(state.roleReviews || []);
     record.reviewCount = state.reviews.filter(function (review) { return review.jobId === state.currentJobId; }).length;
     var task = state.tasks.filter(function (item) { return item.jobId === state.currentJobId; })[0];
@@ -475,8 +585,9 @@
     var drawer = $('history-drawer');
     if (!drawer) return;
     drawer.hidden = false;
+    historyReturnFocus = document.activeElement;
     document.body.classList.add('history-open');
-    var closeButton = drawer.querySelector('[data-action="close-history"]');
+    var closeButton = drawer.querySelector('button[data-action="close-history"]');
     if (closeButton) closeButton.focus();
   }
 
@@ -485,6 +596,8 @@
     if (!drawer) return;
     drawer.hidden = true;
     document.body.classList.remove('history-open');
+    if (historyReturnFocus && historyReturnFocus.focus) historyReturnFocus.focus();
+    historyReturnFocus = null;
   }
 
   function viewHistoryRecord(recordId) {
@@ -515,6 +628,7 @@
     if (!window.confirm('确定删除这条历史生成记录吗？删除后不可恢复。')) return;
     state.history = state.history.filter(function (item) { return item.id !== recordId; });
     persistState();
+    if (Api.enabled() && Api.token) Api.deleteHistory(recordId).catch(function () {});
     renderAll();
     toast('历史生成记录已删除。');
   }
@@ -575,7 +689,9 @@
     state.transportMode = '本地处理模式';
     if (event === 'brand.ingest') {
       return delay(100 * scale).then(function () {
-        var facts = Engine.extractFacts(payload.materials, { sourceName: payload.sourceName || '品牌资料' });
+        var materials = (payload.brand && payload.brand.materials) || payload.materials || '';
+        var sourceDocument = payload.sourceDocument || (state.documents && state.documents[0]) || null;
+        var facts = Engine.extractFacts(materials, { sourceName: payload.sourceName || '品牌资料', sourceDocument: sourceDocument });
         var result = { brandId: payload.brand.id, brand: payload.brand, facts: facts, mode: 'local' };
         if (onEvent) onEvent({ event: 'brand.ready', payload: result });
         return result;
@@ -655,13 +771,14 @@
     setProgress('ingest', 8, '提交品牌资料并识别可引用原文');
     try {
       var result = await requestTransport('brand.ingest', {
-        brand: brand, sourceName: '用户提交品牌资料'
+        brand: brand, sourceName: '用户提交品牌资料', sourceDocument: state.documents[0] || null
       }, 'brand.ready', function (message) {
         updateLastEvent(message);
         if (message.event === 'brand.ready') setProgress('retrieve', 24, '品牌事实提取完成，进入可检索状态');
       });
       state.brand = result.brand || brand;
       state.facts = result.facts || [];
+      state.conflicts = Engine.detectConflicts(state.facts);
       state.metrics.facts = state.facts.filter(function (fact) { return fact.status !== '待核实'; }).length;
       $('brand-status').textContent = state.facts.length + ' 条事实';
       $('brand-status').className = 'status-chip is-active';
@@ -719,8 +836,10 @@
         promptVersion: (result.modelInfo && result.modelInfo.promptVersion) || Engine.PROMPT_VERSION,
         riskCount: state.risks.length, highRisk: highRisk, reviewCount: 0, status: highRisk ? '已拦截待修改' : '待品牌确认'
       });
-      state.history.unshift(createHistoryRecord(payload, result));
+      var historyRecord = createHistoryRecord(payload, result);
+      state.history.unshift(historyRecord);
       if (state.history.length > HISTORY_LIMIT) state.history.length = HISTORY_LIMIT;
+      if (Api.enabled() && Api.token) Api.saveHistory(historyRecord).catch(function () {});
       setProgress('store', 100, '内容生成完成，事实引用和宣传方法已记录');
       Renderer.updatePipeline('review');
       $('job-status').textContent = highRisk ? highRisk + ' 项高风险' : '待品牌方确认';
@@ -778,6 +897,11 @@
     }
     syncHistoryRecord();
     persistState();
+    if (Api.enabled() && Api.token) {
+      Api.saveReview(review).catch(function () {});
+      var updatedHistory = state.history.filter(function (item) { return item.jobId === state.currentJobId; })[0];
+      if (updatedHistory) Api.saveHistory(updatedHistory).catch(function () {});
+    }
     renderAll();
     if (!options.silent) toast('品牌确认记录已保存：' + (action === 'accept' ? '品牌方确认' : action === 'edit' ? '品牌方修改' : action === 'reject' ? '驳回' : '退回修改'));
     return review;
@@ -787,6 +911,8 @@
     var action = button.getAttribute('data-review');
     var artifactId = button.getAttribute('data-artifact');
     var card = button.closest('.artifact-card');
+    var noteField = card && card.querySelector('.artifact-note');
+    var reviewNote = noteField ? noteField.value.trim() : '';
     if (action === 'copy') {
       var artifact = findArtifact(artifactId);
       navigator.clipboard.writeText(artifact ? artifact.content : '').then(function () {
@@ -804,22 +930,22 @@
     }
     if (action === 'save') {
       var editor = card.querySelector('.artifact-textarea');
-      submitReview(artifactId, 'edit', { content: editor.value, note: '保存品牌方修改稿，AI 原稿已保留。' }).then(function (review) {
+      submitReview(artifactId, 'edit', { content: editor.value, note: reviewNote || '保存品牌方修改稿，AI 原稿已保留。' }).then(function (review) {
         if (review) card.classList.remove('is-editing');
       });
       return;
     }
     if (action === 'flag') {
-      submitReview(artifactId, 'flag', { note: '品牌方认为该成果需在对外表达前继续修改。' });
+      submitReview(artifactId, 'flag', { note: reviewNote || '品牌方认为该成果需在对外表达前继续修改。' });
       return;
     }
-    if (action === 'accept') submitReview(artifactId, 'accept');
+    if (action === 'accept') submitReview(artifactId, 'accept', { note: reviewNote || undefined });
   }
 
   function exportMarkdown() {
     if (!state.artifacts.length) return;
     var brand = state.brand || collectBrand();
-    var lines = ['# 老字号叙事工坊｜' + brand.name + '内容品牌确认包', '', '> 导出时间：' + new Date().toLocaleString('zh-CN') + '  ', '> 协议版本：luyun-gateway/1.0  ', '> 运行模式：' + state.transportMode, ''];
+    var lines = ['# 老字号叙事工坊｜' + brand.name + '内容品牌确认包', '', '> 导出时间：' + new Date().toLocaleString('zh-CN') + '  ', '> 协议版本：luyun-gateway/2.0  ', '> 运行模式：' + state.transportMode, ''];
     lines.push('## 事实知识库');
     state.facts.forEach(function (fact) {
       lines.push('- **' + fact.id + '｜' + fact.category + '**：' + fact.text + '  ');
@@ -916,25 +1042,46 @@
     toast('当前输入已清空，历史记录仍保留。');
   }
 
-  function handleFile(file) {
-    var reader = new FileReader();
-    reader.onload = function () {
-      var text = String(reader.result || '');
-      if (/\.json$/i.test(file.name)) {
-        try {
-          var parsed = JSON.parse(text);
-          if (Array.isArray(parsed)) text = parsed.map(function (item) { return typeof item === 'string' ? item : JSON.stringify(item); }).join('\n');
-        } catch (error) { toast('JSON 格式不完整，已按纯文本导入。', 'warning'); }
+  function bufferToHex(buffer) {
+    return Array.prototype.map.call(new Uint8Array(buffer), function (byte) { return byte.toString(16).padStart(2, '0'); }).join('');
+  }
+
+  async function handleFile(file) {
+    try {
+      var binary = /\.(pdf|docx|png|jpe?g|webp|mp3|m4a|wav|mp4)$/i.test(file.name);
+      var text = '';
+      var hash = '';
+      var extractor = 'direct-text';
+      if (binary) {
+        if (!Api.enabled() || !Api.token) throw new Error('PDF、DOCX、OCR 和音频转写需要配置服务端解析器。');
+        var extracted = await Api.extractDocument(file);
+        text = extracted.text || '';
+        hash = extracted.hash || '';
+        extractor = extracted.extractor || 'external';
+        if (!text.trim()) throw new Error('解析服务没有返回可用文本。');
+      } else {
+        text = await file.text();
+        if (/\.json$/i.test(file.name)) {
+          try {
+            var parsed = JSON.parse(text);
+            if (Array.isArray(parsed)) text = parsed.map(function (item) { return typeof item === 'string' ? item : JSON.stringify(item); }).join('\n');
+          } catch (error) { toast('JSON 格式不完整，已按纯文本导入。', 'warning'); }
+        }
+        if (/\.csv$/i.test(file.name)) text = text.split(/\r?\n/).map(function (line) { return line.split(',').join('，'); }).join('\n');
+        if (window.crypto && window.crypto.subtle && file.arrayBuffer) hash = bufferToHex(await window.crypto.subtle.digest('SHA-256', await file.arrayBuffer()));
       }
-      if (/\.csv$/i.test(file.name)) {
-        text = text.split(/\r?\n/).map(function (line) { return line.split(',').join('，'); }).join('\n');
-      }
+      var documentRecord = { id: uid('doc'), name: file.name, size: file.size, type: file.type || 'application/octet-stream', hash: hash, extractor: extractor, status: hash ? '已核验' : '无指纹', importedAt: now() };
+      state.documents.unshift(documentRecord);
+      if (Api.enabled() && Api.token) Api.saveDocument(documentRecord).catch(function () {});
       var current = $('brand-materials').value.trim();
       $('brand-materials').value = current ? current + '\n' + text : text;
-      $('file-import-status').textContent = '已导入 ' + file.name + '（' + Math.ceil(file.size / 1024) + ' KB）';
-    };
-    reader.onerror = function () { toast('文件读取失败，请确认编码为 UTF-8。', 'error'); };
-    reader.readAsText(file, 'utf-8');
+      $('file-import-status').textContent = '已导入 ' + file.name + '（' + Math.ceil(file.size / 1024) + ' KB，' + extractor + '，SHA-256 ' + (hash ? hash.slice(0, 12) + '…' : '未计算') + '）';
+      persistState();
+      renderAll();
+      toast('资料已导入，并记录来源指纹。');
+    } catch (error) {
+      toast(error.message || '文件读取失败，请确认编码为 UTF-8。', 'error');
+    }
   }
 
   function addPublishRecord(event) {
@@ -956,6 +1103,7 @@
     };
     state.publishRecords.unshift(record);
     persistState();
+    if (Api.enabled() && Api.token) Api.savePublish(record).catch(function () {});
     Renderer.renderPublishRecords(state);
     $('publish-form').reset();
     toast('发布与效果记录已保存。');
@@ -1011,6 +1159,7 @@
       fact.confirmedBy = button.getAttribute('data-fact-action') === 'confirm' ? state.user : '';
       fact.revision = (fact.revision || 1) + 1;
       fact.updatedAt = now();
+      state.conflicts = Engine.detectConflicts(state.facts);
       rememberCurrentBrand();
       syncHistoryRecord();
       persistState();
@@ -1040,9 +1189,10 @@
       var name = action.getAttribute('data-action');
       if (name === 'logout') logout();
       if (name === 'new-brand') startNewBrand(true);
+      if (name === 'change-password') changePassword();
       if (name === 'open-history') openHistory();
       if (name === 'close-history') closeHistory();
-      if (name === 'refresh-history') { renderAll(); toast('历史记录已刷新。'); }
+      if (name === 'refresh-history') { if (state.remoteAuth) syncRemoteState(); else renderAll(); toast('历史记录已刷新。'); }
       if (name === 'filter-pending') {
         state.pendingOnly = !state.pendingOnly;
         action.classList.toggle('is-active', state.pendingOnly);
@@ -1050,8 +1200,19 @@
       }
       if (name === 'clear-entry') clearDemo();
     });
+    if ($('history-search')) $('history-search').addEventListener('input', function () { state.historyQuery = this.value.trim().toLowerCase(); Renderer.renderHistory(state); });
+    if ($('history-status-filter')) $('history-status-filter').addEventListener('change', function () { state.historyStatus = this.value; Renderer.renderHistory(state); });
     document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape') closeHistory();
+      var drawer = $('history-drawer');
+      if (!drawer || drawer.hidden) return;
+      if (event.key === 'Escape') { closeHistory(); return; }
+      if (event.key !== 'Tab') return;
+      var focusable = Array.prototype.slice.call(drawer.querySelectorAll('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'));
+      if (!focusable.length) return;
+      var first = focusable[0];
+      var last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     });
     window.addEventListener('beforeunload', function () { gateway.close(); });
     window.addEventListener('pageshow', function () { resetToEntry(); });
@@ -1078,6 +1239,14 @@
       }
     });
     bindEvents();
+    if (Api.enabled() && Api.token) {
+      Api.me().then(function (payload) {
+        state.remoteAuth = true;
+        showApp(payload.user.email);
+      }).catch(function () {
+        Api.clearToken();
+      });
+    }
     gateway.connect().then(function (connected) {
       if (connected) {
         gateway.send('state.sync', { client: 'github-pages', version: Config.appVersion });
@@ -1086,6 +1255,9 @@
         toast('未配置远程网关，当前使用本地处理；内容生成、风险校验和审核记录均可正常使用。', 'info');
       }
     });
+    if ('serviceWorker' in navigator && /^https?:$/.test(window.location.protocol)) {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    }
     state.initialized = true;
     window.__LUYUN_APP__ = {
       state: state,
@@ -1094,6 +1266,7 @@
       submitReview: submitReview,
       clearDemo: clearDemo,
       startNewBrand: startNewBrand,
+      changePassword: changePassword,
       showStep: showStep,
       openHistory: openHistory,
       closeHistory: closeHistory,

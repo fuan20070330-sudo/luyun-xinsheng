@@ -1,0 +1,14 @@
+{
+  "name": "老字号叙事工坊",
+  "short_name": "叙事工坊",
+  "description": "老字号与非遗品牌内容助手",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7f1e5",
+  "theme_color": "#9f2f25",
+  "icons": [
+    { "src": "assets/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

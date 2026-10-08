@@ -8,7 +8,7 @@
   function GatewayClient(options) {
     this.options = options || {};
     this.url = this.options.url || '';
-    this.protocolVersion = this.options.protocolVersion || 'luyun-gateway/1.0';
+    this.protocolVersion = this.options.protocolVersion || 'luyun-gateway/2.0';
     this.status = 'idle';
     this.socket = null;
     this.pending = new Map();

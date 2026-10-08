@@ -8,15 +8,15 @@
 
 - 仓库：https://github.com/fuan20070330-sudo/luyun-xinsheng
 - GitHub Pages：https://fuan20070330-sudo.github.io/luyun-xinsheng/
-- 独立 WebSocket 网关需另行部署，并在 `js/config.js` 中填写 `wss://` 地址。
-- 未配置网关时，页面显示“本地处理”并继续运行；网关不可达时自动切换本地处理，内容生成、风险校验、人工审核和 Markdown 导出仍可使用。
+- 独立 Node 网关需另行部署，并在 `js/config.js` 中填写 `wss://` 地址和 `apiBaseUrl`。
+- 未配置 `apiBaseUrl` 时使用当前浏览器本地账号；未配置网关时，页面显示“本地处理”并继续运行。
 
 ## 核心能力
 
 - 邮箱账号：先注册邮箱并设置密码，再使用邮箱和密码登录；不发送短信或邮件验证码，密码只保存加盐哈希。
 - 分页输入：基本信息、品牌资料、受访内容、创作要求、生成结果、品牌确认六个步骤。
 
-- 叙事资料导入：品牌历史、产品资料、受访内容，支持 TXT、Markdown、JSON、CSV 和直接粘贴。
+- 叙事资料导入：品牌历史、产品资料、受访内容，支持 TXT、Markdown、JSON、CSV 和直接粘贴；配置解析服务后支持 PDF、DOCX、OCR 与音频转写。
 - 事实提取：按历史、工艺、荣誉、人物、产品、品牌理念、访谈洞察分类，显示原文来源、置信度和“待核实”状态。
 - 多平台生成：小红书、抖音、微信公众号、多平台矩阵。
 - 宣传方法参考：品牌故事线、文化知识科普、场景化种草、传承人 IP 化、节点内容日历、用户共创、搜索长尾内容、线上线下联动。
@@ -59,6 +59,7 @@ node server/src/server.js
 默认地址：
 
 - HTTP 健康检查：`http://localhost:8787/healthz`
+- API 健康检查：`http://localhost:8787/api/health`
 - WebSocket：`ws://localhost:8787/ws`
 
 可选环境变量：
@@ -72,6 +73,9 @@ OPENAI_BASE_URL=https://api.openai.com/v1
 AI_API_MODE=responses
 AI_MAX_OUTPUT_TOKENS=6000
 AI_TIMEOUT_MS=30000
+DATA_FILE=./data/luyun-store.json
+DOCUMENT_EXTRACTOR_URL=
+DOCUMENT_EXTRACTOR_API_KEY=
 ```
 
 ### 2. 启动静态前端
@@ -85,7 +89,7 @@ python -m http.server 4173
 打开 `http://localhost:4173/`。本地页面默认连接 `ws://127.0.0.1:8787/ws`；也可用查询参数临时覆盖：
 
 ```text
-http://localhost:4173/?gateway=ws%3A%2F%2F127.0.0.1%3A8787%2Fws
+http://localhost:4173/?gateway=ws%3A%2F%2F127.0.0.1%3A8787%2Fws&api=http%3A%2F%2F127.0.0.1%3A8787
 ```
 
 ## 测试
@@ -125,7 +129,7 @@ npm run check
 {
   "event": "content.generate",
   "requestId": "job-abc123",
-  "protocol": "luyun-gateway/1.0",
+  "protocol": "luyun-gateway/2.0",
   "payload": {}
 }
 ```
@@ -199,6 +203,7 @@ fly deploy
 │   └── USAGE.md
 ├── js/
 │   ├── app.js
+│   ├── api-client.js
 │   ├── config.js
 │   ├── data.js
 │   ├── gateway-client.js
@@ -208,13 +213,18 @@ fly deploy
 │   ├── package.json
 │   └── src/
 │       ├── ai-adapter.js
+│       ├── api.js
+│       ├── auth-service.js
+│       ├── data-store.js
+│       ├── document-service.js
 │       ├── gateway.js
 │       ├── server.js
 │       ├── ws-frame.js
 │       └── ws-server.js
 ├── shared/
 │   ├── engine.js
-│   └── generator.js
+│   ├── generator.js
+│   └── quality.js
 ├── tests/
 │   ├── artifacts/
 │   ├── e2e.mjs
@@ -224,9 +234,11 @@ fly deploy
 ├── LICENSE
 ├── fly.toml
 ├── index.html
+├── manifest.webmanifest
 ├── package.json
 ├── railway.json
 ├── render.yaml
+├── sw.js
 └── README.md
 ```
 

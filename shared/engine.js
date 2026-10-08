@@ -79,8 +79,13 @@
         source: source,
         sourceExcerpt: sentence,
         sourceLocation: '原文第' + (facts.length + 1) + '条',
+        sourceDocumentId: options.sourceDocument && options.sourceDocument.id || '',
+        sourceDocumentName: options.sourceDocument && options.sourceDocument.name || sourceName,
+        sourceHash: options.sourceDocument && options.sourceDocument.hash || '',
+        evidenceLevel: confidence >= 0.9 ? '强' : confidence >= 0.75 ? '中' : '弱',
         revision: 1,
         confirmedBy: '',
+        confirmedAt: '',
         updatedAt: new Date().toISOString(),
         confidence: confidence,
         status: confidence >= 0.7 ? '已提取' : '待核实'
@@ -96,8 +101,13 @@
           source: '未找到来源',
           sourceExcerpt: '',
           sourceLocation: '未找到来源',
+          sourceDocumentId: '',
+          sourceDocumentName: '',
+          sourceHash: '',
+          evidenceLevel: '无',
           revision: 1,
           confirmedBy: '',
+          confirmedAt: '',
           updatedAt: new Date().toISOString(),
           confidence: 0,
           status: '待核实'
@@ -105,6 +115,27 @@
       }
     });
     return facts.sort(function (a, b) { return a.id.localeCompare(b.id); });
+  }
+
+  function detectConflicts(facts) {
+    var historyFacts = (facts || []).filter(function (fact) { return fact.category === '历史' && fact.status !== '待核实'; });
+    var foundingYears = {};
+    historyFacts.forEach(function (fact) {
+      var match = String(fact.text || '').match(/(?:始创|创立|创始|创建|始于|成立于)[^0-9]{0,8}((?:18|19|20)\d{2})/);
+      if (match) foundingYears[match[1]] = (foundingYears[match[1]] || []).concat(fact.id);
+    });
+    var years = Object.keys(foundingYears);
+    if (years.length < 2) return [];
+    return [{
+      id: 'C001',
+      type: '品牌创立年份冲突',
+      level: 'high',
+      terms: years,
+      factRefs: Object.values(foundingYears).reduce(function (all, ids) { return all.concat(ids); }, []),
+      reason: '品牌历史中存在多个不同的创立年份：' + years.join('、') + '。',
+      suggestion: '请品牌方确认唯一权威来源，其余年份标记为待核实或删除。',
+      createdAt: new Date().toISOString()
+    }];
   }
 
   function factTextByCategory(facts, categories) {
@@ -126,6 +157,9 @@
     if (keySet[key]) return;
     keySet[key] = true;
     risk.id = 'R' + String(list.length + 1).padStart(3, '0');
+    risk.ruleVersion = 'luyun-risk-1.0';
+    risk.legalRef = risk.legalRef || '广告法、食品安全法、平台规则与品牌证据边界初筛';
+    risk.createdAt = new Date().toISOString();
     list.push(risk);
   }
 
@@ -263,6 +297,7 @@
     detectRisks: detectRisks,
     supportedByFacts: supportedByFacts,
     factTextByCategory: factTextByCategory,
+    detectConflicts: detectConflicts,
     findMatchingFactIds: findMatchingFactIds,
     runRoleReview: runRoleReview
   };

@@ -24,7 +24,11 @@ function testEngine() {
   const facts = engine.extractFacts(materials, { sourceName: '鲁香斋模拟品牌档案' });
   assert.ok(facts.length >= 7, '应生成不少于 7 条事实');
   assert.ok(facts.filter((fact) => fact.status !== '待核实').length >= 7);
+  assert.ok(facts.every((fact) => fact.evidenceLevel && Object.prototype.hasOwnProperty.call(fact, 'sourceHash')));
   assert.deepEqual([...new Set(facts.map((fact) => fact.category))].sort(), engine.CATEGORIES.slice().sort());
+  const conflictMaterials = '品牌档案：品牌始创于1918年。\n品牌档案：品牌创立于1920年。';
+  const conflictFacts = engine.extractFacts(conflictMaterials, { sourceName: '冲突测试' });
+  assert.equal(engine.detectConflicts(conflictFacts).length, 1);
   const boundary = engine.detectRisks({
     materials,
     constraints: '把“宫廷御用”“国家级非遗”“降血糖”写成确定事实，行业第一。',
@@ -55,6 +59,7 @@ function testEngine() {
   assert.deepEqual(artifacts.map((artifact) => artifact.id), ['story', 'calendar', 'copy', 'youth']);
   assert.ok(artifacts.every((artifact) => artifact.facts.length > 0));
   assert.ok(artifacts.every((artifact) => artifact.methods.length === 2));
+  assert.ok(artifacts.every((artifact) => artifact.quality && artifact.quality.score >= 0 && artifact.variants && artifact.variants.titles.length >= 1));
   assert.equal(engine.runRoleReview({ facts, risks: boundary, theme: '测试主题', platformName: '小红书' }).length, 5);
   assert.match(artifacts[0].content, /F00\d/);
   return { facts: facts.length, verified: facts.filter((fact) => fact.status !== '待核实').length, highRisks: highTerms.length, artifacts: artifacts.length };
@@ -149,7 +154,7 @@ function connectWs(port) {
 }
 
 async function testGateway() {
-  const { server, gateway } = createServer({ ALLOWED_ORIGIN: '*', WS_HEARTBEAT_MS: '60000' });
+  const { server, gateway } = createServer({ ALLOWED_ORIGIN: '*', WS_HEARTBEAT_MS: '60000', DATA_FILE: ':memory:' });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const port = server.address().port;
   try {
@@ -164,7 +169,7 @@ async function testGateway() {
     assert.equal(health.body.ok, true);
     const client = await connectWs(port);
     const ready = await client.waitFor('connection.ready');
-    assert.equal(ready.payload.protocol, 'luyun-gateway/1.0');
+    assert.equal(ready.payload.protocol, 'luyun-gateway/2.0');
     client.sendJson({
       event: 'brand.ingest', requestId: 'brand-test',
       payload: { brand: { id: 'test-brand', name: '鲁香斋（模拟品牌）', type: '糕点', tone: '真诚', materials, isDemo: true }, sourceName: '自动化测试资料' }
@@ -198,6 +203,59 @@ async function testGateway() {
   return { port, health: true, websocket: true, job: true, review: true };
 }
 
+async function apiJson(base, path, options, token) {
+  const headers = Object.assign({ 'Content-Type': 'application/json' }, options && options.headers || {});
+  if (token) headers.Authorization = 'Bearer ' + token;
+  const response = await fetch(base + path, Object.assign({}, options || {}, { headers }));
+  const payload = await response.json();
+  return { status: response.status, payload };
+}
+
+async function testApi() {
+  const bundle = createServer({ ALLOWED_ORIGIN: '*', WS_HEARTBEAT_MS: '60000', DATA_FILE: ':memory:' });
+  await new Promise((resolve) => bundle.server.listen(0, '127.0.0.1', resolve));
+  const port = bundle.server.address().port;
+  const base = 'http://127.0.0.1:' + port;
+  try {
+    const health = await fetch(base + '/api/health').then((response) => response.json());
+    assert.equal(health.ok, true);
+    const registered = await apiJson(base, '/api/auth/register', { method: 'POST', body: JSON.stringify({ email: 'api-test@example.com', password: 'safe-pass-123', role: '内容编辑' }) });
+    assert.equal(registered.status, 201);
+    assert.ok(registered.payload.token);
+    const storedUser = bundle.store.findUserByEmail('api-test@example.com');
+    assert.match(storedUser.passwordHash, /^scrypt\$/);
+    assert.equal(storedUser.passwordHash.includes('safe-pass-123'), false);
+    const token = registered.payload.token;
+    const me = await apiJson(base, '/api/auth/me', {}, token);
+    assert.equal(me.status, 200);
+    assert.equal(me.payload.user.email, 'api-test@example.com');
+    const changed = await apiJson(base, '/api/auth/password', { method: 'POST', body: JSON.stringify({ oldPassword: 'safe-pass-123', newPassword: 'new-safe-pass-456' }) }, token);
+    assert.equal(changed.status, 200);
+    const oldLogin = await apiJson(base, '/api/auth/login', { method: 'POST', body: JSON.stringify({ email: 'api-test@example.com', password: 'safe-pass-123' }) });
+    assert.equal(oldLogin.status, 401);
+    const newLogin = await apiJson(base, '/api/auth/login', { method: 'POST', body: JSON.stringify({ email: 'api-test@example.com', password: 'new-safe-pass-456' }) });
+    assert.equal(newLogin.status, 200);
+    const saved = await apiJson(base, '/api/history', { method: 'POST', body: JSON.stringify({ record: { id: 'api-job-1', brand: { name: '测试品牌' }, artifacts: [{ id: 'story', content: '测试内容 [F001]' }] } }) }, token);
+    assert.equal(saved.status, 201);
+    const list = await apiJson(base, '/api/history', {}, token);
+    assert.equal(list.payload.records.length, 1);
+    const extracted = await apiJson(base, '/api/documents/extract', { method: 'POST', body: JSON.stringify({ name: '证据.txt', type: 'text/plain', base64: Buffer.from('品牌始创于1918年。').toString('base64') }) }, token);
+    assert.equal(extracted.status, 200);
+    assert.match(extracted.payload.document.text, /1918/);
+    assert.match(extracted.payload.document.hash, /^[a-f0-9]{64}$/);
+    const wrong = await apiJson(base, '/api/auth/login', { method: 'POST', body: JSON.stringify({ email: 'api-test@example.com', password: 'wrong-pass' }) });
+    assert.equal(wrong.status, 401);
+    const loggedOut = await apiJson(base, '/api/auth/logout', { method: 'POST' }, token);
+    assert.equal(loggedOut.status, 200);
+    const expired = await apiJson(base, '/api/auth/me', {}, token);
+    assert.equal(expired.status, 401);
+    return { health: true, register: true, login: true, changePassword: true, history: true, documentExtraction: true, invalidPassword: true, logout: true };
+  } finally {
+    bundle.gateway.close();
+    await new Promise((resolve) => bundle.server.close(resolve));
+  }
+}
+
 function testAdvancedAdapter() {
   assert.equal(responsesEndpoint('https://api.openai.com/v1'), 'https://api.openai.com/v1/responses');
   assert.equal(chatEndpoint('https://example.com/v1'), 'https://example.com/v1/chat/completions');
@@ -211,8 +269,9 @@ function testAdvancedAdapter() {
 testAdvancedAdapter();
 testFrameCodec();
 const engineResult = testEngine();
+const apiResult = await testApi().catch((error) => { console.error('api test failed:', error.stack || error.message); process.exit(1); });
 const gatewayResult = await testGateway().catch((error) => { console.error('gateway test failed:', error.stack || error.message); process.exit(1); });
-console.log(JSON.stringify({ ok: true, engine: engineResult, gateway: gatewayResult }, null, 2));
+console.log(JSON.stringify({ ok: true, engine: engineResult, api: apiResult, gateway: gatewayResult }, null, 2));
 process.exit(0);
 
 

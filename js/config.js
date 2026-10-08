@@ -10,19 +10,22 @@
   var isLocal = ['localhost', '127.0.0.1', '::1'].indexOf(window.location.hostname) !== -1;
   var query = new URLSearchParams(window.location.search);
   var configuredGateway = query.get('gateway') || '';
+  var configuredApi = query.get('api') || '';
 
   window.LUYUN_CONFIG = Object.freeze({
     gatewayUrl: configuredGateway || (isLocal ? 'ws://127.0.0.1:8787/ws' : ''),
-    protocolVersion: 'luyun-gateway/1.0',
+    apiBaseUrl: configuredApi || '',
+    protocolVersion: 'luyun-gateway/2.0',
     connectTimeoutMs: isLocal ? 1800 : 4500,
     requestTimeoutMs: 12000,
+    apiTimeoutMs: isLocal ? 6000 : 12000,
     reconnect: {
       enabled: false,
       maxAttempts: 1,
       baseDelayMs: 1000
     },
     demoDelayScale: isLocal ? 0.55 : 1,
-    appVersion: '2.5.0'
+    appVersion: '3.0.0'
   });
 }());
 

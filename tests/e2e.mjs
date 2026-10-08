@@ -136,7 +136,7 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   assert.equal(first.mode, 'WebSocket 实时网关');
   assert.ok(first.verified >= 5);
   assert.equal(first.artifacts, 4);
-  assert.equal(first.protocol, 'luyun-gateway/1.0');
+  assert.equal(first.protocol, 'luyun-gateway/2.0');
   assert.ok(first.methodLabels.length >= 1);
 
   await page.click('.step-nav [data-page="4"]');
@@ -343,8 +343,27 @@ async function runHistoryIsolationFlow(page) {
   return { isolated: true, testUserRecords: restoredCount, otherUserRecords: 0, newBrand: true };
 }
 
+async function runRemoteApiFlow(context, baseUrl, gatewayPort, consoleErrors) {
+  const page = await context.newPage();
+  page.on('console', (message) => { if (message.type() === 'error') consoleErrors.push('console: ' + message.text()); });
+  page.on('pageerror', (error) => consoleErrors.push('pageerror: ' + error.message));
+  const apiBase = 'http://127.0.0.1:' + gatewayPort;
+  await page.goto(baseUrl + '?gateway=' + encodeURIComponent('ws://127.0.0.1:' + gatewayPort + '/ws') + '&api=' + encodeURIComponent(apiBase), { waitUntil: 'domcontentloaded' });
+  await registerAccount(page, 'cloud-user@example.com', 'cloud-pass-123');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.remoteAuth === true);
+  const registered = await page.evaluate(() => ({ token: !!localStorage.getItem('luyun-auth-token-v1'), account: window.__LUYUN_APP__.state.accountId }));
+  assert.equal(registered.token, true);
+  assert.equal(registered.account, 'cloud-user@example.com');
+  await page.click('[data-action="logout"]');
+  await page.waitForFunction(() => document.getElementById('login-screen').hidden === false);
+  await loginAccount(page, 'cloud-user@example.com', 'cloud-pass-123');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.remoteAuth === true);
+  await page.close();
+  return { registered: true, login: true, tokenStored: true };
+}
+
 const staticServer = createStaticServer();
-const gatewayBundle = createGatewayServer({ ALLOWED_ORIGIN: '*', WS_HEARTBEAT_MS: '60000' });
+const gatewayBundle = createGatewayServer({ ALLOWED_ORIGIN: '*', WS_HEARTBEAT_MS: '60000', DATA_FILE: ':memory:' });
 const staticPort = await listen(staticServer);
 const gatewayPort = await listen(gatewayBundle.server);
 const baseUrl = 'http://127.0.0.1:' + staticPort + prefix;
@@ -363,7 +382,8 @@ try {
   const historyIsolation = await runHistoryIsolationFlow(page);
   await page.close();
   const fallback = await runFallbackFlow(context, baseUrl, []);
-  console.log(JSON.stringify({ ok: true, baseUrl, connected, historyIsolation, fallback, screenshots: ['login-page.png', 'desktop-full.png', 'mobile-full.png', 'fallback-mobile.png'] }, null, 2));
+  const remoteApi = await runRemoteApiFlow(context, baseUrl, gatewayPort, consoleErrors);
+  console.log(JSON.stringify({ ok: true, baseUrl, connected, historyIsolation, fallback, remoteApi, screenshots: ['login-page.png', 'desktop-full.png', 'mobile-full.png', 'fallback-mobile.png'] }, null, 2));
 } finally {
   await browser.close();
   gatewayBundle.gateway.close();

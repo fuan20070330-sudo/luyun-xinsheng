@@ -11,6 +11,9 @@ services:
         value: 8080
       - key: ALLOWED_ORIGIN
         value: https://fuan20070330-sudo.github.io
+      - key: DATA_FILE
+        value: /data/luyun-store.json
+      # 生产环境请为 /data 配置持久化磁盘；免费实例文件系统可能被重置。
       - key: OPENAI_API_KEY
         sync: false
       - key: OPENAI_MODEL

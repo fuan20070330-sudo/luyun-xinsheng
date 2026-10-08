@@ -1,8 +1,9 @@
 (function (root, factory) {
   var engine = typeof module === 'object' && module.exports ? require('./engine.js') : root.LuyunEngine;
-  factory(engine);
+  var quality = typeof module === 'object' && module.exports ? require('./quality.js') : root.LuyunQuality;
+  factory(engine, quality);
   if (typeof module === 'object' && module.exports) module.exports = engine;
-}(typeof globalThis !== 'undefined' ? globalThis : this, function (engine) {
+}(typeof globalThis !== 'undefined' ? globalThis : this, function (engine, quality) {
   'use strict';
   var PLATFORM_NAMES = { xiaohongshu: '小红书', douyin: '抖音', wechat: '微信公众号', matrix: '多平台矩阵' };
   var TYPE_NAMES = { narrative: '完整叙事包', story: '品牌故事', calendar: '内容日历', copy: '多平台文案', youth: '年轻化表达' };
@@ -89,7 +90,7 @@
     var referenced = (config.facts || []).filter(function (fact) { return fact.status !== '待核实'; }).slice(0, 10).map(function (fact) { return fact.id; });
     var highRiskCount = (config.risks || []).filter(function (risk) { return risk.level === 'high'; }).length;
     var createdAt = new Date().toISOString();
-    function artifact(id, title, label, content) { return { id: id, title: title, label: label, content: content, originalContent: content, status: highRiskCount ? 'flagged' : 'draft', facts: referenced, methods: methodNames(config), modelInfo: modelInfo, createdAt: createdAt }; }
+    function artifact(id, title, label, content) { return { id: id, title: title, label: label, content: content, originalContent: content, status: highRiskCount ? 'flagged' : 'draft', facts: referenced, methods: methodNames(config), modelInfo: modelInfo, quality: quality ? quality.scoreContent(content, { platform: config.platform }) : null, variants: quality ? quality.buildVariants(content) : null, createdAt: createdAt }; }
     return [
       artifact('story', '品牌故事', '历史 / 工艺 / 受访内容', buildBrandStory(config)),
       artifact('calendar', '内容日历', '四周叙事排期', buildCalendar(config)),

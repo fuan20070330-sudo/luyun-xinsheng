@@ -44,6 +44,8 @@ git push origin main
 | `PORT` | 否 | 默认 `8787`，容器平台通常注入 `8080` |
 | `ALLOWED_ORIGIN` | 建议 | `https://fuan20070330-sudo.github.io` |
 | `WS_HEARTBEAT_MS` | 否 | 默认 `30000` |
+| `DATA_FILE` | 否 | 默认 `./data/luyun-store.json`；容器建议挂载到 `/data` |
+| `DOCUMENT_EXTRACTOR_URL` | 否 | PDF、DOCX、OCR、音频转写的可选服务端解析器 |
 | `OPENAI_API_KEY` | 是（启用高级模型时） | OpenAI 服务端密钥，不进入前端 |
 | `OPENAI_BASE_URL` | 否 | 默认 `https://api.openai.com/v1` |
 | `OPENAI_MODEL` | 否 | 默认 `gpt-6` |
@@ -56,8 +58,9 @@ git push origin main
 1. Render 新建 Blueprint，选择仓库。
 2. 读取 `render.yaml`。
 3. 在 Environment 中配置密钥。
-4. 部署后访问 `https://<service>.onrender.com/healthz`。
-5. 将 `js/config.js` 中 `gatewayUrl` 改为 `wss://<service>.onrender.com/ws`。
+4. 部署后访问 `https://<service>.onrender.com/healthz` 和 `https://<service>.onrender.com/api/health`。
+5. 将 `js/config.js` 中 `gatewayUrl` 改为 `wss://<service>.onrender.com/ws`，并将 `apiBaseUrl` 改为 `https://<service>.onrender.com`。
+6. 生产环境为 `/data` 配置持久化磁盘或改用外部数据库。
 
 ### Railway 部署
 

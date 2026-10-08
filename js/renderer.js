@@ -32,7 +32,8 @@
       return '<article class="fact-card" data-fact-id="' + escapeHtml(fact.id) + '" data-status="' + escapeHtml(fact.status === '待核实' ? 'pending' : 'verified') + '">' +
         '<div class="fact-meta"><span class="fact-category">' + escapeHtml(fact.category) + '</span><span class="fact-id">' + escapeHtml(fact.id) + '</span></div>' +
         '<p>' + escapeHtml(fact.text) + '</p>' +
-        '<p class="fact-source">来源：' + escapeHtml(fact.source || '未找到来源') + '｜位置：' + escapeHtml(fact.sourceLocation || '待补充') + '｜版本：v' + (fact.revision || 1) + '｜状态：' + status + '</p>' +
+        '<p class="fact-source">来源：' + escapeHtml(fact.source || '未找到来源') + '｜位置：' + escapeHtml(fact.sourceLocation || '待补充') + '｜证据：' + escapeHtml(fact.evidenceLevel || '待评估') + '｜版本：v' + (fact.revision || 1) + '｜状态：' + status + '</p>' +
+        (fact.sourceHash ? '<p class="fact-fingerprint">文档：' + escapeHtml(fact.sourceDocumentName || '未命名来源') + '｜SHA-256：' + escapeHtml(fact.sourceHash) + '</p>' : '') +
         '<div class="confidence" title="置信度 ' + confidence + '%"><span>置信度 ' + confidence + '%</span><i style="--confidence:' + confidence + '%"></i></div>' +
         '<div class="fact-actions"><button type="button" data-fact-action="confirm" data-fact-id="' + escapeHtml(fact.id) + '">确认事实</button><button type="button" data-fact-action="pending" data-fact-id="' + escapeHtml(fact.id) + '">标记待核实</button></div>' +
         '</article>';
@@ -61,6 +62,7 @@
         '<blockquote>“' + escapeHtml(risk.quote || risk.term) + '”</blockquote>' +
         '<p class="risk-detail"><strong>判断依据：</strong>' + escapeHtml(risk.reason) + '</p>' +
         '<p class="risk-detail"><strong>事实关联：</strong>' + escapeHtml(refs) + '</p>' +
+        '<p class="risk-detail"><strong>规则版本：</strong>' + escapeHtml(risk.ruleVersion || 'luyun-risk-1.0') + '｜' + escapeHtml(risk.legalRef || '合规初筛') + '</p>' +
         '<div class="risk-suggestion"><strong>修改建议：</strong>' + escapeHtml(risk.suggestion) + '</div>' +
         '</article>';
     }).join('');
@@ -89,13 +91,18 @@
       var refs = (artifact.facts || []).length ? artifact.facts.map(function (id) { return '<span class="fact-ref">' + escapeHtml(id) + '</span>'; }).join('') : '<span class="fact-ref">待补充</span>';
       var methods = (artifact.methods || []).length ? artifact.methods.map(function (method) { return '<span class="method-ref">' + escapeHtml(method) + '</span>'; }).join('') : '<span class="method-ref">方法待选择</span>';
       var highRisk = artifact.status === 'flagged';
+      var quality = artifact.quality || null;
+      var qualityMeta = quality ? '<span class="meta-chip quality-chip" data-level="' + escapeHtml(quality.level) + '">质量：' + quality.score + '/100 ' + escapeHtml(quality.level) + '</span>' : '';
+      var qualityIssues = quality && quality.issues && quality.issues.length ? '<div class="quality-note">待优化：' + escapeHtml(quality.issues.join('；')) + '</div>' : '';
+      var variants = artifact.variants ? '<details class="variant-box"><summary>查看标题和开场候选</summary><p>标题候选：' + escapeHtml((artifact.variants.titles || []).join(' / ')) + '</p><p>开场候选：' + escapeHtml((artifact.variants.openings || []).join(' / ')) + '</p></details>' : '';
       return '<article class="artifact-card' + (highRisk ? ' is-high-risk' : '') + '" data-artifact="' + escapeHtml(artifact.id) + '">' +
         '<div class="artifact-head"><div><span class="artifact-label">' + escapeHtml(artifact.label || '内容成果') + '</span><h3>' + escapeHtml(artifact.title) + '</h3></div><span class="artifact-state" data-state="' + escapeHtml(artifact.status || 'draft') + '">' + artifactStatus(artifact.status) + '</span></div>' +
         '<div class="artifact-content">' + escapeHtml(artifact.content) + '</div>' +
         '<textarea class="artifact-textarea" data-editor="' + escapeHtml(artifact.id) + '" aria-label="编辑' + escapeHtml(artifact.title) + '">' + escapeHtml(artifact.content) + '</textarea>' +
-        '<div class="artifact-meta"><span class="meta-chip">模型：' + escapeHtml((artifact.modelInfo && artifact.modelInfo.model) || 'local-rule-engine') + '</span><span class="meta-chip">提示词：' + escapeHtml((artifact.modelInfo && artifact.modelInfo.promptVersion) || 'brand-safe-content-v1.2') + '</span></div>' +
+        '<div class="artifact-meta"><span class="meta-chip">模型：' + escapeHtml((artifact.modelInfo && artifact.modelInfo.model) || 'local-rule-engine') + '</span><span class="meta-chip">提示词：' + escapeHtml((artifact.modelInfo && artifact.modelInfo.promptVersion) || 'brand-safe-content-v1.2') + '</span>' + qualityMeta + '</div>' + qualityIssues + variants +
         '<div class="fact-refs" aria-label="事实引用">' + refs + '</div>' +
         '<div class="artifact-methods" aria-label="参考宣传方法">' + methods + '</div>' +
+        '<input class="artifact-note" data-note="' + escapeHtml(artifact.id) + '" placeholder="审核备注（可选）">' +
         '<div class="artifact-actions"><button type="button" data-review="accept" data-artifact="' + escapeHtml(artifact.id) + '">品牌确认</button><button type="button" class="edit-action" data-review="edit" data-artifact="' + escapeHtml(artifact.id) + '">品牌方修改</button><button type="button" class="save-action" data-review="save" data-artifact="' + escapeHtml(artifact.id) + '">保存确认稿</button><button type="button" data-review="flag" data-artifact="' + escapeHtml(artifact.id) + '">退回修改</button><button type="button" data-review="copy" data-artifact="' + escapeHtml(artifact.id) + '">复制</button></div>' +
         '</article>';
     }).join('');
@@ -165,10 +172,30 @@
       return '<article class="publish-record"><div><strong>' + escapeHtml(record.platform) + '</strong><small>' + escapeHtml(record.date || '未填写日期') + '</small></div><div><strong>' + escapeHtml(record.status) + '</strong><small>状态</small></div><div><strong>' + (record.impressions || 0) + '</strong><small>曝光</small></div><div><strong>' + (record.likes || 0) + ' / ' + (record.saves || 0) + '</strong><small>点赞 / 收藏</small></div><div><strong>' + engagement + '</strong><small>综合互动</small></div><div><strong>' + escapeHtml(record.note || '无备注') + '</strong><small>' + (record.url ? '<a href="' + escapeHtml(record.url) + '" target="_blank" rel="noopener">查看链接/位置</a>' : '未填写链接或位置') + '</small></div></article>';
     }).join('');
   }
+  function renderDocuments(state) {
+    var list = byId('source-documents');
+    if (!list) return;
+    var documents = state.documents || [];
+    if (!documents.length) {
+      list.className = 'source-documents empty-state';
+      list.innerHTML = '<span class="empty-glyph">源</span><p>导入文件后会记录文件名、大小和 SHA-256 指纹。</p>';
+      return;
+    }
+    list.className = 'source-documents';
+    list.innerHTML = documents.slice(0, 20).map(function (document) {
+      return '<article class="document-item"><strong>' + escapeHtml(document.name || '未命名资料') + '</strong><small>' + escapeHtml(document.status || '已导入') + '｜' + Math.ceil((document.size || 0) / 1024) + ' KB</small><code>' + escapeHtml(document.hash ? document.hash.slice(0, 24) + '…' : '无指纹') + '</code><span>' + escapeHtml(formatTime(document.importedAt)) + '</span></article>';
+    }).join('');
+  }
+
   function renderHistory(state) {
     var list = byId('history-list');
     if (!list) return;
-    var history = state.history || [];
+    var history = (state.history || []).filter(function (record) {
+      var query = state.historyQuery || '';
+      var status = state.historyStatus || '';
+      var haystack = [record.brand && record.brand.name, record.theme, record.platformName, record.contentTypeName].join(' ').toLowerCase();
+      return (!query || haystack.indexOf(query) !== -1) && (!status || record.status === status);
+    });
     if (byId('history-count')) byId('history-count').textContent = history.length + ' 条';
     if (byId('history-account')) byId('history-account').textContent = '账号：' + (state.accountName || state.user || '--');
     if (!history.length) {
@@ -187,7 +214,7 @@
         '<div class="history-item-head"><div><strong>' + escapeHtml(brandName) + '</strong><small>' + escapeHtml(formatTime(record.createdAt)) + '</small></div><span class="status-chip" data-status="' + escapeHtml(highRisk ? 'warning' : 'ok') + '">' + escapeHtml(record.status || (highRisk ? '待修改' : '待确认')) + '</span></div>' +
         '<h3>' + escapeHtml(record.theme || '未填写主题') + '</h3>' +
         '<p>' + escapeHtml(record.platformName || '未指定平台') + '｜' + escapeHtml(record.contentTypeName || '内容方案') + '｜' + escapeHtml(record.mode || '本地处理') + '</p>' +
-        '<div class="history-meta"><span>模型：' + escapeHtml((record.modelInfo && record.modelInfo.model) || 'local-rule-engine') + '</span><span>提示词：' + escapeHtml((record.modelInfo && record.modelInfo.promptVersion) || '') + '</span><span>风险：' + risks.length + ' 条 / 高 ' + highRisk + ' 条</span><span>审核：' + (record.reviewCount || 0) + ' 次</span><span>成果：' + ((record.artifacts || []).length || 0) + ' 份</span></div>' +
+        '<div class="history-meta"><span>版本：' + ((record.versions || []).length || 1) + ' 个</span><span>模型：' + escapeHtml((record.modelInfo && record.modelInfo.model) || 'local-rule-engine') + '</span><span>提示词：' + escapeHtml((record.modelInfo && record.modelInfo.promptVersion) || '') + '</span><span>风险：' + risks.length + ' 条 / 高 ' + highRisk + ' 条</span><span>审核：' + (record.reviewCount || 0) + ' 次</span><span>成果：' + ((record.artifacts || []).length || 0) + ' 份</span></div>' +
         '<p class="history-methods">宣传方法：' + escapeHtml(methods.length ? methods.join('、') : '未选择') + '</p>' +
         '<div class="history-item-actions"><button class="button button-outline" type="button" data-history-action="view" data-history-id="' + escapeHtml(record.id) + '"' + (canView ? '' : ' disabled') + '>查看生成内容</button><button class="button button-ghost" type="button" data-history-action="delete" data-history-id="' + escapeHtml(record.id) + '">删除记录</button></div>' +
         '</article>';
@@ -233,6 +260,7 @@
     renderReviews: renderReviews,
     renderRoleReviews: renderRoleReviews,
     renderPublishRecords: renderPublishRecords,
+    renderDocuments: renderDocuments,
     renderHistory: renderHistory,
     renderMetrics: renderMetrics,
     updatePipeline: updatePipeline,

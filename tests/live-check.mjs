@@ -69,7 +69,11 @@ try {
     footers: document.querySelectorAll('footer').length,
     fieldHints: document.querySelectorAll('.field-hint').length,
     historyRecords: window.__LUYUN_APP__.state.history.length,
-    newBrandButton: !!document.querySelector('[data-action="new-brand"]')
+    newBrandButton: !!document.querySelector('[data-action="new-brand"]'),
+    manifest: !!document.querySelector('link[rel="manifest"]'),
+    serviceWorkerSupported: 'serviceWorker' in navigator,
+    qualityScore: window.__LUYUN_APP__.state.artifacts[0] && window.__LUYUN_APP__.state.artifacts[0].quality && window.__LUYUN_APP__.state.artifacts[0].quality.score,
+    evidenceLevel: window.__LUYUN_APP__.state.facts[0] && window.__LUYUN_APP__.state.facts[0].evidenceLevel
   }));
   assert.equal(result.artifacts, 4);
   assert.ok(result.reviews >= 1);
@@ -85,6 +89,10 @@ try {
   assert.equal(result.methodCards, 8);
   assert.ok(result.historyRecords >= 1);
   assert.equal(result.newBrandButton, true);
+  assert.equal(result.manifest, true);
+  assert.equal(result.serviceWorkerSupported, true);
+  assert.ok(result.qualityScore >= 0);
+  assert.ok(result.evidenceLevel);
   assert.equal(errors.length, 0, errors.join('\n'));
   console.log(JSON.stringify({ ok: true, url, ...result }, null, 2));
 } finally {

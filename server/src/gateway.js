@@ -8,11 +8,13 @@ const { createAiAdapter } = require('./ai-adapter');
 class LuyunGateway {
   constructor(options = {}) {
     this.env = options.env || process.env;
-    this.protocol = 'luyun-gateway/1.0';
+    this.protocol = 'luyun-gateway/2.0';
     this.brands = new Map();
     this.jobs = new Map();
     this.reviews = [];
     this.metrics = { facts: 0, jobs: 0, reviews: 0, connections: 0 };
+    this.store = options.store || null;
+    this.auth = options.auth || null;
     this.adapter = createAiAdapter(this.env);
     const origins = String(this.env.ALLOWED_ORIGIN || '*').split(',').map((value) => value.trim()).filter(Boolean);
     this.wsServer = new WebSocketServer({

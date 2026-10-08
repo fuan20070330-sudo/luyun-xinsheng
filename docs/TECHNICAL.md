@@ -19,7 +19,7 @@ GitHub Pages 静态前端
 - `shared/engine.js`：事实提取、风险与文化校验。
 - `shared/generator.js`：品牌故事、内容日历、多平台文案、年轻化表达方案生成。
 
-前端不保存 API Key。远程模型由网关读取 `OPENAI_API_KEY`，优先调用 Responses API；也可配置 `AI_API_URL` 作为 OpenAI 兼容备用接口。
+前端不保存 API Key。远程模型由网关读取 `OPENAI_API_KEY`，优先调用 Responses API；也可配置 `AI_API_URL` 作为 OpenAI 兼容备用接口。配置 `apiBaseUrl` 后，前端通过 HTTP API 使用服务端邮箱账号、云端品牌数据和云端历史。
 
 ## 事实分类
 
@@ -46,7 +46,7 @@ GitHub Pages 静态前端
 
 ## WebSocket 协议
 
-前端发送：`brand.ingest`、`content.generate`、`review.update`、`state.sync`、`ping`。
+前端发送：`brand.ingest`、`content.generate`、`review.update`、`state.sync`、`ping`。HTTP API 另提供 `/api/auth/*`、`/api/history`、`/api/brands`、`/api/reviews`、`/api/publish`、`/api/documents/extract`。
 
 服务端发送：`connection.ready`、`brand.ready`、`job.accepted`、`job.progress`、`content.delta`、`job.ready`、`review.saved`、`state.snapshot`、`error`。
 
@@ -56,7 +56,7 @@ GitHub Pages 静态前端
 {
   "event": "content.generate",
   "requestId": "content-generate-abc123",
-  "protocol": "luyun-gateway/1.0",
+  "protocol": "luyun-gateway/2.0",
   "payload": {}
 }
 ```

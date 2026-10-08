@@ -4,11 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#9f2f25">
+  <link rel="manifest" href="manifest.webmanifest">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta name="description" content="老字号叙事工坊：老字号与非遗品牌内容助手。">
   <title>老字号叙事工坊｜老字号与非遗品牌内容助手</title>
-  <link rel="icon" href="assets/favicon.svg?v=2.5.0" type="image/svg+xml">
-  <link rel="stylesheet" href="css/styles.css?v=2.5.0">
+  <link rel="icon" href="assets/favicon.svg?v=3.0.0" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css?v=3.0.0">
 </head>
 <body data-authenticated="false">
   <div class="paper-noise" aria-hidden="true"></div>
@@ -30,7 +31,7 @@
       </div>
       <form id="login-form" class="login-form" novalidate>
         <label class="field"><span>邮箱</span><input id="login-email" type="email" autocomplete="email" placeholder="name@example.com" required><small class="field-hint">邮箱用于区分账号、品牌资料和生成历史。</small></label>
-        <label class="field"><span>密码</span><input id="login-password" type="password" autocomplete="current-password" placeholder="至少 6 位" required><small class="field-hint" id="password-hint">请输入注册时设置的密码。</small></label>
+        <label class="field"><span>密码</span><input id="login-password" type="password" autocomplete="current-password" placeholder="至少 8 位" required><small class="field-hint" id="password-hint">请输入注册时设置的密码。</small></label>
         <label class="field" id="confirm-password-field" hidden><span>确认密码</span><input id="register-password-confirm" type="password" autocomplete="new-password" placeholder="再次输入密码" required><small class="field-hint">两次输入的密码必须一致。</small></label>
         <label class="field"><span>当前身份</span><select id="login-role"><option value="品牌运营人员">品牌运营人员</option><option value="非遗传承人">非遗传承人</option><option value="品牌确认人">品牌确认人</option><option value="内容编辑">内容编辑</option></select><small class="field-hint">身份会记录在品牌确认记录中。</small></label>
         <button class="button button-primary button-full" id="auth-submit" type="submit">邮箱登录</button>
@@ -45,6 +46,7 @@
       <div class="topbar-actions">
         <span class="user-chip">当前用户：<strong id="current-user">--</strong></span>
         <div class="connection-pill" id="connection-pill" data-state="connecting" role="status" aria-live="polite"><span class="connection-dot"></span><span id="connection-label">连接中</span><span class="mode-badge" id="mode-label">初始化</span></div>
+        <button class="icon-button" type="button" data-action="change-password">修改密码</button>
         <button class="icon-button" type="button" data-action="open-history">历史记录</button>
         <button class="icon-button" type="button" data-action="logout">退出</button>
       </div>
@@ -61,7 +63,7 @@
           <button type="button" data-page="6"><span>06</span><div><strong>审核记录</strong><small>人工审核</small></div></button>
         </nav>
         <div class="sidebar-metrics"><div><span id="metric-facts">0</span><small>叙事事实</small></div><div><span id="metric-jobs">0</span><small>生成任务</small></div><div><span id="metric-reviews">0</span><small>品牌确认</small></div></div>
-        <p class="sidebar-protocol">协议：<span id="connection-protocol">luyun-gateway/1.0</span></p>
+        <p class="sidebar-protocol">协议：<span id="connection-protocol">luyun-gateway/2.0</span></p>
       </aside>
 
       <main class="app-main" id="app-main">
@@ -82,7 +84,8 @@
           <div class="step-heading"><div><p class="section-kicker">步骤 2 / 6</p><h2 id="step2-title">录入品牌历史与产品资料</h2><p>建议每行填写一条有出处的信息；无法确认的内容请标记为待核实。</p></div><span class="status-chip" id="brand-status">待入库</span></div>
           <div class="panel form-panel">
             <label class="field"><span>品牌历史与产品资料</span><textarea id="brand-materials" rows="10" required placeholder="建议每行一条可直接引用的资料，例如：品牌创立于1918年；传统枣泥酥包含选枣、蒸制、炒馅、包制和烘烤工序；产品包括节令礼盒。"></textarea><small class="field-hint">这里填写品牌档案、产品说明、荣誉登记和工艺原文。不要填写没有来源的推测。</small></label>
-            <div class="import-row"><label class="file-button">导入 TXT / MD / JSON / CSV<input id="file-import" type="file" accept=".txt,.md,.markdown,.json,.csv,text/plain,application/json,text/csv"></label><span id="file-import-status">支持 UTF-8 文本，导入后仍可编辑</span></div>
+            <div class="import-row"><label class="file-button">导入资料<input id="file-import" type="file" accept=".txt,.md,.markdown,.json,.csv,.pdf,.docx,.png,.jpg,.jpeg,.webp,.mp3,.m4a,.wav,.mp4,text/plain,application/json,text/csv,application/pdf,image/*,audio/*,video/mp4"></label><span id="file-import-status">支持 UTF-8 文本，导入后仍可编辑</span></div>
+            <div class="source-documents" id="source-documents"><div class="empty-state"><span class="empty-glyph">源</span><p>导入文件后会记录文件名、大小和 SHA-256 指纹。</p></div></div>
             <div class="step-actions"><button class="button button-ghost" type="button" data-page="1">返回上一步</button><button class="button button-primary" type="button" data-next="3">下一步：填写访谈记录</button></div>
           </div>
         </section>
@@ -144,7 +147,7 @@
             <article class="panel task-panel"><div class="panel-head"><div><span class="panel-index">T</span><h3>最近生成任务</h3></div><span class="status-chip" id="task-count">0 条</span></div><div class="table-wrap"><table><thead><tr><th>任务时间</th><th>品牌 / 模式</th><th>模型 / 稿本</th><th>风险</th><th>品牌确认</th></tr></thead><tbody id="task-table"><tr><td colspan="5" class="table-empty">暂无任务记录</td></tr></tbody></table></div></article>
             <article class="panel audit-panel"><div class="panel-head"><div><span class="panel-index">R</span><h3>人工审核记录</h3></div><span class="status-chip" id="review-count">0 次</span></div><div class="audit-timeline" id="audit-timeline"><div class="empty-state"><span class="empty-glyph">审</span><p>品牌方确认、修改或退回内容后，将在此记录确认人、动作、前后内容和时间。</p></div></div></article>
           </div>
-          <div class="protocol-strip"><div><span>协议版本</span><strong>luyun-gateway/1.0</strong></div><div><span>连接模式</span><strong id="protocol-mode">探测中</strong></div><div><span>最后消息</span><strong id="last-event">--</strong></div><div><span>事实编号</span><strong id="fact-id-range">--</strong></div></div>
+          <div class="protocol-strip"><div><span>协议版本</span><strong>luyun-gateway/2.0</strong></div><div><span>连接模式</span><strong id="protocol-mode">探测中</strong></div><div><span>最后消息</span><strong id="last-event">--</strong></div><div><span>事实编号</span><strong id="fact-id-range">--</strong></div></div>
           <article class="panel publish-panel"><div class="panel-head"><div><span class="panel-index">效</span><h3>发布与效果回流</h3></div><span class="status-chip" id="publish-count">0 条</span></div><form id="publish-form" class="publish-form"><div class="field-row three-col"><label class="field"><span>发布平台</span><select id="publish-platform"><option>小红书</option><option>抖音</option><option>微信公众号</option><option>线下门店</option></select></label><label class="field"><span>发布日期</span><input id="publish-date" type="date"></label><label class="field"><span>发布状态</span><select id="publish-status"><option>已排期</option><option>已发布</option><option>待确认</option></select></label></div><div class="field-row two-col"><label class="field"><span>内容链接 / 位置</span><input id="publish-url" placeholder="粘贴链接，或填写门店、活动位置"></label><label class="field"><span>备注</span><input id="publish-note" placeholder="例如：品牌方已确认，待补充数据"></label></div><div class="field-row four-col"><label class="field"><span>曝光量</span><input id="publish-impressions" type="number" min="0" value="0"></label><label class="field"><span>点赞</span><input id="publish-likes" type="number" min="0" value="0"></label><label class="field"><span>收藏</span><input id="publish-saves" type="number" min="0" value="0"></label><label class="field"><span>转化</span><input id="publish-conversions" type="number" min="0" value="0"></label></div><button class="button button-secondary" type="submit">保存发布与效果记录</button></form><div class="publish-records" id="publish-records"><div class="empty-state"><span class="empty-glyph">效</span><p>发布后记录平台、链接和效果数据，用于下一轮内容优化。</p></div></div></article>
         </section>
       </main>
@@ -166,18 +169,24 @@
         <p>只显示当前账号生成并保存的内容，其他账号不可见。</p>
         <div><span class="status-chip" id="history-count">0 条</span><button class="button button-ghost" type="button" data-action="refresh-history">刷新</button></div>
       </div>
+      <div class="history-filters">
+        <input id="history-search" type="search" placeholder="搜索品牌或主题">
+        <select id="history-status-filter"><option value="">全部状态</option><option value="待品牌确认">待品牌确认</option><option value="品牌方已确认">品牌方已确认</option><option value="已拦截待修改">已拦截待修改</option><option value="已退回修改">已退回修改</option></select>
+      </div>
       <div class="history-list" id="history-list"><div class="empty-state"><span class="empty-glyph">史</span><p>当前账号暂无生成历史。</p></div></div>
     </aside>
   </div>
 
   <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
-  <script src="js/config.js?v=2.5.0"></script>
-  <script src="shared/engine.js?v=2.5.0"></script>
-  <script src="shared/generator.js?v=2.5.0"></script>
-  <script src="js/data.js?v=2.5.0"></script>
-  <script src="js/gateway-client.js?v=2.5.0"></script>
-  <script src="js/renderer.js?v=2.5.0"></script>
-  <script src="js/app.js?v=2.5.0"></script>
+  <script src="js/config.js?v=3.0.0"></script>
+  <script src="js/api-client.js?v=3.0.0"></script>
+  <script src="shared/engine.js?v=3.0.0"></script>
+  <script src="shared/quality.js?v=3.0.0"></script>
+  <script src="shared/generator.js?v=3.0.0"></script>
+  <script src="js/data.js?v=3.0.0"></script>
+  <script src="js/gateway-client.js?v=3.0.0"></script>
+  <script src="js/renderer.js?v=3.0.0"></script>
+  <script src="js/app.js?v=3.0.0"></script>
 </body>
 </html>
 
