@@ -185,7 +185,8 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   await page.fill('#publish-saves', '36');
   await page.click('#publish-form button[type=submit]');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.publishRecords.length >= 1);
-  const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('luyun-narrative-studio-v2') || '{}'));
+  const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('luyun-narrative-studio-v2:account:test-user') || '{}'));
+assert.ok(persisted.history.length >= 1);
   assert.ok(persisted.publishRecords.length >= 1);
   assert.ok(Object.keys(persisted.brandLibrary).length >= 1);
   await page.click('.step-nav [data-page="5"]');
@@ -273,6 +274,47 @@ async function runFallbackFlow(context, baseUrl, consoleErrors) {
   return result;
 }
 
+async function runHistoryIsolationFlow(page) {
+  const initial = await page.evaluate(() => ({
+    accountId: window.__LUYUN_APP__.state.accountId,
+    count: window.__LUYUN_APP__.state.history.length
+  }));
+  assert.equal(initial.accountId, 'test-user');
+  assert.ok(initial.count >= 1, '测试账号应保存生成历史');
+
+  await page.click('[data-action="open-history"]');
+  await page.waitForFunction(() => document.getElementById('history-drawer').hidden === false);
+  assert.equal(await page.locator('#history-list .history-item').count(), initial.count);
+  await page.click('#history-list .history-item:first-child [data-history-action="view"]');
+  await page.waitForFunction(() => document.querySelector('.app-step.is-active').getAttribute('data-step') === '5');
+  assert.equal(await page.evaluate(() => window.__LUYUN_APP__.state.artifacts.length), 4);
+
+  await page.click('[data-action="logout"]');
+  await page.waitForFunction(() => document.getElementById('login-screen').hidden === false);
+  await page.fill('#login-account', 'other-user');
+  await page.fill('#login-password', 'demo-pass');
+  await page.click('#login-form button[type=submit]');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.accountId === 'other-user');
+  await page.click('[data-action="open-history"]');
+  await page.waitForFunction(() => document.getElementById('history-drawer').hidden === false);
+  assert.equal(await page.locator('#history-list .history-item').count(), 0, '其他账号不应看到测试账号历史');
+  assert.match(await page.locator('#history-account').textContent(), /other-user/);
+
+  await page.click('button[data-action="close-history"]');
+  await page.click('[data-action="logout"]');
+  await page.waitForFunction(() => document.getElementById('login-screen').hidden === false);
+  await page.fill('#login-account', 'test-user');
+  await page.fill('#login-password', 'demo-pass');
+  await page.click('#login-form button[type=submit]');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.accountId === 'test-user');
+  await page.click('[data-action="open-history"]');
+  await page.waitForFunction(() => document.getElementById('history-drawer').hidden === false);
+  const restoredCount = await page.locator('#history-list .history-item').count();
+  assert.ok(restoredCount >= initial.count, '切回原账号后应恢复历史记录');
+  await page.click('button[data-action="close-history"]');
+  return { isolated: true, testUserRecords: restoredCount, otherUserRecords: 0 };
+}
+
 const staticServer = createStaticServer();
 const gatewayBundle = createGatewayServer({ ALLOWED_ORIGIN: '*', WS_HEARTBEAT_MS: '60000' });
 const staticPort = await listen(staticServer);
@@ -290,9 +332,10 @@ page.on('pageerror', (error) => consoleErrors.push('pageerror: ' + error.message
 
 try {
   const connected = await runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors);
+  const historyIsolation = await runHistoryIsolationFlow(page);
   await page.close();
   const fallback = await runFallbackFlow(context, baseUrl, []);
-  console.log(JSON.stringify({ ok: true, baseUrl, connected, fallback, screenshots: ['login-page.png', 'desktop-full.png', 'mobile-full.png', 'fallback-mobile.png'] }, null, 2));
+  console.log(JSON.stringify({ ok: true, baseUrl, connected, historyIsolation, fallback, screenshots: ['login-page.png', 'desktop-full.png', 'mobile-full.png', 'fallback-mobile.png'] }, null, 2));
 } finally {
   await browser.close();
   gatewayBundle.gateway.close();

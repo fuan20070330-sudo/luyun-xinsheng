@@ -7,8 +7,8 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta name="description" content="老字号叙事工坊：老字号与非遗品牌内容助手。">
   <title>老字号叙事工坊｜老字号与非遗品牌内容助手</title>
-  <link rel="icon" href="assets/favicon.svg?v=2.4.1" type="image/svg+xml">
-  <link rel="stylesheet" href="css/styles.css?v=2.4.1">
+  <link rel="icon" href="assets/favicon.svg?v=2.4.2" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css?v=2.4.2">
 </head>
 <body data-authenticated="false">
   <div class="paper-noise" aria-hidden="true"></div>
@@ -40,6 +40,7 @@
       <div class="topbar-actions">
         <span class="user-chip">当前用户：<strong id="current-user">--</strong></span>
         <div class="connection-pill" id="connection-pill" data-state="connecting" role="status" aria-live="polite"><span class="connection-dot"></span><span id="connection-label">连接中</span><span class="mode-badge" id="mode-label">初始化</span></div>
+        <button class="icon-button" type="button" data-action="open-history">历史记录</button>
         <button class="icon-button" type="button" data-action="logout">退出</button>
       </div>
     </header>
@@ -133,7 +134,7 @@
         </section>
 
         <section class="app-step" data-step="6" id="reviews" aria-labelledby="step6-title">
-          <div class="step-heading"><div><p class="section-kicker">步骤 6 / 6</p><h2 id="step6-title">记录人工审核与发布效果</h2><p>记录修改人、确认时间、发布渠道和效果数据。</p></div><button class="button button-ghost" type="button" data-action="clear-entry">清空当前输入</button></div>
+          <div class="step-heading"><div><p class="section-kicker">步骤 6 / 6</p><h2 id="step6-title">记录人工审核与发布效果</h2><p>记录修改人、确认时间、发布渠道和效果数据。</p></div><div class="heading-actions"><button class="button button-ghost" type="button" data-action="open-history">查看生成历史</button><button class="button button-ghost" type="button" data-action="clear-entry">清空当前输入</button></div></div>
           <div class="evidence-grid">
             <article class="panel task-panel"><div class="panel-head"><div><span class="panel-index">T</span><h3>最近生成任务</h3></div><span class="status-chip" id="task-count">0 条</span></div><div class="table-wrap"><table><thead><tr><th>任务时间</th><th>品牌 / 模式</th><th>模型 / 稿本</th><th>风险</th><th>品牌确认</th></tr></thead><tbody id="task-table"><tr><td colspan="5" class="table-empty">暂无任务记录</td></tr></tbody></table></div></article>
             <article class="panel audit-panel"><div class="panel-head"><div><span class="panel-index">R</span><h3>人工审核记录</h3></div><span class="status-chip" id="review-count">0 次</span></div><div class="audit-timeline" id="audit-timeline"><div class="empty-state"><span class="empty-glyph">审</span><p>品牌方确认、修改或退回内容后，将在此记录确认人、动作、前后内容和时间。</p></div></div></article>
@@ -145,14 +146,33 @@
     </div>
   </div>
 
+  <div class="history-drawer" id="history-drawer" hidden>
+    <div class="history-drawer-backdrop" data-action="close-history" aria-hidden="true"></div>
+    <aside class="history-drawer-panel" role="dialog" aria-modal="true" aria-labelledby="history-title">
+      <div class="history-drawer-head">
+        <div>
+          <p class="section-kicker">当前账号</p>
+          <h2 id="history-title">生成历史</h2>
+          <p id="history-account">--</p>
+        </div>
+        <button class="icon-button" type="button" data-action="close-history">关闭</button>
+      </div>
+      <div class="history-toolbar">
+        <p>只显示当前账号生成并保存的内容，其他账号不可见。</p>
+        <div><span class="status-chip" id="history-count">0 条</span><button class="button button-ghost" type="button" data-action="refresh-history">刷新</button></div>
+      </div>
+      <div class="history-list" id="history-list"><div class="empty-state"><span class="empty-glyph">史</span><p>当前账号暂无生成历史。</p></div></div>
+    </aside>
+  </div>
+
   <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
-  <script src="js/config.js?v=2.4.1"></script>
-  <script src="shared/engine.js?v=2.4.1"></script>
-  <script src="shared/generator.js?v=2.4.1"></script>
-  <script src="js/data.js?v=2.4.1"></script>
-  <script src="js/gateway-client.js?v=2.4.1"></script>
-  <script src="js/renderer.js?v=2.4.1"></script>
-  <script src="js/app.js?v=2.4.1"></script>
+  <script src="js/config.js?v=2.4.2"></script>
+  <script src="shared/engine.js?v=2.4.2"></script>
+  <script src="shared/generator.js?v=2.4.2"></script>
+  <script src="js/data.js?v=2.4.2"></script>
+  <script src="js/gateway-client.js?v=2.4.2"></script>
+  <script src="js/renderer.js?v=2.4.2"></script>
+  <script src="js/app.js?v=2.4.2"></script>
 </body>
 </html>
 

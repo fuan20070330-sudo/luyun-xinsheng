@@ -165,6 +165,35 @@
       return '<article class="publish-record"><div><strong>' + escapeHtml(record.platform) + '</strong><small>' + escapeHtml(record.date || '未填写日期') + '</small></div><div><strong>' + escapeHtml(record.status) + '</strong><small>状态</small></div><div><strong>' + (record.impressions || 0) + '</strong><small>曝光</small></div><div><strong>' + (record.likes || 0) + ' / ' + (record.saves || 0) + '</strong><small>点赞 / 收藏</small></div><div><strong>' + engagement + '</strong><small>综合互动</small></div><div><strong>' + escapeHtml(record.note || '无备注') + '</strong><small>' + (record.url ? '<a href="' + escapeHtml(record.url) + '" target="_blank" rel="noopener">查看链接/位置</a>' : '未填写链接或位置') + '</small></div></article>';
     }).join('');
   }
+  function renderHistory(state) {
+    var list = byId('history-list');
+    if (!list) return;
+    var history = state.history || [];
+    if (byId('history-count')) byId('history-count').textContent = history.length + ' 条';
+    if (byId('history-account')) byId('history-account').textContent = '账号：' + (state.accountName || state.user || '--');
+    if (!history.length) {
+      list.className = 'history-list empty-state';
+      list.innerHTML = '<span class="empty-glyph">史</span><p>当前账号暂无生成历史。生成第一条内容后会自动保存在这里。</p>';
+      return;
+    }
+    list.className = 'history-list';
+    list.innerHTML = history.map(function (record) {
+      var risks = record.risks || [];
+      var highRisk = risks.filter(function (risk) { return risk.level === 'high'; }).length;
+      var methods = record.promotionMethods || [];
+      var canView = Array.isArray(record.artifacts) && record.artifacts.length > 0;
+      var brandName = (record.brand && record.brand.name) || '未命名品牌';
+      return '<article class="history-item" data-history-id="' + escapeHtml(record.id) + '">' +
+        '<div class="history-item-head"><div><strong>' + escapeHtml(brandName) + '</strong><small>' + escapeHtml(formatTime(record.createdAt)) + '</small></div><span class="status-chip" data-status="' + escapeHtml(highRisk ? 'warning' : 'ok') + '">' + escapeHtml(record.status || (highRisk ? '待修改' : '待确认')) + '</span></div>' +
+        '<h3>' + escapeHtml(record.theme || '未填写主题') + '</h3>' +
+        '<p>' + escapeHtml(record.platformName || '未指定平台') + '｜' + escapeHtml(record.contentTypeName || '内容方案') + '｜' + escapeHtml(record.mode || '本地处理') + '</p>' +
+        '<div class="history-meta"><span>模型：' + escapeHtml((record.modelInfo && record.modelInfo.model) || 'local-rule-engine') + '</span><span>提示词：' + escapeHtml((record.modelInfo && record.modelInfo.promptVersion) || '') + '</span><span>风险：' + risks.length + ' 条 / 高 ' + highRisk + ' 条</span><span>审核：' + (record.reviewCount || 0) + ' 次</span><span>成果：' + ((record.artifacts || []).length || 0) + ' 份</span></div>' +
+        '<p class="history-methods">宣传方法：' + escapeHtml(methods.length ? methods.join('、') : '未选择') + '</p>' +
+        '<div class="history-item-actions"><button class="button button-outline" type="button" data-history-action="view" data-history-id="' + escapeHtml(record.id) + '"' + (canView ? '' : ' disabled') + '>查看生成内容</button><button class="button button-ghost" type="button" data-history-action="delete" data-history-id="' + escapeHtml(record.id) + '">删除记录</button></div>' +
+        '</article>';
+    }).join('');
+  }
+
   function renderMetrics(state) {
     var metrics = state.metrics || {};
     byId('metric-facts').textContent = metrics.facts || (state.facts || []).filter(function (fact) { return fact.status !== '待核实'; }).length;
@@ -204,6 +233,7 @@
     renderReviews: renderReviews,
     renderRoleReviews: renderRoleReviews,
     renderPublishRecords: renderPublishRecords,
+    renderHistory: renderHistory,
     renderMetrics: renderMetrics,
     updatePipeline: updatePipeline,
     setConnection: setConnection

@@ -34,29 +34,79 @@
     initialized: false
   };
 
-  var STORAGE_KEY = 'luyun-narrative-studio-v2';
+  var STORAGE_KEY_PREFIX = 'luyun-narrative-studio-v2:account:';
+  var LEGACY_STORAGE_KEY = 'luyun-narrative-studio-v2';
+  var LEGACY_MIGRATION_KEY = 'luyun-narrative-studio-v2:legacy-migrated';
+  var HISTORY_LIMIT = 30;
 
-  function restorePersistentState() {
+  function accountKey(account) {
+    return STORAGE_KEY_PREFIX + encodeURIComponent(String(account || '').trim().toLowerCase());
+  }
+
+  function cloneData(value) {
+    try { return JSON.parse(JSON.stringify(value)); } catch (error) { return value; }
+  }
+
+  function applySavedState(saved) {
+    saved = saved || {};
+    state.brandLibrary = saved.brandLibrary || {};
+    state.tasks = Array.isArray(saved.tasks) ? saved.tasks : [];
+    state.reviews = Array.isArray(saved.reviews) ? saved.reviews : [];
+    state.publishRecords = Array.isArray(saved.publishRecords) ? saved.publishRecords : [];
+    state.history = Array.isArray(saved.history) ? saved.history : [];
+    state.metrics = saved.metrics || { facts: 0, jobs: state.tasks.length, reviews: state.reviews.length };
+  }
+
+  function loadAccountState(account) {
+    state.accountId = String(account || '').trim().toLowerCase();
+    state.accountName = String(account || '').trim();
+    var saved = {};
     try {
-      var saved = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || '{}');
-      state.brandLibrary = saved.brandLibrary || {};
-      state.tasks = saved.tasks || [];
-      state.reviews = saved.reviews || [];
-      state.publishRecords = saved.publishRecords || [];
-    } catch (error) {
-      state.brandLibrary = {};
-    }
+      var accountRaw = window.localStorage.getItem(accountKey(state.accountId));
+      if (accountRaw) {
+        saved = JSON.parse(accountRaw);
+      } else {
+        var legacyRaw = window.localStorage.getItem(LEGACY_STORAGE_KEY);
+        if (legacyRaw && !window.localStorage.getItem(LEGACY_MIGRATION_KEY)) {
+          saved = JSON.parse(legacyRaw);
+          window.localStorage.setItem(LEGACY_MIGRATION_KEY, state.accountId);
+        }
+      }
+    } catch (error) { saved = {}; }
+    applySavedState(saved);
   }
 
   function persistState() {
+    if (!state.accountId) return;
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      window.localStorage.setItem(accountKey(state.accountId), JSON.stringify({
+        accountName: state.accountName,
         brandLibrary: state.brandLibrary,
         tasks: state.tasks.slice(0, 50),
         reviews: state.reviews.slice(0, 100),
-        publishRecords: state.publishRecords.slice(0, 100)
+        publishRecords: state.publishRecords.slice(0, 100),
+        history: state.history.slice(0, HISTORY_LIMIT),
+        metrics: state.metrics
       }));
     } catch (error) {}
+  }
+
+  function clearAccountState() {
+    state.accountId = '';
+    state.accountName = '';
+    state.brand = null;
+    state.facts = [];
+    state.risks = [];
+    state.artifacts = [];
+    state.roleReviews = [];
+    state.brandLibrary = {};
+    state.tasks = [];
+    state.reviews = [];
+    state.publishRecords = [];
+    state.history = [];
+    state.metrics = { facts: 0, jobs: 0, reviews: 0 };
+    state.currentJobId = '';
+    state.pendingOnly = false;
   }
 
   function rememberCurrentBrand() {
@@ -76,8 +126,6 @@
     options.push('<option value="new">+ 新建品牌</option>');
     select.innerHTML = options.join('');
   }
-
-  restorePersistentState();
   function uid(prefix) {
     return (prefix || 'job') + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7);
   }
@@ -119,9 +167,12 @@
   }
 
   function resetToEntry() {
+    persistState();
     if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
     if (window.location.hash) history.replaceState(null, '', window.location.pathname + window.location.search);
+    closeHistory();
     state.user = '';
+    clearAccountState();
     state.currentStep = 1;
     state.unlockedStep = 1;
     document.body.setAttribute('data-authenticated', 'false');
@@ -131,18 +182,27 @@
     window.scrollTo(0, 0);
   }
   function showApp(user) {
-    state.user = user || '当前用户';
+    state.user = String(user || '当前用户').trim();
+    loadAccountState(state.user);
     state.unlockedStep = 1;
     document.body.setAttribute('data-authenticated', 'true');
     $('current-user').textContent = state.user;
     $('login-screen').hidden = true;
     $('app-shell').hidden = false;
+    renderBrandOptions();
+    $('brand-select').value = 'new';
+    clearBrandFields();
     renderAll();
     showStep(1);
   }
 
   function logout() {
+    persistState();
+    closeHistory();
+    clearAccountState();
     state.user = '';
+    state.currentStep = 1;
+    state.unlockedStep = 1;
     document.body.setAttribute('data-authenticated', 'false');
     $('app-shell').hidden = true;
     $('login-screen').hidden = false;
@@ -227,7 +287,107 @@
     Renderer.renderReviews(state);
     Renderer.renderRoleReviews(state);
     Renderer.renderPublishRecords(state);
+    Renderer.renderHistory(state);
     Renderer.renderMetrics(state);
+  }
+
+  function createHistoryRecord(payload, result) {
+    var highRisk = (state.risks || []).filter(function (risk) { return risk.level === 'high'; }).length;
+    return {
+      id: state.currentJobId || result.jobId || uid('history'),
+      jobId: state.currentJobId || result.jobId || '',
+      accountId: state.accountId,
+      accountName: state.accountName,
+      createdAt: result.createdAt || now(),
+      updatedAt: now(),
+      brand: cloneData(state.brand || payload.brand),
+      facts: cloneData(state.facts || []),
+      risks: cloneData(state.risks || []),
+      artifacts: cloneData(state.artifacts || []),
+      roleReviews: cloneData(state.roleReviews || []),
+      modelInfo: cloneData(result.modelInfo || {}),
+      mode: state.transportMode,
+      platform: payload.platform,
+      platformName: payload.platformName,
+      contentType: payload.contentType,
+      contentTypeName: payload.contentTypeName,
+      audience: payload.audience,
+      theme: payload.theme,
+      goal: payload.goal,
+      constraints: payload.constraints,
+      promotionMethods: cloneData(payload.promotionMethods || []),
+      reviewCount: 0,
+      status: highRisk ? '已拦截待修改' : '待品牌确认',
+      metrics: {
+        facts: (state.facts || []).filter(function (fact) { return fact.status !== '待核实'; }).length,
+        artifacts: (state.artifacts || []).length,
+        risks: (state.risks || []).length,
+        highRisk: highRisk
+      }
+    };
+  }
+
+  function syncHistoryRecord() {
+    var record = state.history.filter(function (item) { return item.jobId === state.currentJobId; })[0];
+    if (!record) return;
+    record.updatedAt = now();
+    record.brand = cloneData(state.brand);
+    record.facts = cloneData(state.facts || []);
+    record.risks = cloneData(state.risks || []);
+    record.artifacts = cloneData(state.artifacts || []);
+    record.roleReviews = cloneData(state.roleReviews || []);
+    record.reviewCount = state.reviews.filter(function (review) { return review.jobId === state.currentJobId; }).length;
+    var task = state.tasks.filter(function (item) { return item.jobId === state.currentJobId; })[0];
+    if (task) record.status = task.status;
+  }
+
+  function openHistory() {
+    Renderer.renderHistory(state);
+    var drawer = $('history-drawer');
+    if (!drawer) return;
+    drawer.hidden = false;
+    document.body.classList.add('history-open');
+    var closeButton = drawer.querySelector('[data-action="close-history"]');
+    if (closeButton) closeButton.focus();
+  }
+
+  function closeHistory() {
+    var drawer = $('history-drawer');
+    if (!drawer) return;
+    drawer.hidden = true;
+    document.body.classList.remove('history-open');
+  }
+
+  function viewHistoryRecord(recordId) {
+    var record = state.history.filter(function (item) { return item.id === recordId; })[0];
+    if (!record || !record.artifacts || !record.artifacts.length) {
+      toast('这条历史记录没有可查看的完整内容。', 'warning');
+      return;
+    }
+    state.currentJobId = record.jobId || record.id;
+    state.brand = cloneData(record.brand);
+    state.facts = cloneData(record.facts || []);
+    state.risks = cloneData(record.risks || []);
+    state.artifacts = cloneData(record.artifacts || []);
+    state.roleReviews = cloneData(record.roleReviews || []);
+    state.metrics.facts = state.facts.filter(function (fact) { return fact.status !== '待核实'; }).length;
+    state.metrics.jobs = state.tasks.length;
+    state.metrics.reviews = state.reviews.length;
+    state.unlockedStep = Math.max(state.unlockedStep, 5);
+    closeHistory();
+    renderAll();
+    showStep(5);
+    toast('已打开历史生成记录：' + ((record.brand && record.brand.name) || '未命名品牌'));
+  }
+
+  function deleteHistoryRecord(recordId) {
+    var record = state.history.filter(function (item) { return item.id === recordId; })[0];
+    if (!record) return;
+    if (!window.confirm('确定删除这条历史生成记录吗？删除后不可恢复。')) return;
+    state.history = state.history.filter(function (item) { return item.id !== recordId; });
+    persistState();
+    renderAll();
+    toast('历史生成记录已删除。');
   }
 
   function validateFields(ids) {
@@ -430,6 +590,8 @@
         promptVersion: (result.modelInfo && result.modelInfo.promptVersion) || Engine.PROMPT_VERSION,
         riskCount: state.risks.length, highRisk: highRisk, reviewCount: 0, status: highRisk ? '已拦截待修改' : '待品牌确认'
       });
+      state.history.unshift(createHistoryRecord(payload, result));
+      if (state.history.length > HISTORY_LIMIT) state.history.length = HISTORY_LIMIT;
       setProgress('store', 100, '内容生成完成，事实引用和宣传方法已记录');
       Renderer.updatePipeline('review');
       $('job-status').textContent = highRisk ? highRisk + ' 项高风险' : '待品牌方确认';
@@ -480,12 +642,13 @@
     }
     state.reviews.unshift(review);
     state.metrics.reviews = state.reviews.length;
-    persistState();
     var task = state.tasks.filter(function (item) { return item.jobId === state.currentJobId; })[0];
     if (task) {
       task.reviewCount += 1;
       task.status = action === 'accept' ? '品牌方已确认' : action === 'flag' ? '已退回修改' : action === 'reject' ? '已驳回' : '品牌方修改待复审';
     }
+    syncHistoryRecord();
+    persistState();
     renderAll();
     if (!options.silent) toast('品牌确认记录已保存：' + (action === 'accept' ? '品牌方确认' : action === 'edit' ? '品牌方修改' : action === 'reject' ? '驳回' : '退回修改'));
     return review;
@@ -598,6 +761,7 @@
     $('job-status').className = 'status-chip';
     if ($('stream-window')) $('stream-window').textContent = '';
     setProgress('brand', 0, '');
+    persistState();
     renderAll();
     showStep(1);
     toast('当前输入已清空，历史记录仍保留。');
@@ -698,6 +862,8 @@
       fact.revision = (fact.revision || 1) + 1;
       fact.updatedAt = now();
       rememberCurrentBrand();
+      syncHistoryRecord();
+      persistState();
       renderAll();
       toast(fact.id + ' 已' + (fact.status === '已确认' ? '由 ' + state.user + ' 确认' : '标记为待核实'));
     });
@@ -711,16 +877,30 @@
       if (pageButton) { showStep(Number(pageButton.getAttribute('data-page'))); return; }
       var nextButton = event.target.closest('[data-next]');
       if (nextButton) { handleNext(nextButton); return; }
+      var historyAction = event.target.closest('[data-history-action]');
+      if (historyAction) {
+        var historyActionName = historyAction.getAttribute('data-history-action');
+        var historyId = historyAction.getAttribute('data-history-id');
+        if (historyActionName === 'view') viewHistoryRecord(historyId);
+        if (historyActionName === 'delete') deleteHistoryRecord(historyId);
+        return;
+      }
       var action = event.target.closest('[data-action]');
       if (!action) return;
       var name = action.getAttribute('data-action');
       if (name === 'logout') logout();
+      if (name === 'open-history') openHistory();
+      if (name === 'close-history') closeHistory();
+      if (name === 'refresh-history') { renderAll(); toast('历史记录已刷新。'); }
       if (name === 'filter-pending') {
         state.pendingOnly = !state.pendingOnly;
         action.classList.toggle('is-active', state.pendingOnly);
         Renderer.renderFacts(state);
       }
       if (name === 'clear-entry') clearDemo();
+    });
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') closeHistory();
     });
     window.addEventListener('beforeunload', function () { gateway.close(); });
     window.addEventListener('pageshow', function () { resetToEntry(); });
@@ -763,6 +943,9 @@
       submitReview: submitReview,
       clearDemo: clearDemo,
       showStep: showStep,
+      openHistory: openHistory,
+      closeHistory: closeHistory,
+      viewHistoryRecord: viewHistoryRecord,
       login: showApp
     };
   }
