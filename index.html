@@ -7,8 +7,8 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta name="description" content="老字号叙事工坊：老字号与非遗品牌内容助手。">
   <title>老字号叙事工坊｜老字号与非遗品牌内容助手</title>
-  <link rel="icon" href="assets/favicon.svg?v=2.4.3" type="image/svg+xml">
-  <link rel="stylesheet" href="css/styles.css?v=2.4.3">
+  <link rel="icon" href="assets/favicon.svg?v=2.5.0" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css?v=2.5.0">
 </head>
 <body data-authenticated="false">
   <div class="paper-noise" aria-hidden="true"></div>
@@ -24,13 +24,18 @@
         <h1 id="login-title">登录</h1>
         <p>整理品牌资料，生成可追溯内容，并保留每一次人工确认。</p>
       </div>
+      <div class="auth-tabs" role="tablist" aria-label="账号入口">
+        <button id="auth-tab-login" class="is-active" type="button" role="tab" aria-selected="true">邮箱登录</button>
+        <button id="auth-tab-register" type="button" role="tab" aria-selected="false">注册新账号</button>
+      </div>
       <form id="login-form" class="login-form" novalidate>
-        <label class="field"><span>账号</span><input id="login-account" autocomplete="off" placeholder="请输入账号" required><small class="field-hint">不需要真实企业账号，仅用于区分当前操作人。</small></label>
-        <label class="field"><span>密码</span><input id="login-password" type="password" autocomplete="new-password" placeholder="请输入密码" required><small class="field-hint">密码不会上传，也不会写入浏览器存储。</small></label>
+        <label class="field"><span>邮箱</span><input id="login-email" type="email" autocomplete="email" placeholder="name@example.com" required><small class="field-hint">邮箱用于区分账号、品牌资料和生成历史。</small></label>
+        <label class="field"><span>密码</span><input id="login-password" type="password" autocomplete="current-password" placeholder="至少 6 位" required><small class="field-hint" id="password-hint">请输入注册时设置的密码。</small></label>
+        <label class="field" id="confirm-password-field" hidden><span>确认密码</span><input id="register-password-confirm" type="password" autocomplete="new-password" placeholder="再次输入密码" required><small class="field-hint">两次输入的密码必须一致。</small></label>
         <label class="field"><span>当前身份</span><select id="login-role"><option value="品牌运营人员">品牌运营人员</option><option value="非遗传承人">非遗传承人</option><option value="品牌确认人">品牌确认人</option><option value="内容编辑">内容编辑</option></select><small class="field-hint">身份会记录在品牌确认记录中。</small></label>
-        <button class="button button-primary button-full" type="submit">登录</button>
+        <button class="button button-primary button-full" id="auth-submit" type="submit">邮箱登录</button>
       </form>
-      <p class="login-note">账号仅用于本次工作，不保存密码。</p>
+      <p class="login-note" id="login-note">账号数据保存在当前浏览器中，不发送短信或邮件验证码。</p>
     </div>
   </section>
 
@@ -166,13 +171,13 @@
   </div>
 
   <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
-  <script src="js/config.js?v=2.4.3"></script>
-  <script src="shared/engine.js?v=2.4.3"></script>
-  <script src="shared/generator.js?v=2.4.3"></script>
-  <script src="js/data.js?v=2.4.3"></script>
-  <script src="js/gateway-client.js?v=2.4.3"></script>
-  <script src="js/renderer.js?v=2.4.3"></script>
-  <script src="js/app.js?v=2.4.3"></script>
+  <script src="js/config.js?v=2.5.0"></script>
+  <script src="shared/engine.js?v=2.5.0"></script>
+  <script src="shared/generator.js?v=2.5.0"></script>
+  <script src="js/data.js?v=2.5.0"></script>
+  <script src="js/gateway-client.js?v=2.5.0"></script>
+  <script src="js/renderer.js?v=2.5.0"></script>
+  <script src="js/app.js?v=2.5.0"></script>
 </body>
 </html>
 

@@ -122,3 +122,9 @@ body.history-open{overflow:hidden}
 .brand-picker-control select{min-width:0}
 .brand-picker-control .button{white-space:nowrap}
 @media(max-width:680px){.brand-picker-control{grid-template-columns:1fr}.brand-picker-control .button{width:100%}}
+
+.auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:18px;padding:4px;background:rgba(83,67,47,.07);border:1px solid var(--line);border-radius:12px}
+.auth-tabs button{min-height:38px;padding:8px 10px;color:var(--ink-soft);background:transparent;border:0;border-radius:9px;cursor:pointer;font:inherit;font-size:13px;font-weight:700}
+.auth-tabs button.is-active{color:var(--cinnabar-deep);background:var(--paper-light);box-shadow:0 4px 12px rgba(64,48,31,.08)}
+.auth-tabs button:focus-visible{outline:2px solid rgba(159,47,37,.35);outline-offset:2px}
+@media(max-width:480px){.auth-tabs button{font-size:12px}}

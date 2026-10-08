@@ -56,15 +56,33 @@ async function waitForState(page, expression, timeout = 20000) {
   await page.waitForFunction(expression, null, { timeout });
 }
 
+async function registerAccount(page, email, password) {
+  await page.click('#auth-tab-register');
+  await page.fill('#login-email', email);
+  await page.fill('#login-password', password);
+  await page.fill('#register-password-confirm', password);
+  await page.click('#auth-submit');
+  await page.waitForFunction(() => document.getElementById('app-shell').hidden === false);
+}
+
+async function loginAccount(page, email, password) {
+  await page.click('#auth-tab-login');
+  await page.fill('#login-email', email);
+  await page.fill('#login-password', password);
+  await page.click('#auth-submit');
+  await page.waitForFunction(() => document.getElementById('app-shell').hidden === false);
+}
+
 async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   await page.goto(baseUrl + '?gateway=' + encodeURIComponent('ws://127.0.0.1:' + gatewayPort + '/ws'), { waitUntil: 'networkidle' });
   assert.equal(await page.locator('#login-screen').getAttribute('hidden'), null);
   assert.equal(await page.locator('#app-shell').getAttribute('hidden'), '' );
   await page.screenshot({ path: path.join(artifactsDir, 'login-page.png'), fullPage: true });
-  await page.fill('#login-account', 'test-user');
-  await page.fill('#login-password', 'demo-pass');
-  await page.click('#login-form button[type=submit]');
-  await page.waitForFunction(() => document.getElementById('app-shell').hidden === false);
+  await registerAccount(page, 'test-user@example.com', 'demo-pass');
+  const authRecord = await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('luyun-auth-accounts-v1') || '{}'))[0]);
+  assert.ok(authRecord && authRecord.email === 'test-user@example.com');
+  assert.ok(authRecord.passwordHash && authRecord.salt);
+  assert.equal(Object.prototype.hasOwnProperty.call(authRecord, 'password'), false);
   assert.equal(await page.locator('.app-step.is-active').getAttribute('data-step'), '1');
   assert.equal(await page.locator('.step-nav [data-page="2"]').isDisabled(), true);
   await page.fill('#brand-type', '山东传统糕点老字号');
@@ -185,7 +203,7 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   await page.fill('#publish-saves', '36');
   await page.click('#publish-form button[type=submit]');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.publishRecords.length >= 1);
-  const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('luyun-narrative-studio-v2:account:test-user') || '{}'));
+  const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('luyun-narrative-studio-v2:account:test-user%40example.com') || '{}'));
 assert.ok(persisted.history.length >= 1);
   assert.ok(persisted.publishRecords.length >= 1);
   assert.ok(Object.keys(persisted.brandLibrary).length >= 1);
@@ -212,10 +230,7 @@ async function runFallbackFlow(context, baseUrl, consoleErrors) {
   assert.equal(await page.locator('#login-screen').getAttribute('hidden'), null);
   assert.equal(await page.locator('#app-shell').getAttribute('hidden'), '' );
   await page.screenshot({ path: path.join(artifactsDir, 'login-page.png'), fullPage: true });
-  await page.fill('#login-account', 'test-user');
-  await page.fill('#login-password', 'demo-pass');
-  await page.click('#login-form button[type=submit]');
-  await page.waitForFunction(() => document.getElementById('app-shell').hidden === false);
+  await loginAccount(page, 'test-user@example.com', 'demo-pass');
   assert.equal(await page.locator('.app-step.is-active').getAttribute('data-step'), '1');
   assert.equal(await page.locator('.step-nav [data-page="2"]').isDisabled(), true);
   await page.fill('#brand-type', '山东传统糕点老字号');
@@ -279,7 +294,7 @@ async function runHistoryIsolationFlow(page) {
     accountId: window.__LUYUN_APP__.state.accountId,
     count: window.__LUYUN_APP__.state.history.length
   }));
-  assert.equal(initial.accountId, 'test-user');
+  assert.equal(initial.accountId, 'test-user@example.com');
   assert.ok(initial.count >= 1, '测试账号应保存生成历史');
 
   await page.click('[data-action="open-history"]');
@@ -291,22 +306,18 @@ async function runHistoryIsolationFlow(page) {
 
   await page.click('[data-action="logout"]');
   await page.waitForFunction(() => document.getElementById('login-screen').hidden === false);
-  await page.fill('#login-account', 'other-user');
-  await page.fill('#login-password', 'demo-pass');
-  await page.click('#login-form button[type=submit]');
-  await page.waitForFunction(() => window.__LUYUN_APP__.state.accountId === 'other-user');
+  await registerAccount(page, 'other-user@example.com', 'demo-pass');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.accountId === 'other-user@example.com');
   await page.click('[data-action="open-history"]');
   await page.waitForFunction(() => document.getElementById('history-drawer').hidden === false);
   assert.equal(await page.locator('#history-list .history-item').count(), 0, '其他账号不应看到测试账号历史');
-  assert.match(await page.locator('#history-account').textContent(), /other-user/);
+  assert.match(await page.locator('#history-account').textContent(), /other-user@example\.com/);
 
   await page.click('button[data-action="close-history"]');
   await page.click('[data-action="logout"]');
   await page.waitForFunction(() => document.getElementById('login-screen').hidden === false);
-  await page.fill('#login-account', 'test-user');
-  await page.fill('#login-password', 'demo-pass');
-  await page.click('#login-form button[type=submit]');
-  await page.waitForFunction(() => window.__LUYUN_APP__.state.accountId === 'test-user');
+  await loginAccount(page, 'test-user@example.com', 'demo-pass');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.accountId === 'test-user@example.com');
   await page.click('[data-action="open-history"]');
   await page.waitForFunction(() => document.getElementById('history-drawer').hidden === false);
   const restoredCount = await page.locator('#history-list .history-item').count();

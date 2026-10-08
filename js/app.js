@@ -38,6 +38,9 @@
   var LEGACY_STORAGE_KEY = 'luyun-narrative-studio-v2';
   var LEGACY_MIGRATION_KEY = 'luyun-narrative-studio-v2:legacy-migrated';
   var HISTORY_LIMIT = 30;
+  var AUTH_STORAGE_KEY = 'luyun-auth-accounts-v1';
+  var PBKDF2_ITERATIONS = 150000;
+  var currentAuthMode = 'login';
 
   function accountKey(account) {
     return STORAGE_KEY_PREFIX + encodeURIComponent(String(account || '').trim().toLowerCase());
@@ -207,21 +210,147 @@
     $('app-shell').hidden = true;
     $('login-screen').hidden = false;
     $('login-password').value = '';
-    $('login-account').focus();
+    if ($('register-password-confirm')) $('register-password-confirm').value = '';
+    setAuthMode('login');
+    $('login-email').focus();
   }
 
-  function handleLogin(event) {
+  function normalizeEmail(value) {
+    return String(value || '').trim().toLowerCase();
+  }
+
+  function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+  }
+
+  function readAuthAccounts() {
+    try { return JSON.parse(window.localStorage.getItem(AUTH_STORAGE_KEY) || '{}') || {}; }
+    catch (error) { return {}; }
+  }
+
+  function writeAuthAccounts(accounts) {
+    window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(accounts));
+  }
+
+  function bytesToBase64(bytes) {
+    var binary = '';
+    for (var i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
+    return window.btoa(binary);
+  }
+
+  function base64ToBytes(value) {
+    var binary = window.atob(value);
+    var bytes = new Uint8Array(binary.length);
+    for (var i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+
+  function randomSalt() {
+    var salt = new Uint8Array(16);
+    window.crypto.getRandomValues(salt);
+    return bytesToBase64(salt);
+  }
+
+  async function hashPassword(password, saltBase64) {
+    var encoder = new TextEncoder();
+    var keyMaterial = await window.crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
+    var bits = await window.crypto.subtle.deriveBits({
+      name: 'PBKDF2',
+      salt: base64ToBytes(saltBase64),
+      iterations: PBKDF2_ITERATIONS,
+      hash: 'SHA-256'
+    }, keyMaterial, 256);
+    return bytesToBase64(new Uint8Array(bits));
+  }
+
+  function sameDigest(first, second) {
+    if (!first || !second || first.length !== second.length) return false;
+    var difference = 0;
+    for (var i = 0; i < first.length; i += 1) difference |= first.charCodeAt(i) ^ second.charCodeAt(i);
+    return difference === 0;
+  }
+
+  function setAuthMode(mode) {
+    currentAuthMode = mode === 'register' ? 'register' : 'login';
+    var registering = currentAuthMode === 'register';
+    if ($('auth-tab-login')) {
+      $('auth-tab-login').classList.toggle('is-active', !registering);
+      $('auth-tab-login').setAttribute('aria-selected', String(!registering));
+    }
+    if ($('auth-tab-register')) {
+      $('auth-tab-register').classList.toggle('is-active', registering);
+      $('auth-tab-register').setAttribute('aria-selected', String(registering));
+    }
+    if ($('confirm-password-field')) $('confirm-password-field').hidden = !registering;
+    if ($('auth-submit')) $('auth-submit').textContent = registering ? '注册并进入' : '邮箱登录';
+    if ($('login-password')) $('login-password').setAttribute('autocomplete', registering ? 'new-password' : 'current-password');
+    if ($('password-hint')) $('password-hint').textContent = registering ? '至少 6 位，建议同时包含字母和数字。' : '请输入注册时设置的密码。';
+    if ($('login-note')) $('login-note').textContent = registering ? '注册只保存在当前浏览器中，不发送短信或邮件验证码。' : '账号数据保存在当前浏览器中，不发送短信或邮件验证码。';
+  }
+
+  async function handleAuthSubmit(event) {
     if (event) event.preventDefault();
-    var account = $('login-account').value.trim();
+    var email = normalizeEmail($('login-email').value);
     var password = $('login-password').value;
-    if (!account || !password) {
-      $('login-account').classList.toggle('is-invalid', !account);
-      $('login-password').classList.toggle('is-invalid', !password);
-      toast('请填写账号和密码后再进入。', 'warning');
+    var confirmPassword = $('register-password-confirm').value;
+    var emailField = $('login-email');
+    var passwordField = $('login-password');
+    var confirmField = $('register-password-confirm');
+    [emailField, passwordField, confirmField].forEach(function (field) { if (field) field.classList.remove('is-invalid'); });
+    var valid = true;
+    if (!isValidEmail(email)) { emailField.classList.add('is-invalid'); valid = false; }
+    if (password.length < 6) { passwordField.classList.add('is-invalid'); valid = false; }
+    if (currentAuthMode === 'register' && password !== confirmPassword) { confirmField.classList.add('is-invalid'); valid = false; }
+    if (!valid) {
+      toast('请检查邮箱、密码和确认密码。', 'warning');
       return;
     }
-    showApp(account);
-    toast('已进入叙事工作台。');
+    if (!window.crypto || !window.crypto.subtle) {
+      toast('当前浏览器不支持安全密码存储，请使用最新版 Chrome、Edge 或 Safari。', 'error');
+      return;
+    }
+    var accounts = readAuthAccounts();
+    if (currentAuthMode === 'register') {
+      if (accounts[email]) {
+        toast('该邮箱已经注册，请直接登录。', 'warning');
+        setAuthMode('login');
+        return;
+      }
+      setBusy($('auth-submit'), true);
+      try {
+        var salt = randomSalt();
+        var passwordHash = await hashPassword(password, salt);
+        accounts[email] = { email: email, salt: salt, passwordHash: passwordHash, createdAt: now() };
+        writeAuthAccounts(accounts);
+        showApp(email);
+        toast('注册成功，账号数据会独立保存在当前浏览器。');
+      } catch (error) {
+        toast('注册失败，请稍后重试。', 'error');
+      } finally {
+        setBusy($('auth-submit'), false);
+      }
+      return;
+    }
+    var account = accounts[email];
+    if (!account) {
+      toast('该邮箱尚未注册，请先切换到“注册新账号”。', 'warning');
+      return;
+    }
+    setBusy($('auth-submit'), true);
+    try {
+      var digest = await hashPassword(password, account.salt);
+      if (!sameDigest(digest, account.passwordHash)) {
+        passwordField.classList.add('is-invalid');
+        toast('邮箱或密码不正确。', 'warning');
+        return;
+      }
+      showApp(email);
+      toast('登录成功。');
+    } catch (error) {
+      toast('登录失败，请稍后重试。', 'error');
+    } finally {
+      setBusy($('auth-submit'), false);
+    }
   }
 
   function toast(message, kind) {
@@ -856,7 +985,9 @@
   }
 
   function bindEvents() {
-    $('login-form').addEventListener('submit', handleLogin);
+    $('login-form').addEventListener('submit', handleAuthSubmit);
+    $('auth-tab-login').addEventListener('click', function () { setAuthMode('login'); });
+    $('auth-tab-register').addEventListener('click', function () { setAuthMode('register'); });
     $('content-form').addEventListener('submit', function (event) { event.preventDefault(); generateContent(); });
     $('publish-form').addEventListener('submit', addPublishRecord);
     $('brand-select').addEventListener('change', function () {

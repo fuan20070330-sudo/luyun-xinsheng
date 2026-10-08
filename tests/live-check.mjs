@@ -13,10 +13,15 @@ page.on('pageerror', (error) => errors.push('pageerror: ' + error.message));
 try {
   const response = await page.goto(url, { waitUntil: 'networkidle', timeout: 45000 });
   assert.equal(response.status(), 200);
-  await page.fill('#login-account', 'live-user');
+  await page.click('#auth-tab-register');
+  await page.fill('#login-email', 'live-user@example.com');
   await page.fill('#login-password', 'demo-pass');
-  await page.click('#login-form button[type=submit]');
+  await page.fill('#register-password-confirm', 'demo-pass');
+  await page.click('#auth-submit');
   await page.waitForFunction(() => document.getElementById('app-shell').hidden === false);
+  const authRecord = await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('luyun-auth-accounts-v1') || '{}'))[0]);
+  assert.ok(authRecord && authRecord.email === 'live-user@example.com' && authRecord.passwordHash && authRecord.salt);
+  assert.equal(Object.prototype.hasOwnProperty.call(authRecord, 'password'), false);
   await page.fill('#brand-type', '山东传统糕点老字号');
   await page.fill('#brand-name', '鲁香斋（模拟品牌）');
   await page.fill('#brand-tone', '真诚、考究、克制');
