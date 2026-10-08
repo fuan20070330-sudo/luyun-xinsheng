@@ -34,6 +34,11 @@ try {
   await page.waitForFunction(() => window.__LUYUN_APP__.state.artifacts.length === 4, null, { timeout: 20000 });
   await page.click('[data-artifact="story"] [data-review="accept"]');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.reviews.length >= 1, null, { timeout: 10000 });
+  await page.click('[data-action="open-history"]');
+  await page.waitForFunction(() => document.getElementById('history-drawer').hidden === false);
+  const historyRecords = await page.locator('#history-list .history-item').count();
+  assert.ok(historyRecords >= 1, '线上账号应保存生成历史');
+  await page.click('button[data-action="close-history"]');
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(300);
@@ -57,7 +62,8 @@ try {
     methodCards: document.querySelectorAll('.method-card').length,
     techSections: document.querySelectorAll('#tech').length,
     footers: document.querySelectorAll('footer').length,
-    fieldHints: document.querySelectorAll('.field-hint').length
+    fieldHints: document.querySelectorAll('.field-hint').length,
+    historyRecords: window.__LUYUN_APP__.state.history.length
   }));
   assert.equal(result.artifacts, 4);
   assert.ok(result.reviews >= 1);
@@ -71,6 +77,7 @@ try {
   assert.equal(result.roleReviews, 5);
   assert.equal(result.publishForm, true);
   assert.equal(result.methodCards, 8);
+  assert.ok(result.historyRecords >= 1);
   assert.equal(errors.length, 0, errors.join('\n'));
   console.log(JSON.stringify({ ok: true, url, ...result }, null, 2));
 } finally {
