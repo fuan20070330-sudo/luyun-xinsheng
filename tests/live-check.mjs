@@ -63,7 +63,8 @@ try {
     techSections: document.querySelectorAll('#tech').length,
     footers: document.querySelectorAll('footer').length,
     fieldHints: document.querySelectorAll('.field-hint').length,
-    historyRecords: window.__LUYUN_APP__.state.history.length
+    historyRecords: window.__LUYUN_APP__.state.history.length,
+    newBrandButton: !!document.querySelector('[data-action="new-brand"]')
   }));
   assert.equal(result.artifacts, 4);
   assert.ok(result.reviews >= 1);
@@ -78,6 +79,7 @@ try {
   assert.equal(result.publishForm, true);
   assert.equal(result.methodCards, 8);
   assert.ok(result.historyRecords >= 1);
+  assert.equal(result.newBrandButton, true);
   assert.equal(errors.length, 0, errors.join('\n'));
   console.log(JSON.stringify({ ok: true, url, ...result }, null, 2));
 } finally {

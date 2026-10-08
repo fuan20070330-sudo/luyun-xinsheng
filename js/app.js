@@ -742,6 +742,26 @@
     state.risks = [];
     renderAll();
   }
+
+  function startNewBrand(showToast) {
+    state.brand = null;
+    state.facts = [];
+    state.risks = [];
+    state.artifacts = [];
+    state.roleReviews = [];
+    state.currentJobId = '';
+    state.metrics.facts = 0;
+    state.unlockedStep = 1;
+    if ($('brand-select')) $('brand-select').value = 'new';
+    clearBrandFields();
+    if ($('content-form')) $('content-form').reset();
+    if ($('stream-window')) $('stream-window').textContent = '';
+    setProgress('brand', 0, '');
+    renderAll();
+    showStep(1);
+    if ($('brand-name')) $('brand-name').focus();
+    if (showToast !== false) toast('已进入新建品牌，请填写品牌名称、类型和语气。');
+  }
   function clearDemo() {
     state.brand = null;
     state.facts = [];
@@ -841,8 +861,7 @@
     $('publish-form').addEventListener('submit', addPublishRecord);
     $('brand-select').addEventListener('change', function () {
       if (this.value === 'new' || !state.brandLibrary[this.value]) {
-        $('brand-select').value = 'new';
-        clearBrandFields();
+        startNewBrand(true);
         return;
       }
       var item = state.brandLibrary[this.value];
@@ -889,6 +908,7 @@
       if (!action) return;
       var name = action.getAttribute('data-action');
       if (name === 'logout') logout();
+      if (name === 'new-brand') startNewBrand(true);
       if (name === 'open-history') openHistory();
       if (name === 'close-history') closeHistory();
       if (name === 'refresh-history') { renderAll(); toast('历史记录已刷新。'); }
@@ -942,6 +962,7 @@
       generateContent: generateContent,
       submitReview: submitReview,
       clearDemo: clearDemo,
+      startNewBrand: startNewBrand,
       showStep: showStep,
       openHistory: openHistory,
       closeHistory: closeHistory,

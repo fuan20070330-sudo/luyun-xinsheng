@@ -312,7 +312,24 @@ async function runHistoryIsolationFlow(page) {
   const restoredCount = await page.locator('#history-list .history-item').count();
   assert.ok(restoredCount >= initial.count, '切回原账号后应恢复历史记录');
   await page.click('button[data-action="close-history"]');
-  return { isolated: true, testUserRecords: restoredCount, otherUserRecords: 0 };
+
+  await page.click('.step-nav [data-page="1"]');
+  await page.click('[data-action="new-brand"]');
+  const newBrand = await page.evaluate(() => ({
+    select: document.getElementById('brand-select').value,
+    brand: window.__LUYUN_APP__.state.brand,
+    name: document.getElementById('brand-name').value,
+    type: document.getElementById('brand-type').value,
+    tone: document.getElementById('brand-tone').value,
+    activeStep: document.querySelector('.app-step.is-active').getAttribute('data-step')
+  }));
+  assert.equal(newBrand.select, 'new');
+  assert.equal(newBrand.brand, null);
+  assert.equal(newBrand.name, '');
+  assert.equal(newBrand.type, '');
+  assert.equal(newBrand.tone, '');
+  assert.equal(newBrand.activeStep, '1');
+  return { isolated: true, testUserRecords: restoredCount, otherUserRecords: 0, newBrand: true };
 }
 
 const staticServer = createStaticServer();

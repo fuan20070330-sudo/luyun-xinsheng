@@ -117,3 +117,8 @@ body[data-authenticated="false"]{height:100dvh;overflow:hidden}@media(max-width:
 .history-item-actions .button{min-height:38px;padding:8px 13px;font-size:12px}
 body.history-open{overflow:hidden}
 @media(max-width:680px){.heading-actions{width:100%;justify-content:flex-start}.history-drawer-panel{width:calc(100vw - 10px);padding:16px}.history-toolbar{align-items:flex-start;flex-direction:column}.history-toolbar>div{width:100%;justify-content:space-between}.history-item{padding:14px}.history-item-actions{flex-direction:column}.history-item-actions .button{width:100%}}
+
+.brand-picker-control{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
+.brand-picker-control select{min-width:0}
+.brand-picker-control .button{white-space:nowrap}
+@media(max-width:680px){.brand-picker-control{grid-template-columns:1fr}.brand-picker-control .button{width:100%}}
