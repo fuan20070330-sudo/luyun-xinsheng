@@ -29,6 +29,7 @@ class JsonStore {
     this.file = options.file || path.join(process.cwd(), 'data', 'luyun-store.json');
     this.memory = this.file === ':memory:';
     this.data = emptyData();
+    this.ready = Promise.resolve();
     if (!this.memory) this.load();
   }
 
@@ -75,7 +76,9 @@ class JsonStore {
       role: input.role || '品牌运营人员',
       createdAt: now(),
       updatedAt: now(),
-      disabled: false
+      disabled: false,
+      failedLoginCount: 0,
+      lockedUntil: null
     };
     this.data.users[email] = user;
     this.audit('user.register', { userId: user.id, email });
@@ -102,13 +105,14 @@ class JsonStore {
     return clone(user);
   }
 
-  createSession(user, ttlMs) {
+  createSession(user, ttlMs, metadata) {
     const token = crypto.randomBytes(32).toString('base64url');
     const tokenHash = sha256(token);
+    const csrfToken = crypto.randomBytes(24).toString('base64url');
     const expiresAt = new Date(Date.now() + (ttlMs || 30 * 24 * 60 * 60 * 1000)).toISOString();
-    this.data.sessions[tokenHash] = { tokenHash, userId: user.id, email: user.email, role: user.role, expiresAt, createdAt: now() };
+    this.data.sessions[tokenHash] = Object.assign({ tokenHash, csrfToken, userId: user.id, email: user.email, role: user.role, expiresAt, createdAt: now() }, metadata || {});
     this.save();
-    return token;
+    return { token, csrfToken };
   }
 
   getSession(token) {

@@ -152,3 +152,6 @@ body.history-open{overflow:hidden}
 
 .artifact-note{width:100%;min-height:40px;margin:0 0 8px;padding:8px 10px;color:var(--ink);background:rgba(255,253,247,.72);border:1px solid var(--line);border-radius:9px;font:inherit;font-size:12px}
 .artifact-note:focus{outline:2px solid rgba(159,47,37,.24);outline-offset:1px}
+
+.facts-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+@media(max-width:680px){.facts-actions{width:100%;justify-content:flex-start}}

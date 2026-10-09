@@ -8,6 +8,10 @@ primary_region = "sin"
   PORT = "8080"
   ALLOWED_ORIGIN = "https://fuan20070330-sudo.github.io"
   DATA_FILE = "/data/luyun-store.json"
+  AUTH_COOKIE_ENABLED = "true"
+  AUTH_RETURN_TOKEN = "false"
+  COOKIE_SECURE = "true"
+  COOKIE_SAME_SITE = "None"
 
 [http_service]
   internal_port = 8080

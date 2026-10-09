@@ -217,6 +217,11 @@ fly deploy
 │       ├── auth-service.js
 │       ├── data-store.js
 │       ├── document-service.js
+│       ├── http-security.js
+│       ├── postgres-store.js
+│       ├── rate-limit.js
+│       ├── store.js
+│       ├── verification-service.js
 │       ├── gateway.js
 │       ├── server.js
 │       ├── ws-frame.js

@@ -1,6 +1,6 @@
 {
   "name": "luyun-xinsheng-gateway",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "private": true,
   "description": "老字号叙事工坊独立 WebSocket 网关",
   "type": "commonjs",
@@ -8,8 +8,11 @@
   "engines": {
     "node": ">=18"
   },
+  "dependencies": {
+    "pg": "^8.13.1"
+  },
   "scripts": {
     "start": "node src/server.js",
-    "check": "node --check src/server.js && node --check src/api.js && node --check src/auth-service.js && node --check src/data-store.js && node --check src/document-service.js && node --check src/gateway.js && node --check src/ws-server.js && node --check src/ws-frame.js && node --check src/ai-adapter.js"
+    "check": "node --check src/server.js && node --check src/api.js && node --check src/auth-service.js && node --check src/data-store.js && node --check src/document-service.js && node --check src/postgres-store.js && node --check src/store.js && node --check src/http-security.js && node --check src/rate-limit.js && node --check src/verification-service.js && node --check src/gateway.js && node --check src/ws-server.js && node --check src/ws-frame.js && node --check src/ai-adapter.js"
   }
 }

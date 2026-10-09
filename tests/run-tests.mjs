@@ -8,6 +8,7 @@ const require = createRequire(import.meta.url);
 const engine = require('../shared/generator.js');
 const { FrameParser, encodeFrame, OPCODES } = require('../server/src/ws-frame.js');
 const { createServer } = require('../server/src/server.js');
+const { PostgresStore } = require('../server/src/postgres-store.js');
 const { responsesEndpoint, chatEndpoint, extractResponseText, buildPrompt } = require('../server/src/ai-adapter.js');
 
 const materials = [
@@ -24,7 +25,7 @@ function testEngine() {
   const facts = engine.extractFacts(materials, { sourceName: '鲁香斋模拟品牌档案' });
   assert.ok(facts.length >= 7, '应生成不少于 7 条事实');
   assert.ok(facts.filter((fact) => fact.status !== '待核实').length >= 7);
-  assert.ok(facts.every((fact) => fact.evidenceLevel && Object.prototype.hasOwnProperty.call(fact, 'sourceHash')));
+  assert.ok(facts.every((fact) => fact.evidenceLevel && Object.prototype.hasOwnProperty.call(fact, 'sourceHash') && fact.sourceAuthority && fact.verificationStatus && fact.extractionConfidence >= 0));
   assert.deepEqual([...new Set(facts.map((fact) => fact.category))].sort(), engine.CATEGORIES.slice().sort());
   const conflictMaterials = '品牌档案：品牌始创于1918年。\n品牌档案：品牌创立于1920年。';
   const conflictFacts = engine.extractFacts(conflictMaterials, { sourceName: '冲突测试' });
@@ -208,11 +209,12 @@ async function apiJson(base, path, options, token) {
   if (token) headers.Authorization = 'Bearer ' + token;
   const response = await fetch(base + path, Object.assign({}, options || {}, { headers }));
   const payload = await response.json();
-  return { status: response.status, payload };
+  const setCookie = response.headers.get('set-cookie') || '';
+  return { status: response.status, payload, setCookie };
 }
 
 async function testApi() {
-  const bundle = createServer({ ALLOWED_ORIGIN: '*', WS_HEARTBEAT_MS: '60000', DATA_FILE: ':memory:' });
+  const bundle = createServer({ ALLOWED_ORIGIN: '*', WS_HEARTBEAT_MS: '60000', DATA_FILE: ':memory:', AUTH_RETURN_TOKEN: 'true', AUTH_COOKIE_ENABLED: 'true', COOKIE_SAME_SITE: 'Lax' });
   await new Promise((resolve) => bundle.server.listen(0, '127.0.0.1', resolve));
   const port = bundle.server.address().port;
   const base = 'http://127.0.0.1:' + port;
@@ -222,10 +224,17 @@ async function testApi() {
     const registered = await apiJson(base, '/api/auth/register', { method: 'POST', body: JSON.stringify({ email: 'api-test@example.com', password: 'safe-pass-123', role: '内容编辑' }) });
     assert.equal(registered.status, 201);
     assert.ok(registered.payload.token);
+    assert.match(registered.setCookie, /luyun_session=.*HttpOnly/i);
     const storedUser = bundle.store.findUserByEmail('api-test@example.com');
     assert.match(storedUser.passwordHash, /^scrypt\$/);
     assert.equal(storedUser.passwordHash.includes('safe-pass-123'), false);
     const token = registered.payload.token;
+    const cookie = String(registered.setCookie || '').split(';')[0];
+    const csrf = registered.payload.csrfToken;
+    const csrfBlocked = await apiJson(base, '/api/history', { method: 'POST', headers: { Cookie: cookie }, body: JSON.stringify({ record: { id: 'cookie-blocked', artifacts: [] } }) });
+    assert.equal(csrfBlocked.status, 403);
+    const csrfAllowed = await apiJson(base, '/api/history', { method: 'POST', headers: { Cookie: cookie, 'X-CSRF-Token': csrf }, body: JSON.stringify({ record: { id: 'cookie-allowed', artifacts: [] } }) });
+    assert.equal(csrfAllowed.status, 201);
     const me = await apiJson(base, '/api/auth/me', {}, token);
     assert.equal(me.status, 200);
     assert.equal(me.payload.user.email, 'api-test@example.com');
@@ -238,7 +247,11 @@ async function testApi() {
     const saved = await apiJson(base, '/api/history', { method: 'POST', body: JSON.stringify({ record: { id: 'api-job-1', brand: { name: '测试品牌' }, artifacts: [{ id: 'story', content: '测试内容 [F001]' }] } }) }, token);
     assert.equal(saved.status, 201);
     const list = await apiJson(base, '/api/history', {}, token);
-    assert.equal(list.payload.records.length, 1);
+    assert.equal(list.payload.records.length, 2);
+    const verified = await apiJson(base, '/api/verification/facts', { method: 'POST', body: JSON.stringify({ facts: [{ id: 'F001', statement: '品牌始创于1918年', sourceAuthority: '用户整理资料' }] }) }, token);
+    assert.equal(verified.status, 200);
+    assert.equal(verified.payload.configured, false);
+    assert.equal(verified.payload.facts[0].verificationStatus, '待核验');
     const extracted = await apiJson(base, '/api/documents/extract', { method: 'POST', body: JSON.stringify({ name: '证据.txt', type: 'text/plain', base64: Buffer.from('品牌始创于1918年。').toString('base64') }) }, token);
     assert.equal(extracted.status, 200);
     assert.match(extracted.payload.document.text, /1918/);
@@ -249,11 +262,36 @@ async function testApi() {
     assert.equal(loggedOut.status, 200);
     const expired = await apiJson(base, '/api/auth/me', {}, token);
     assert.equal(expired.status, 401);
-    return { health: true, register: true, login: true, changePassword: true, history: true, documentExtraction: true, invalidPassword: true, logout: true };
+    return { health: true, register: true, login: true, changePassword: true, httpOnlyCookie: true, csrf: true, history: true, documentExtraction: true, verificationPending: true, invalidPassword: true, logout: true };
   } finally {
     bundle.gateway.close();
     await new Promise((resolve) => bundle.server.close(resolve));
   }
+}
+
+async function testPostgresStore() {
+  let pgMem;
+  try { pgMem = require('pg-mem'); }
+  catch (error) { try { pgMem = require('../server/node_modules/pg-mem'); } catch (fallback) { return { skipped: true, reason: 'pg-mem not installed' }; } }
+  const db = pgMem.newDb();
+  const adapter = db.adapters.createPg();
+  const store = new PostgresStore({ Pool: adapter.Pool });
+  await store.ready;
+  const user = await store.createUser({ email: 'postgres@example.com', passwordHash: 'scrypt$test$hash', role: '管理员' });
+  assert.ok(user && user.id);
+  const session = await store.createSession(user, 60000);
+  const authenticated = await store.getSession(session.token);
+  assert.equal(authenticated.user.email, 'postgres@example.com');
+  assert.ok(session.csrfToken);
+  const saved = await store.putRecord('jobs', user.id, { id: 'pg-job', brand: { name: 'PostgreSQL 测试品牌' } });
+  assert.equal(saved.id, 'pg-job');
+  const records = await store.listRecords('jobs', user.id, 10);
+  assert.equal(records.length, 1);
+  const stats = await store.stats();
+  assert.equal(stats.users, 1);
+  assert.equal(stats.jobs, 1);
+  await store.close();
+  return { users: stats.users, jobs: stats.jobs, session: true, csrf: true };
 }
 
 function testAdvancedAdapter() {
@@ -269,9 +307,10 @@ function testAdvancedAdapter() {
 testAdvancedAdapter();
 testFrameCodec();
 const engineResult = testEngine();
+const postgresResult = await testPostgresStore().catch((error) => { console.error('postgres test failed:', error.stack || error.message); process.exit(1); });
 const apiResult = await testApi().catch((error) => { console.error('api test failed:', error.stack || error.message); process.exit(1); });
 const gatewayResult = await testGateway().catch((error) => { console.error('gateway test failed:', error.stack || error.message); process.exit(1); });
-console.log(JSON.stringify({ ok: true, engine: engineResult, api: apiResult, gateway: gatewayResult }, null, 2));
+console.log(JSON.stringify({ ok: true, engine: engineResult, postgres: postgresResult, api: apiResult, gateway: gatewayResult }, null, 2));
 process.exit(0);
 
 

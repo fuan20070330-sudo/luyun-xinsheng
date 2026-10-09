@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: luyun
+      POSTGRES_USER: luyun
+      POSTGRES_PASSWORD: luyun-local-password
+    volumes:
+      - luyun-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U luyun -d luyun"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  gateway:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: "8080"
+      ALLOWED_ORIGIN: "https://fuan20070330-sudo.github.io,http://localhost:4173,http://127.0.0.1:4173"
+      DATABASE_URL: "postgresql://luyun:luyun-local-password@postgres:5432/luyun"
+      DATABASE_SSL: "false"
+      AUTH_COOKIE_ENABLED: "true"
+      AUTH_RETURN_TOKEN: "false"
+      COOKIE_SECURE: "false"
+      COOKIE_SAME_SITE: "Lax"
+    ports:
+      - "8787:8080"
+
+volumes:
+  luyun-postgres:

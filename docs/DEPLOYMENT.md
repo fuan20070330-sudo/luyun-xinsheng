@@ -44,14 +44,25 @@ git push origin main
 | `PORT` | 否 | 默认 `8787`，容器平台通常注入 `8080` |
 | `ALLOWED_ORIGIN` | 建议 | `https://fuan20070330-sudo.github.io` |
 | `WS_HEARTBEAT_MS` | 否 | 默认 `30000` |
-| `DATA_FILE` | 否 | 默认 `./data/luyun-store.json`；容器建议挂载到 `/data` |
+| `DATABASE_URL` | 建议 | PostgreSQL 连接串；配置后不再使用 JSON 文件 |
+| `DATABASE_SSL` | 否 | PostgreSQL 是否启用 SSL |
+| `AUTH_COOKIE_ENABLED` | 否 | 默认 `true`，使用 HttpOnly 会话 Cookie |
+| `AUTH_RETURN_TOKEN` | 否 | 非浏览器客户端兼容开关，生产建议 `false` |
+| `COOKIE_SECURE` | 否 | HTTPS 生产环境设为 `true` |
+| `COOKIE_SAME_SITE` | 否 | 跨站生产环境使用 `None` |
+| `DATA_FILE` | 否 | 未配置 PostgreSQL 时的 JSON 文件路径 |
 | `DOCUMENT_EXTRACTOR_URL` | 否 | PDF、DOCX、OCR、音频转写的可选服务端解析器 |
+| `OFFICIAL_VERIFICATION_URL` | 否 | 官方名录、证书、商标或第三方权威核验服务 |
 | `OPENAI_API_KEY` | 是（启用高级模型时） | OpenAI 服务端密钥，不进入前端 |
 | `OPENAI_BASE_URL` | 否 | 默认 `https://api.openai.com/v1` |
 | `OPENAI_MODEL` | 否 | 默认 `gpt-6` |
 | `AI_API_MODE` | 否 | 默认 `responses`，可切到 `chat` |
 | `AI_API_URL` | 否 | 可选 OpenAI 兼容接口备用地址 |
 | `AI_TIMEOUT_MS` | 否 | 默认 `30000` |
+
+### PostgreSQL 数据库
+
+设置 `DATABASE_URL` 后服务端自动使用 PostgreSQL，并自动创建用户、会话、记录和审计表。也可以使用本地 `docker-compose.yml` 启动 PostgreSQL + 网关。
 
 ### Render 部署
 

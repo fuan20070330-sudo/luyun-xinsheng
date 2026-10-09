@@ -80,7 +80,7 @@ class LuyunGateway {
       interviews: String(brandInput.interviews || ''),
       isDemo: !!brandInput.isDemo
     };
-    const facts = engine.extractFacts(materials, { sourceName: payload.sourceName || '用户提交品牌资料' });
+    const facts = engine.extractFacts(materials, { sourceName: payload.sourceName || '用户提交品牌资料', sourceDocument: payload.sourceDocument || null });
     this.brands.set(brand.id, { brand, facts, updatedAt: new Date().toISOString() });
     this.metrics.facts = Array.from(this.brands.values()).reduce((sum, item) => sum + item.facts.filter((fact) => fact.status !== '待核实').length, 0);
     this.send(client, 'brand.ready', requestId, { brand, facts, mode: 'gateway' });
@@ -93,7 +93,7 @@ class LuyunGateway {
     const brand = stored ? stored.brand : requestedBrand;
     const materials = engine.normalizeText(brand && brand.materials);
     if (!brand || !brand.name || !materials) throw new Error('请先执行 brand.ingest');
-    const facts = stored ? stored.facts : engine.extractFacts(materials, { sourceName: '服务端品牌资料' });
+    const facts = stored ? stored.facts : engine.extractFacts(materials, { sourceName: '服务端品牌资料', sourceDocument: payload.sourceDocument || null });
     const jobId = 'job-' + randomUUID().slice(0, 12);
     const createdAt = new Date().toISOString();
     this.send(client, 'job.accepted', requestId, { jobId, createdAt, protocol: this.protocol });

@@ -1,5 +1,5 @@
 'use strict';
-const CACHE_NAME = 'luyun-xinsheng-v3.0.0';
+const CACHE_NAME = 'luyun-xinsheng-v3.1.0';
 const ASSETS = [
   './',
   './index.html',

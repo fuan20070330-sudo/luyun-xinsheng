@@ -19,7 +19,7 @@ GitHub Pages 静态前端
 - `shared/engine.js`：事实提取、风险与文化校验。
 - `shared/generator.js`：品牌故事、内容日历、多平台文案、年轻化表达方案生成。
 
-前端不保存 API Key。远程模型由网关读取 `OPENAI_API_KEY`，优先调用 Responses API；也可配置 `AI_API_URL` 作为 OpenAI 兼容备用接口。配置 `apiBaseUrl` 后，前端通过 HTTP API 使用服务端邮箱账号、云端品牌数据和云端历史。
+前端不保存 API Key。远程模型由网关读取 `OPENAI_API_KEY`，优先调用 Responses API；也可配置 `AI_API_URL` 作为 OpenAI 兼容备用接口。配置 `apiBaseUrl` 后，前端通过 HTTP API 使用服务端邮箱账号、云端品牌数据和云端历史。设置 `DATABASE_URL` 后由 PostgreSQLStore 运行；否则使用兼容模式的 JsonStore。生产环境使用 HttpOnly Cookie、CSRF 和限流；Bearer Token 仅用于兼容测试。
 
 ## 事实分类
 
@@ -31,7 +31,7 @@ GitHub Pages 静态前端
 - 品牌理念
 - 访谈洞察
 
-每条事实保存 `Fxxx` 编号、分类、原文来源、置信度和“已提取/待核实”状态。
+每条事实保存 `Fxxx` 编号、分类、原文来源、提取置信度、来源权威度、核验状态、确认人和冲突状态。提取置信度不等于事实已核验。
 
 ## 账号与历史记录
 

@@ -1,5 +1,5 @@
 {
-  "version": "3.0.0",
+  "version": "3.1.0",
   "private": true,
   "name": "luyun-xinsheng",
   "type": "commonjs",
@@ -12,9 +12,10 @@
     "test": "node tests/run-tests.mjs",
     "test:live": "node tests/live-check.mjs",
     "start": "node server/src/server.js",
-    "check": "node --check js/app.js && node --check js/renderer.js && node --check shared/engine.js && node --check shared/generator.js && node --check shared/quality.js && node --check server/src/server.js && node --check server/src/api.js && node --check server/src/auth-service.js && node --check server/src/data-store.js && node --check server/src/document-service.js"
+    "check": "node --check js/app.js && node --check js/renderer.js && node --check shared/engine.js && node --check shared/generator.js && node --check shared/quality.js && node --check server/src/server.js && node --check server/src/api.js && node --check server/src/auth-service.js && node --check server/src/data-store.js && node --check server/src/document-service.js && node --check server/src/postgres-store.js && node --check server/src/store.js && node --check server/src/http-security.js && node --check server/src/rate-limit.js && node --check server/src/verification-service.js"
   },
   "devDependencies": {
+    "pg-mem": "^3.0.14",
     "playwright": "^1.50.0"
   }
 }

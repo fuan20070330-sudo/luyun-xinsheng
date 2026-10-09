@@ -5,7 +5,27 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  var PROMPT_VERSION = 'brand-safe-narrative-v2.2';
+  var PROMPT_VERSION = 'brand-safe-narrative-v3.0';
+  var SOURCE_AUTHORITY = {
+    official: { score: 5, label: '官方登记或权威证书' },
+    certificate: { score: 4, label: '品牌证书或正式文件' },
+    brand: { score: 3, label: '品牌自有资料' },
+    media: { score: 3, label: '公开报道或出版物' },
+    interview: { score: 2, label: '受访口述' },
+    user: { score: 1, label: '用户整理资料' },
+    inference: { score: 0, label: 'AI 推测' }
+  };
+  function authorityFor(options) {
+    options = options || {};
+    var key = options.sourceDocument && options.sourceDocument.authority || options.sourceAuthority || 'user';
+    return SOURCE_AUTHORITY[key] || SOURCE_AUTHORITY.user;
+  }
+  function evidenceLevelFor(authority, verified) {
+    if (verified) return authority.score >= 4 ? '强' : authority.score >= 3 ? '中' : '弱';
+    if (authority.score >= 4) return '来源较强（待核验）';
+    if (authority.score >= 3) return '来源中等（待核验）';
+    return '来源较弱（待核验）';
+  }
   var CATEGORIES = ['历史', '工艺', '荣誉', '人物', '产品', '品牌理念', '访谈洞察'];
   var CATEGORY_TERMS = {
     '历史': ['创立', '始创', '创建', '始于', '年', '年代', '历史', '传承', '成立', '老字号', '字号'],
@@ -70,6 +90,7 @@
       var category = classifySentence(sentence);
       var source = sourceName + '：' + sentence;
       var confidence = confidenceFor(sentence, sourceName);
+      var authority = authorityFor(options);
       categoryCount[category] = (categoryCount[category] || 0) + 1;
       facts.push({
         id: 'F' + String(facts.length + 1).padStart(3, '0'),
@@ -82,11 +103,18 @@
         sourceDocumentId: options.sourceDocument && options.sourceDocument.id || '',
         sourceDocumentName: options.sourceDocument && options.sourceDocument.name || sourceName,
         sourceHash: options.sourceDocument && options.sourceDocument.hash || '',
-        evidenceLevel: confidence >= 0.9 ? '强' : confidence >= 0.75 ? '中' : '弱',
+        sourceAuthority: authority.label,
+        sourceAuthorityScore: authority.score,
+        evidenceLevel: evidenceLevelFor(authority, false),
+        verificationStatus: '待核验',
+        verificationMethod: 'not-verified',
+        verifiedAt: '',
+        verifiedBy: '',
         revision: 1,
         confirmedBy: '',
         confirmedAt: '',
         updatedAt: new Date().toISOString(),
+        extractionConfidence: confidence,
         confidence: confidence,
         status: confidence >= 0.7 ? '已提取' : '待核实'
       });
@@ -104,11 +132,18 @@
           sourceDocumentId: '',
           sourceDocumentName: '',
           sourceHash: '',
-          evidenceLevel: '无',
+          sourceAuthority: '无来源',
+          sourceAuthorityScore: 0,
+          evidenceLevel: '无来源',
+          verificationStatus: '待核验',
+          verificationMethod: 'no-source',
+          verifiedAt: '',
+          verifiedBy: '',
           revision: 1,
           confirmedBy: '',
           confirmedAt: '',
           updatedAt: new Date().toISOString(),
+          extractionConfidence: 0,
           confidence: 0,
           status: '待核实'
         });
@@ -291,6 +326,7 @@
   }  return {
     PROMPT_VERSION: PROMPT_VERSION,
     CATEGORIES: CATEGORIES,
+    SOURCE_AUTHORITY: SOURCE_AUTHORITY,
     normalizeText: normalizeText,
     splitText: splitText,
     extractFacts: extractFacts,

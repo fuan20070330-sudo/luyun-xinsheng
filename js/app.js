@@ -129,7 +129,7 @@
     if (!state.brand) return;
     state.brandLibrary[state.brand.id] = { brand: state.brand, facts: state.facts, updatedAt: now() };
     persistState();
-    if (Api.enabled() && Api.token) Api.saveBrand({ id: state.brand.id, brand: state.brand, facts: state.facts, updatedAt: now() }).catch(function () {});
+    if (Api.enabled() && state.remoteAuth) Api.saveBrand({ id: state.brand.id, brand: state.brand, facts: state.facts, updatedAt: now() }).catch(function () {});
   }
 
   function renderBrandOptions() {
@@ -209,7 +209,7 @@
   }
 
   function syncRemoteState() {
-    if (!Api.enabled() || !Api.token) return Promise.resolve(false);
+    if (!Api.enabled() || !state.remoteAuth) return Promise.resolve(false);
     return Promise.all([Api.listHistory(), Api.listBrands(), Api.listReviews(), Api.listPublish(), Api.listDocuments()]).then(function (results) {
       state.history = mergeById(state.history, results[0] || []).sort(function (a, b) { return String(b.updatedAt || b.createdAt).localeCompare(String(a.updatedAt || a.createdAt)); }).slice(0, HISTORY_LIMIT);
       (results[1] || []).forEach(function (record) {
@@ -234,7 +234,7 @@
   function showApp(user) {
     state.user = String(user || '当前用户').trim();
     loadAccountState(state.user);
-    state.remoteAuth = !!(Api.enabled() && Api.token);
+    state.remoteAuth = state.remoteAuth || !!(Api.enabled() && (Api.token || Api.csrfToken));
     state.unlockedStep = 1;
     document.body.setAttribute('data-authenticated', 'true');
     $('current-user').textContent = state.user;
@@ -250,7 +250,7 @@
 
   function logout() {
     persistState();
-    if (Api.enabled() && Api.token) Api.logout().catch(function () {});
+    if (Api.enabled() && state.remoteAuth) Api.logout().catch(function () {});
     closeHistory();
     clearAccountState();
     state.user = '';
@@ -430,7 +430,7 @@
     var newPassword = window.prompt('请输入新密码（至少 8 位）：');
     if (newPassword == null) return;
     if (newPassword.length < 8) { toast('新密码至少需要 8 位。', 'warning'); return; }
-    if (Api.enabled() && Api.token) {
+    if (Api.enabled() && state.remoteAuth) {
       try {
         await Api.changePassword(oldPassword, newPassword);
         toast('服务端密码已修改。');
@@ -628,7 +628,7 @@
     if (!window.confirm('确定删除这条历史生成记录吗？删除后不可恢复。')) return;
     state.history = state.history.filter(function (item) { return item.id !== recordId; });
     persistState();
-    if (Api.enabled() && Api.token) Api.deleteHistory(recordId).catch(function () {});
+    if (Api.enabled() && state.remoteAuth) Api.deleteHistory(recordId).catch(function () {});
     renderAll();
     toast('历史生成记录已删除。');
   }
@@ -771,7 +771,7 @@
     setProgress('ingest', 8, '提交品牌资料并识别可引用原文');
     try {
       var result = await requestTransport('brand.ingest', {
-        brand: brand, sourceName: '用户提交品牌资料', sourceDocument: state.documents[0] || null
+        brand: brand, sourceName: '用户提交品牌资料', sourceDocument: state.documents[0] || { id: 'manual-source', name: '手工粘贴资料', authority: $('source-type') ? $('source-type').value : 'user', hash: '' }
       }, 'brand.ready', function (message) {
         updateLastEvent(message);
         if (message.event === 'brand.ready') setProgress('retrieve', 24, '品牌事实提取完成，进入可检索状态');
@@ -839,7 +839,7 @@
       var historyRecord = createHistoryRecord(payload, result);
       state.history.unshift(historyRecord);
       if (state.history.length > HISTORY_LIMIT) state.history.length = HISTORY_LIMIT;
-      if (Api.enabled() && Api.token) Api.saveHistory(historyRecord).catch(function () {});
+      if (Api.enabled() && state.remoteAuth) Api.saveHistory(historyRecord).catch(function () {});
       setProgress('store', 100, '内容生成完成，事实引用和宣传方法已记录');
       Renderer.updatePipeline('review');
       $('job-status').textContent = highRisk ? highRisk + ' 项高风险' : '待品牌方确认';
@@ -897,7 +897,7 @@
     }
     syncHistoryRecord();
     persistState();
-    if (Api.enabled() && Api.token) {
+    if (Api.enabled() && state.remoteAuth) {
       Api.saveReview(review).catch(function () {});
       var updatedHistory = state.history.filter(function (item) { return item.jobId === state.currentJobId; })[0];
       if (updatedHistory) Api.saveHistory(updatedHistory).catch(function () {});
@@ -940,6 +940,27 @@
       return;
     }
     if (action === 'accept') submitReview(artifactId, 'accept', { note: reviewNote || undefined });
+  }
+
+  async function verifyFactsRemote(button) {
+    if (!Api.enabled() || !state.remoteAuth) {
+      toast('权威核验需要先配置并登录服务端。', 'warning');
+      return;
+    }
+    if (!state.facts.length) { toast('请先提取事实。', 'warning'); return; }
+    setBusy(button, true);
+    try {
+      var result = await Api.verifyFacts(state.facts);
+      state.facts = result.facts || state.facts;
+      state.conflicts = Engine.detectConflicts(state.facts);
+      rememberCurrentBrand();
+      renderAll();
+      toast(result.configured ? '权威核验请求已完成。' : '未配置权威核验服务，事实继续保持待核验。', result.configured ? 'info' : 'warning');
+    } catch (error) {
+      toast(error.message || '权威核验失败。', 'warning');
+    } finally {
+      setBusy(button, false);
+    }
   }
 
   function exportMarkdown() {
@@ -1053,7 +1074,7 @@
       var hash = '';
       var extractor = 'direct-text';
       if (binary) {
-        if (!Api.enabled() || !Api.token) throw new Error('PDF、DOCX、OCR 和音频转写需要配置服务端解析器。');
+        if (!Api.enabled() || !state.remoteAuth) throw new Error('PDF、DOCX、OCR 和音频转写需要配置服务端解析器。');
         var extracted = await Api.extractDocument(file);
         text = extracted.text || '';
         hash = extracted.hash || '';
@@ -1070,9 +1091,10 @@
         if (/\.csv$/i.test(file.name)) text = text.split(/\r?\n/).map(function (line) { return line.split(',').join('，'); }).join('\n');
         if (window.crypto && window.crypto.subtle && file.arrayBuffer) hash = bufferToHex(await window.crypto.subtle.digest('SHA-256', await file.arrayBuffer()));
       }
-      var documentRecord = { id: uid('doc'), name: file.name, size: file.size, type: file.type || 'application/octet-stream', hash: hash, extractor: extractor, status: hash ? '已核验' : '无指纹', importedAt: now() };
+      var sourceType = $('source-type') ? $('source-type').value : 'user';
+      var documentRecord = { id: uid('doc'), name: file.name, size: file.size, type: file.type || 'application/octet-stream', hash: hash, extractor: extractor, authority: sourceType, status: hash ? '已记录指纹' : '无指纹', importedAt: now() };
       state.documents.unshift(documentRecord);
-      if (Api.enabled() && Api.token) Api.saveDocument(documentRecord).catch(function () {});
+      if (Api.enabled() && state.remoteAuth) Api.saveDocument(documentRecord).catch(function () {});
       var current = $('brand-materials').value.trim();
       $('brand-materials').value = current ? current + '\n' + text : text;
       $('file-import-status').textContent = '已导入 ' + file.name + '（' + Math.ceil(file.size / 1024) + ' KB，' + extractor + '，SHA-256 ' + (hash ? hash.slice(0, 12) + '…' : '未计算') + '）';
@@ -1103,7 +1125,7 @@
     };
     state.publishRecords.unshift(record);
     persistState();
-    if (Api.enabled() && Api.token) Api.savePublish(record).catch(function () {});
+    if (Api.enabled() && state.remoteAuth) Api.savePublish(record).catch(function () {});
     Renderer.renderPublishRecords(state);
     $('publish-form').reset();
     toast('发布与效果记录已保存。');
@@ -1155,8 +1177,14 @@
       if (!button) return;
       var fact = state.facts.filter(function (item) { return item.id === button.getAttribute('data-fact-id'); })[0];
       if (!fact) return;
-      fact.status = button.getAttribute('data-fact-action') === 'confirm' ? '已确认' : '待核实';
-      fact.confirmedBy = button.getAttribute('data-fact-action') === 'confirm' ? state.user : '';
+      var confirming = button.getAttribute('data-fact-action') === 'confirm';
+      fact.status = confirming ? '已确认' : '待核实';
+      fact.verificationStatus = confirming ? '品牌方已确认' : '待核验';
+      fact.evidenceLevel = confirming ? '品牌确认' : fact.evidenceLevel;
+      fact.confirmedBy = confirming ? state.user : '';
+      fact.confirmedAt = confirming ? now() : '';
+      fact.verifiedBy = confirming ? state.user : '';
+      fact.verifiedAt = confirming ? now() : '';
       fact.revision = (fact.revision || 1) + 1;
       fact.updatedAt = now();
       state.conflicts = Engine.detectConflicts(state.facts);
@@ -1193,6 +1221,7 @@
       if (name === 'open-history') openHistory();
       if (name === 'close-history') closeHistory();
       if (name === 'refresh-history') { if (state.remoteAuth) syncRemoteState(); else renderAll(); toast('历史记录已刷新。'); }
+      if (name === 'verify-facts') verifyFactsRemote(action);
       if (name === 'filter-pending') {
         state.pendingOnly = !state.pendingOnly;
         action.classList.toggle('is-active', state.pendingOnly);
@@ -1239,7 +1268,7 @@
       }
     });
     bindEvents();
-    if (Api.enabled() && Api.token) {
+    if (Api.enabled()) {
       Api.me().then(function (payload) {
         state.remoteAuth = true;
         showApp(payload.user.email);
@@ -1267,6 +1296,7 @@
       clearDemo: clearDemo,
       startNewBrand: startNewBrand,
       changePassword: changePassword,
+      verifyFactsRemote: verifyFactsRemote,
       showStep: showStep,
       openHistory: openHistory,
       closeHistory: closeHistory,

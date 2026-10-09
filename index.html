@@ -8,8 +8,8 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta name="description" content="老字号叙事工坊：老字号与非遗品牌内容助手。">
   <title>老字号叙事工坊｜老字号与非遗品牌内容助手</title>
-  <link rel="icon" href="assets/favicon.svg?v=3.0.0" type="image/svg+xml">
-  <link rel="stylesheet" href="css/styles.css?v=3.0.0">
+  <link rel="icon" href="assets/favicon.svg?v=3.1.0" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css?v=3.1.0">
 </head>
 <body data-authenticated="false">
   <div class="paper-noise" aria-hidden="true"></div>
@@ -84,6 +84,7 @@
           <div class="step-heading"><div><p class="section-kicker">步骤 2 / 6</p><h2 id="step2-title">录入品牌历史与产品资料</h2><p>建议每行填写一条有出处的信息；无法确认的内容请标记为待核实。</p></div><span class="status-chip" id="brand-status">待入库</span></div>
           <div class="panel form-panel">
             <label class="field"><span>品牌历史与产品资料</span><textarea id="brand-materials" rows="10" required placeholder="建议每行一条可直接引用的资料，例如：品牌创立于1918年；传统枣泥酥包含选枣、蒸制、炒馅、包制和烘烤工序；产品包括节令礼盒。"></textarea><small class="field-hint">这里填写品牌档案、产品说明、荣誉登记和工艺原文。不要填写没有来源的推测。</small></label>
+            <label class="field"><span>资料来源类型</span><select id="source-type"><option value="user">用户整理资料</option><option value="brand">品牌自有资料</option><option value="media">公开报道或出版物</option><option value="interview">受访口述</option><option value="certificate">品牌证书或正式文件</option><option value="official">官方登记或权威证书</option></select><small class="field-hint">来源权威度会影响事实的证据等级，但不会自动把任何内容标记为已核验。</small></label>
             <div class="import-row"><label class="file-button">导入资料<input id="file-import" type="file" accept=".txt,.md,.markdown,.json,.csv,.pdf,.docx,.png,.jpg,.jpeg,.webp,.mp3,.m4a,.wav,.mp4,text/plain,application/json,text/csv,application/pdf,image/*,audio/*,video/mp4"></label><span id="file-import-status">支持 UTF-8 文本，导入后仍可编辑</span></div>
             <div class="source-documents" id="source-documents"><div class="empty-state"><span class="empty-glyph">源</span><p>导入文件后会记录文件名、大小和 SHA-256 指纹。</p></div></div>
             <div class="step-actions"><button class="button button-ghost" type="button" data-page="1">返回上一步</button><button class="button button-primary" type="button" data-next="3">下一步：填写访谈记录</button></div>
@@ -94,7 +95,7 @@
           <div class="step-heading"><div><p class="section-kicker">步骤 3 / 6</p><h2 id="step3-title">填写访谈与口述记录</h2><p>保留受访者原话，助手只整理可引用信息，不替受访人补充观点。</p></div><span class="step-status">访谈洞察</span></div>
           <div class="panel form-panel">
             <label class="field"><span>受访内容 / 口述记录</span><textarea id="interview-notes" rows="8" placeholder="例如：受访人身份＋原话。品牌传承人表示，年轻化不能改变关键工序，要让年轻人知道每一步为什么这样做。"></textarea><small class="field-hint">填写传承人访谈、品牌方口述或客户反馈；助手只按原意整理，不替受访者添话。</small></label>
-            <div class="facts-header"><div><strong>已提取事实</strong><span id="facts-summary">尚未提取</span></div><button class="text-button" type="button" data-action="filter-pending">仅看待核实</button></div>
+            <div class="facts-header"><div><strong>已提取事实</strong><span id="facts-summary">尚未提取</span></div><div class="facts-actions"><button class="text-button" type="button" data-action="verify-facts">请求权威核验</button><button class="text-button" type="button" data-action="filter-pending">仅看待核实</button></div></div>
             <div class="facts-list empty-state" id="facts-list"><span class="empty-glyph">档</span><p>提交资料后，此处会生成带来源和置信度的事实卡片。</p></div>
             <div class="step-actions"><button class="button button-ghost" type="button" data-page="2">返回修改资料</button><button class="button button-primary" type="button" id="ingest-button" data-next="4">提取事实并进入下一步</button></div>
           </div>
@@ -178,15 +179,15 @@
   </div>
 
   <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
-  <script src="js/config.js?v=3.0.0"></script>
-  <script src="js/api-client.js?v=3.0.0"></script>
-  <script src="shared/engine.js?v=3.0.0"></script>
-  <script src="shared/quality.js?v=3.0.0"></script>
-  <script src="shared/generator.js?v=3.0.0"></script>
-  <script src="js/data.js?v=3.0.0"></script>
-  <script src="js/gateway-client.js?v=3.0.0"></script>
-  <script src="js/renderer.js?v=3.0.0"></script>
-  <script src="js/app.js?v=3.0.0"></script>
+  <script src="js/config.js?v=3.1.0"></script>
+  <script src="js/api-client.js?v=3.1.0"></script>
+  <script src="shared/engine.js?v=3.1.0"></script>
+  <script src="shared/quality.js?v=3.1.0"></script>
+  <script src="shared/generator.js?v=3.1.0"></script>
+  <script src="js/data.js?v=3.1.0"></script>
+  <script src="js/gateway-client.js?v=3.1.0"></script>
+  <script src="js/renderer.js?v=3.1.0"></script>
+  <script src="js/app.js?v=3.1.0"></script>
 </body>
 </html>
 

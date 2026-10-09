@@ -351,15 +351,16 @@ async function runRemoteApiFlow(context, baseUrl, gatewayPort, consoleErrors) {
   await page.goto(baseUrl + '?gateway=' + encodeURIComponent('ws://127.0.0.1:' + gatewayPort + '/ws') + '&api=' + encodeURIComponent(apiBase), { waitUntil: 'domcontentloaded' });
   await registerAccount(page, 'cloud-user@example.com', 'cloud-pass-123');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.remoteAuth === true);
-  const registered = await page.evaluate(() => ({ token: !!localStorage.getItem('luyun-auth-token-v1'), account: window.__LUYUN_APP__.state.accountId }));
-  assert.equal(registered.token, true);
+  const registered = await page.evaluate(() => ({ csrf: !!localStorage.getItem('luyun-csrf-token-v1'), account: window.__LUYUN_APP__.state.accountId, remoteAuth: window.__LUYUN_APP__.state.remoteAuth }));
+  assert.equal(registered.csrf, true);
+  assert.equal(registered.remoteAuth, true);
   assert.equal(registered.account, 'cloud-user@example.com');
   await page.click('[data-action="logout"]');
   await page.waitForFunction(() => document.getElementById('login-screen').hidden === false);
   await loginAccount(page, 'cloud-user@example.com', 'cloud-pass-123');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.remoteAuth === true);
   await page.close();
-  return { registered: true, login: true, tokenStored: true };
+  return { registered: true, login: true, cookieSession: true, csrfStored: true };
 }
 
 const staticServer = createStaticServer();

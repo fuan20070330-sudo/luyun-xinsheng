@@ -8,6 +8,7 @@ ENV DATA_FILE=/data/luyun-store.json
 
 RUN mkdir -p /data && chown node:node /data
 COPY --chown=node:node server/package.json ./server/package.json
+RUN cd /app/server && npm install --omit=dev --no-audit --no-fund
 COPY --chown=node:node server/src ./server/src
 COPY --chown=node:node shared ./shared
 USER node

@@ -32,7 +32,7 @@
       return '<article class="fact-card" data-fact-id="' + escapeHtml(fact.id) + '" data-status="' + escapeHtml(fact.status === '待核实' ? 'pending' : 'verified') + '">' +
         '<div class="fact-meta"><span class="fact-category">' + escapeHtml(fact.category) + '</span><span class="fact-id">' + escapeHtml(fact.id) + '</span></div>' +
         '<p>' + escapeHtml(fact.text) + '</p>' +
-        '<p class="fact-source">来源：' + escapeHtml(fact.source || '未找到来源') + '｜位置：' + escapeHtml(fact.sourceLocation || '待补充') + '｜证据：' + escapeHtml(fact.evidenceLevel || '待评估') + '｜版本：v' + (fact.revision || 1) + '｜状态：' + status + '</p>' +
+        '<p class="fact-source">来源：' + escapeHtml(fact.source || '未找到来源') + '｜位置：' + escapeHtml(fact.sourceLocation || '待补充') + '｜来源权威度：' + escapeHtml(fact.sourceAuthority || '待评估') + '｜核验：' + escapeHtml(fact.verificationStatus || '待核验') + '｜提取置信度：' + confidence + '%｜证据：' + escapeHtml(fact.evidenceLevel || '待评估') + '｜状态：' + status + '</p>' +
         (fact.sourceHash ? '<p class="fact-fingerprint">文档：' + escapeHtml(fact.sourceDocumentName || '未命名来源') + '｜SHA-256：' + escapeHtml(fact.sourceHash) + '</p>' : '') +
         '<div class="confidence" title="置信度 ' + confidence + '%"><span>置信度 ' + confidence + '%</span><i style="--confidence:' + confidence + '%"></i></div>' +
         '<div class="fact-actions"><button type="button" data-fact-action="confirm" data-fact-id="' + escapeHtml(fact.id) + '">确认事实</button><button type="button" data-fact-action="pending" data-fact-id="' + escapeHtml(fact.id) + '">标记待核实</button></div>' +
@@ -183,7 +183,7 @@
     }
     list.className = 'source-documents';
     list.innerHTML = documents.slice(0, 20).map(function (document) {
-      return '<article class="document-item"><strong>' + escapeHtml(document.name || '未命名资料') + '</strong><small>' + escapeHtml(document.status || '已导入') + '｜' + Math.ceil((document.size || 0) / 1024) + ' KB</small><code>' + escapeHtml(document.hash ? document.hash.slice(0, 24) + '…' : '无指纹') + '</code><span>' + escapeHtml(formatTime(document.importedAt)) + '</span></article>';
+      return '<article class="document-item"><strong>' + escapeHtml(document.name || '未命名资料') + '</strong><small>' + escapeHtml(document.status || '已导入') + '｜来源类型：' + escapeHtml(document.authority || 'user') + '｜' + Math.ceil((document.size || 0) / 1024) + ' KB</small><code>' + escapeHtml(document.hash ? document.hash.slice(0, 24) + '…' : '无指纹') + '</code><span>' + escapeHtml(formatTime(document.importedAt)) + '</span></article>';
     }).join('');
   }
 
