@@ -102,7 +102,7 @@
   ApiClient.prototype.saveReview = function (record) { return this.request('/api/reviews', { method: 'POST', body: { record: record } }).then(function (payload) { return payload.record; }); };
   ApiClient.prototype.savePublish = function (record) { return this.request('/api/publish', { method: 'POST', body: { record: record } }).then(function (payload) { return payload.record; }); };
   ApiClient.prototype.saveDocument = function (record) { return this.request('/api/documents', { method: 'POST', body: { record: record } }).then(function (payload) { return payload.record; }); };
-  ApiClient.prototype.verifyFacts = function (facts) { return this.request('/api/verification/facts', { method: 'POST', body: { facts: facts || [] } }).then(function (payload) { return payload; }); };
+  ApiClient.prototype.verifyFacts = function (facts, brandName) { return this.request('/api/verification/facts', { method: 'POST', body: { facts: facts || [], brandName: brandName || '' } }).then(function (payload) { return payload; }); };
   ApiClient.prototype.extractDocument = function (file) {
     return file.arrayBuffer().then(function (buffer) {
       var bytes = new Uint8Array(buffer);

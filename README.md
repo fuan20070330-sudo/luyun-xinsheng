@@ -197,6 +197,7 @@ fly deploy
 ├── docs/
 │   ├── CASES.md
 │   ├── DEPLOYMENT.md
+│   ├── MODEL-EVALUATION.md
 │   ├── PRODUCT.md
 │   ├── PROMPT-CHANGELOG.md
 │   ├── PROMOTION-METHODS.md
@@ -210,6 +211,8 @@ fly deploy
 │   ├── data.js
 │   ├── gateway-client.js
 │   └── renderer.js
+├── scripts/
+│   └── evaluate-model.mjs
 ├── server/
 │   ├── .env.example
 │   ├── package.json
@@ -234,6 +237,8 @@ fly deploy
 │   └── quality.js
 ├── tests/
 │   ├── artifacts/
+│   ├── fixtures/
+│   │   └── model-eval-cases.json
 │   ├── e2e.mjs
 │   ├── live-check.mjs
 │   └── run-tests.mjs

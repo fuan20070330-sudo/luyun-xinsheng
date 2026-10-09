@@ -155,3 +155,9 @@ body.history-open{overflow:hidden}
 
 .facts-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}
 @media(max-width:680px){.facts-actions{width:100%;justify-content:flex-start}}
+
+.history-version-panel{margin:10px 0;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:rgba(247,241,229,.58)}
+.history-version-panel summary{cursor:pointer;color:var(--cinnabar-deep);font-size:12px;font-weight:700}
+.history-version-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:8px;color:var(--ink-soft);font-size:11px}
+.history-version-row span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:680px){.history-version-row{align-items:flex-start;flex-direction:column}.history-version-row .text-button{padding-left:0}}

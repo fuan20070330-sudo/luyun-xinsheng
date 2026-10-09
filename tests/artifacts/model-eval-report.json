@@ -1,0 +1,9 @@
+{
+  "ok": false,
+  "skipped": true,
+  "reason": "OPENAI_API_KEY or AI_API_KEY is not configured",
+  "model": "gpt-6",
+  "cases": 12,
+  "required": false,
+  "generatedAt": "2026-10-09T05:15:35.223Z"
+}

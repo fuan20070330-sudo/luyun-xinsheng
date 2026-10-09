@@ -300,6 +300,24 @@ async function runHistoryIsolationFlow(page) {
   await page.click('[data-action="open-history"]');
   await page.waitForFunction(() => document.getElementById('history-drawer').hidden === false);
   assert.equal(await page.locator('#history-list .history-item').count(), initial.count);
+  const versionTarget = await page.evaluate(() => {
+    const record = window.__LUYUN_APP__.state.history.find((item) => item.versions && item.versions.length > 1);
+    return record ? { id: record.id, count: record.versions.length } : null;
+  });
+  assert.ok(versionTarget, '应存在可回滚的历史版本');
+  const historyItem = page.locator('.history-item[data-history-id="' + versionTarget.id + '"]');
+  await historyItem.locator('summary').click();
+  await historyItem.locator('[data-history-action="rollback"][data-version="1"]').click();
+  await page.waitForFunction((target) => {
+    const record = window.__LUYUN_APP__.state.history.find((item) => item.id === target.id);
+    return record && record.versions.length > target.count;
+  }, { id: versionTarget.id, count: versionTarget.count }, { timeout: 10000 }).catch(() => {});
+  assert.equal(await page.locator('.app-step.is-active').getAttribute('data-step'), '5');
+  assert.equal(await page.evaluate(() => window.__LUYUN_APP__.state.reviews[0].action), 'rollback');
+  await page.click('[data-action="open-history"]');
+  await page.waitForFunction(() => document.getElementById('history-drawer').hidden === false);
+  const versionAfter = await page.evaluate((recordId) => window.__LUYUN_APP__.state.history.find((item) => item.id === recordId).versions.length, versionTarget.id);
+  assert.ok(versionAfter > versionTarget.count, '回滚后应产生新版本快照');
   await page.click('#history-list .history-item:first-child [data-history-action="view"]');
   await page.waitForFunction(() => document.querySelector('.app-step.is-active').getAttribute('data-step') === '5');
   assert.equal(await page.evaluate(() => window.__LUYUN_APP__.state.artifacts.length), 4);

@@ -28,7 +28,7 @@
       baseDelayMs: 1000
     },
     demoDelayScale: isLocal ? 0.55 : 1,
-    appVersion: '3.1.2'
+    appVersion: '3.2.0'
   });
 }());
 

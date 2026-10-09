@@ -214,7 +214,7 @@ async function apiJson(base, path, options, token) {
 }
 
 async function testApi() {
-  const bundle = createServer({ ALLOWED_ORIGIN: '*', WS_HEARTBEAT_MS: '60000', DATA_FILE: ':memory:', AUTH_RETURN_TOKEN: 'true', AUTH_COOKIE_ENABLED: 'true', COOKIE_SAME_SITE: 'Lax' });
+  const bundle = createServer({ ALLOWED_ORIGIN: '*', WS_HEARTBEAT_MS: '60000', DATA_FILE: ':memory:', AUTH_RETURN_TOKEN: 'true', AUTH_COOKIE_ENABLED: 'true', COOKIE_SAME_SITE: 'Lax', PUBLIC_VERIFICATION_ENABLED: 'false' });
   await new Promise((resolve) => bundle.server.listen(0, '127.0.0.1', resolve));
   const port = bundle.server.address().port;
   const base = 'http://127.0.0.1:' + port;
@@ -251,6 +251,7 @@ async function testApi() {
     const verified = await apiJson(base, '/api/verification/facts', { method: 'POST', body: JSON.stringify({ facts: [{ id: 'F001', statement: '品牌始创于1918年', sourceAuthority: '用户整理资料' }] }) }, token);
     assert.equal(verified.status, 200);
     assert.equal(verified.payload.configured, false);
+    assert.equal(verified.payload.publicSources, false);
     assert.equal(verified.payload.facts[0].verificationStatus, '待核验');
     const extracted = await apiJson(base, '/api/documents/extract', { method: 'POST', body: JSON.stringify({ name: '证据.txt', type: 'text/plain', base64: Buffer.from('品牌始创于1918年。').toString('base64') }) }, token);
     assert.equal(extracted.status, 200);

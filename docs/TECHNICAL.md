@@ -71,6 +71,18 @@ GitHub Pages 静态前端
 - 无法验证工艺：古法秘制、独家秘方、纯手工等。
 - 营养健康表述：低糖、无糖等。
 
+## 权威核验
+
+默认公开核验使用 Wikidata 和中文维基百科，并明确标记为“外部资料待人工核验”。配置 `OFFICIAL_VERIFICATION_URL` 后，官方核验结果优先覆盖公开来源。
+
+## 模型评测
+
+评测集位于 `tests/fixtures/model-eval-cases.json`，运行器位于 `scripts/evaluate-model.mjs`。配置 `OPENAI_API_KEY` 后执行 `npm run eval:model:required`，报告写入 `tests/artifacts/model-eval-report.json`。
+
+## 版本回滚
+
+历史记录中的 `versions` 保存 AI 初稿和人工修改后的成果快照。恢复旧版本时，系统会追加新的审核版本，而不是删除旧记录。
+
 ## 降级机制
 
 1. 未配置 `gatewayUrl` 时显示“本地处理”，不尝试连接。

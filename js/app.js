@@ -622,6 +622,35 @@
     toast('已打开历史生成记录：' + ((record.brand && record.brand.name) || '未命名品牌'));
   }
 
+  async function rollbackHistoryVersion(recordId, versionNumber) {
+    var record = state.history.filter(function (item) { return item.id === recordId; })[0];
+    if (!record) return;
+    var version = (record.versions || []).filter(function (item) { return Number(item.version) === Number(versionNumber); })[0];
+    if (!version || !version.artifacts) { toast('该版本没有可恢复的内容。', 'warning'); return; }
+    var before = (state.artifacts || []).map(function (artifact) { return artifact.content || ''; }).join('\n\n');
+    state.currentJobId = record.jobId || record.id;
+    state.brand = cloneData(record.brand || state.brand);
+    state.facts = cloneData(record.facts || state.facts || []);
+    state.risks = cloneData(record.risks || state.risks || []);
+    state.artifacts = cloneData(version.artifacts);
+    state.roleReviews = cloneData(record.roleReviews || state.roleReviews || []);
+    var after = state.artifacts.map(function (artifact) { return artifact.content || ''; }).join('\n\n');
+    var review = { id: uid('review'), jobId: state.currentJobId, artifactId: 'history-version', action: 'rollback', reviewer: state.user || '当前品牌确认人', note: '恢复到历史版本 v' + versionNumber, before: before, after: after, createdAt: now() };
+    state.reviews.unshift(review);
+    state.metrics.reviews = state.reviews.length;
+    syncHistoryRecord();
+    persistState();
+    if (Api.enabled() && state.remoteAuth) {
+      Api.saveReview(review).catch(function () {});
+      var updated = state.history.filter(function (item) { return item.jobId === state.currentJobId; })[0];
+      if (updated) Api.saveHistory(updated).catch(function () {});
+    }
+    closeHistory();
+    renderAll();
+    showStep(5);
+    toast('已恢复到版本 v' + versionNumber + '，并记录新的审核版本。');
+  }
+
   function deleteHistoryRecord(recordId) {
     var record = state.history.filter(function (item) { return item.id === recordId; })[0];
     if (!record) return;
@@ -950,7 +979,7 @@
     if (!state.facts.length) { toast('请先提取事实。', 'warning'); return; }
     setBusy(button, true);
     try {
-      var result = await Api.verifyFacts(state.facts);
+      var result = await Api.verifyFacts(state.facts, state.brand && state.brand.name);
       state.facts = result.facts || state.facts;
       state.conflicts = Engine.detectConflicts(state.facts);
       rememberCurrentBrand();
@@ -1210,6 +1239,7 @@
         var historyId = historyAction.getAttribute('data-history-id');
         if (historyActionName === 'view') viewHistoryRecord(historyId);
         if (historyActionName === 'delete') deleteHistoryRecord(historyId);
+        if (historyActionName === 'rollback') rollbackHistoryVersion(historyId, historyAction.getAttribute('data-version'));
         return;
       }
       var action = event.target.closest('[data-action]');
@@ -1301,6 +1331,7 @@
       openHistory: openHistory,
       closeHistory: closeHistory,
       viewHistoryRecord: viewHistoryRecord,
+      rollbackHistoryVersion: rollbackHistoryVersion,
       login: showApp
     };
   }

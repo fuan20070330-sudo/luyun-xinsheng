@@ -133,8 +133,8 @@ function createApi(options) {
 
       if (path === '/api/verification/facts' && request.method === 'POST') {
         const body = await readJsonBody(request);
-        const verified = await verifyFacts(body.facts || [], env);
-        sendJson(response, 200, { ok: true, configured: verified.configured, facts: verified.facts });
+        const verified = await verifyFacts(body.facts || [], env, { brandName: body.brandName || '' });
+        sendJson(response, 200, { ok: true, configured: verified.configured, publicSources: verified.publicSources, facts: verified.facts });
         return true;
       }
       if (path === '/api/documents/extract' && request.method === 'POST') {
