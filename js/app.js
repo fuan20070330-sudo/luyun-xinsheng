@@ -1268,7 +1268,7 @@
       }
     });
     bindEvents();
-    if (Api.enabled()) {
+    if (Api.enabled() && Api.csrfToken) {
       Api.me().then(function (payload) {
         state.remoteAuth = true;
         showApp(payload.user.email);
