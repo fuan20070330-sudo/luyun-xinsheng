@@ -258,11 +258,15 @@ async function testApi() {
     assert.match(extracted.payload.document.hash, /^[a-f0-9]{64}$/);
     const wrong = await apiJson(base, '/api/auth/login', { method: 'POST', body: JSON.stringify({ email: 'api-test@example.com', password: 'wrong-pass' }) });
     assert.equal(wrong.status, 401);
+    await apiJson(base, '/api/auth/register', { method: 'POST', body: JSON.stringify({ email: 'lock-test@example.com', password: 'lock-pass-123' }) });
+    for (let i = 0; i < 5; i += 1) await apiJson(base, '/api/auth/login', { method: 'POST', body: JSON.stringify({ email: 'lock-test@example.com', password: 'bad-pass' }) });
+    const locked = await apiJson(base, '/api/auth/login', { method: 'POST', body: JSON.stringify({ email: 'lock-test@example.com', password: 'lock-pass-123' }) });
+    assert.equal(locked.status, 423);
     const loggedOut = await apiJson(base, '/api/auth/logout', { method: 'POST' }, token);
     assert.equal(loggedOut.status, 200);
     const expired = await apiJson(base, '/api/auth/me', {}, token);
     assert.equal(expired.status, 401);
-    return { health: true, register: true, login: true, changePassword: true, httpOnlyCookie: true, csrf: true, history: true, documentExtraction: true, verificationPending: true, invalidPassword: true, logout: true };
+    return { health: true, register: true, login: true, changePassword: true, httpOnlyCookie: true, csrf: true, accountLockout: true, history: true, documentExtraction: true, verificationPending: true, invalidPassword: true, logout: true };
   } finally {
     bundle.gateway.close();
     await new Promise((resolve) => bundle.server.close(resolve));
