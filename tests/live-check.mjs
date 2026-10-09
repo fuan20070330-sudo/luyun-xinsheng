@@ -35,6 +35,10 @@ try {
   await page.fill('#interview-notes', '品牌传承人表示，年轻化不能改变关键工序，要让年轻人知道每一步为什么这样做。');
   await page.click('[data-next="4"]');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.facts.length >= 7 && document.querySelector('.app-step.is-active').getAttribute('data-step') === '4');
+  await page.click('.step-nav [data-page="3"]');
+  await page.click('[data-action="verify-facts"]');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.facts.some((fact) => fact.verificationMethod && !['not-configured', 'no-source'].includes(fact.verificationMethod)), null, { timeout: 35000 });
+  await page.click('.step-nav [data-page="4"]');
   await page.fill('#target-audience', '25-35岁关注地方文化的城市消费者');
   await page.fill('#campaign-theme', '一块枣泥酥里的山东老味道');
   await page.fill('#content-goal', '建立品牌记忆点并形成内容日历');
@@ -75,6 +79,7 @@ try {
     historyRecords: window.__LUYUN_APP__.state.history.length,
     newBrandButton: !!document.querySelector('[data-action="new-brand"]'),
     remoteAuth: window.__LUYUN_APP__.state.remoteAuth,
+    verificationMethod: window.__LUYUN_APP__.state.facts.find((fact) => fact.verificationMethod)?.verificationMethod,
     manifest: !!document.querySelector('link[rel="manifest"]'),
     serviceWorkerSupported: 'serviceWorker' in navigator,
     qualityScore: window.__LUYUN_APP__.state.artifacts[0] && window.__LUYUN_APP__.state.artifacts[0].quality && window.__LUYUN_APP__.state.artifacts[0].quality.score,
@@ -95,6 +100,7 @@ try {
   assert.ok(result.historyRecords >= 1);
   assert.equal(result.newBrandButton, true);
   assert.equal(result.remoteAuth, true);
+  assert.notEqual(result.verificationMethod, 'not-configured');
   assert.equal(result.manifest, true);
   assert.equal(result.serviceWorkerSupported, true);
   assert.ok(result.qualityScore >= 0);
