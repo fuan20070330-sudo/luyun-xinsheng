@@ -13,15 +13,19 @@ page.on('pageerror', (error) => errors.push('pageerror: ' + error.message));
 try {
   const response = await page.goto(url, { waitUntil: 'networkidle', timeout: 45000 });
   assert.equal(response.status(), 200);
+  const liveEmail = 'live-' + Date.now() + '@example.com';
   await page.click('#auth-tab-register');
-  await page.fill('#login-email', 'live-user@example.com');
-  await page.fill('#login-password', 'demo-pass');
-  await page.fill('#register-password-confirm', 'demo-pass');
+  await page.fill('#login-email', liveEmail);
+  await page.fill('#login-password', 'demo-pass-123');
+  await page.fill('#register-password-confirm', 'demo-pass-123');
   await page.click('#auth-submit');
-  await page.waitForFunction(() => document.getElementById('app-shell').hidden === false);
-  const authRecord = await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('luyun-auth-accounts-v1') || '{}'))[0]);
-  assert.ok(authRecord && authRecord.email === 'live-user@example.com' && authRecord.passwordHash && authRecord.salt);
-  assert.equal(Object.prototype.hasOwnProperty.call(authRecord, 'password'), false);
+  await page.waitForFunction(() => document.getElementById('app-shell').hidden === false && window.__LUYUN_APP__.state.remoteAuth === true);
+  const remoteSession = await page.evaluate(async () => {
+    const response = await fetch(window.LUYUN_CONFIG.apiBaseUrl + '/api/auth/me', { credentials: 'include' });
+    return { status: response.status, body: await response.json() };
+  });
+  assert.equal(remoteSession.status, 200);
+  assert.equal(remoteSession.body.user.email, liveEmail);
   await page.fill('#brand-type', '山东传统糕点老字号');
   await page.fill('#brand-name', '鲁香斋（模拟品牌）');
   await page.fill('#brand-tone', '真诚、考究、克制');
@@ -70,6 +74,7 @@ try {
     fieldHints: document.querySelectorAll('.field-hint').length,
     historyRecords: window.__LUYUN_APP__.state.history.length,
     newBrandButton: !!document.querySelector('[data-action="new-brand"]'),
+    remoteAuth: window.__LUYUN_APP__.state.remoteAuth,
     manifest: !!document.querySelector('link[rel="manifest"]'),
     serviceWorkerSupported: 'serviceWorker' in navigator,
     qualityScore: window.__LUYUN_APP__.state.artifacts[0] && window.__LUYUN_APP__.state.artifacts[0].quality && window.__LUYUN_APP__.state.artifacts[0].quality.score,
@@ -89,6 +94,7 @@ try {
   assert.equal(result.methodCards, 8);
   assert.ok(result.historyRecords >= 1);
   assert.equal(result.newBrandButton, true);
+  assert.equal(result.remoteAuth, true);
   assert.equal(result.manifest, true);
   assert.equal(result.serviceWorkerSupported, true);
   assert.ok(result.qualityScore >= 0);

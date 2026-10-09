@@ -35,7 +35,7 @@ git push origin main
 
 ## 二、WebSocket 网关
 
-网关入口为 `/ws`，健康检查为 `/healthz`。
+当前正式实例：`https://luyun-xinsheng-gateway.onrender.com`。网关入口为 `/ws`，健康检查为 `/healthz`，API 健康检查为 `/api/health`。
 
 ### 环境变量
 

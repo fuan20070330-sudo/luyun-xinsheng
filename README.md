@@ -8,8 +8,10 @@
 
 - 仓库：https://github.com/fuan20070330-sudo/luyun-xinsheng
 - GitHub Pages：https://fuan20070330-sudo.github.io/luyun-xinsheng/
-- 独立 Node 网关需另行部署，并在 `js/config.js` 中填写 `wss://` 地址和 `apiBaseUrl`。
-- 未配置 `apiBaseUrl` 时使用当前浏览器本地账号；未配置网关时，页面显示“本地处理”并继续运行。
+- Node 后端：https://luyun-xinsheng-gateway.onrender.com
+- WebSocket：wss://luyun-xinsheng-gateway.onrender.com/ws
+- PostgreSQL：Render Singapore，服务端自动读写正式数据库。
+- 正式 GitHub Pages 已配置 Render 后端；若服务端或数据库暂时不可用，前端仍会自动回退到本地处理。
 
 ## 核心能力
 

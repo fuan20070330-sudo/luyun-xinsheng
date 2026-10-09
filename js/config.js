@@ -11,10 +11,13 @@
   var query = new URLSearchParams(window.location.search);
   var configuredGateway = query.get('gateway') || '';
   var configuredApi = query.get('api') || '';
+  var isPublished = window.location.hostname === 'fuan20070330-sudo.github.io';
+  var productionGateway = 'wss://luyun-xinsheng-gateway.onrender.com/ws';
+  var productionApi = 'https://luyun-xinsheng-gateway.onrender.com';
 
   window.LUYUN_CONFIG = Object.freeze({
-    gatewayUrl: configuredGateway || (isLocal ? 'ws://127.0.0.1:8787/ws' : ''),
-    apiBaseUrl: configuredApi || '',
+    gatewayUrl: configuredGateway || (isLocal ? 'ws://127.0.0.1:8787/ws' : (isPublished ? productionGateway : '')),
+    apiBaseUrl: configuredApi || (isPublished ? productionApi : ''),
     protocolVersion: 'luyun-gateway/2.0',
     connectTimeoutMs: isLocal ? 1800 : 4500,
     requestTimeoutMs: 12000,
@@ -25,7 +28,7 @@
       baseDelayMs: 1000
     },
     demoDelayScale: isLocal ? 0.55 : 1,
-    appVersion: '3.1.0'
+    appVersion: '3.1.1'
   });
 }());
 

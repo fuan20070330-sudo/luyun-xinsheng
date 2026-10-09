@@ -9,3 +9,4 @@ Thumbs.db
 .tunnel/
 data/
 .npm-cache/
+.render-token
