@@ -89,10 +89,10 @@ try {
     manifest: !!document.querySelector('link[rel="manifest"]'),
     serviceWorkerSupported: 'serviceWorker' in navigator,
     qualityScore: window.__LUYUN_APP__.state.artifacts[0] && window.__LUYUN_APP__.state.artifacts[0].quality && window.__LUYUN_APP__.state.artifacts[0].quality.score,
-    evidenceLevel: window.__LUYUN_APP__.state.facts[0] && window.__LUYUN_APP__.state.facts[0].evidenceLevel,
-    graphNodes: innovation.graphNodes,
-    passportId: innovation.passportId
+    evidenceLevel: window.__LUYUN_APP__.state.facts[0] && window.__LUYUN_APP__.state.facts[0].evidenceLevel
   }));
+  result.graphNodes = innovation.graphNodes;
+  result.passportId = innovation.passportId;
   assert.equal(result.artifacts, 4);
   assert.ok(result.reviews >= 1);
   assert.equal(result.mobileWidth, result.viewport);
