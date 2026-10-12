@@ -197,6 +197,7 @@ fly deploy
 ├── docs/
 │   ├── CASES.md
 │   ├── DEPLOYMENT.md
+│   ├── INNOVATION.md
 │   ├── MODEL-EVALUATION.md
 │   ├── PRODUCT.md
 │   ├── PROMPT-CHANGELOG.md
@@ -232,8 +233,12 @@ fly deploy
 │       ├── ws-frame.js
 │       └── ws-server.js
 ├── shared/
+│   ├── content-passport.js
+│   ├── culture-dna.js
 │   ├── engine.js
+│   ├── evidence-gaps.js
 │   ├── generator.js
+│   ├── memory-graph.js
 │   └── quality.js
 ├── tests/
 │   ├── artifacts/

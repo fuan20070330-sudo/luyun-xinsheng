@@ -122,6 +122,12 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   await page.waitForFunction(() => document.getElementById('connection-pill').getAttribute('data-state') === 'connected', null, { timeout: 10000 });
   await page.click('#generate-button');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.artifacts.length === 4, null, { timeout: 20000 });
+  const innovation = await page.evaluate(() => ({ graphNodes: document.querySelectorAll('#memory-graph .graph-node').length, dnaCount: document.getElementById('culture-dna-count').textContent, gapCount: document.getElementById('evidence-gap-count').textContent, passportId: document.getElementById('passport-id').textContent, fidelityChips: document.querySelectorAll('[data-artifact] .fidelity-chip').length }));
+  assert.ok(innovation.graphNodes >= 6);
+  assert.match(innovation.dnaCount, /保护/);
+  assert.match(innovation.gapCount, /缺口/);
+  assert.match(innovation.passportId, /^LYXS-/);
+  assert.equal(innovation.fidelityChips, 4);
   await page.click('[data-artifact="story"] [data-review="accept"]');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.reviews.length >= 1, null, { timeout: 10000 });
   const first = await page.evaluate(() => ({
@@ -221,7 +227,7 @@ assert.ok(persisted.history.length >= 1);
   assert.ok(mobile.scrollWidth <= mobile.innerWidth, '390px 视图不应产生横向滚动：' + JSON.stringify(offenders));
   await page.screenshot({ path: path.join(artifactsDir, 'mobile-full.png'), fullPage: true });
   assert.equal(consoleErrors.length, 0, consoleErrors.join('\n'));
-  return { first, complex, boundary, editReview: { retainedOriginal: true, action: editReview.review.action }, mobile };
+  return { first: Object.assign({}, first, { innovation }), complex, boundary, editReview: { retainedOriginal: true, action: editReview.review.action }, mobile };
 }
 
 async function runFallbackFlow(context, baseUrl, consoleErrors) {

@@ -93,13 +93,16 @@
       var highRisk = artifact.status === 'flagged';
       var quality = artifact.quality || null;
       var qualityMeta = quality ? '<span class="meta-chip quality-chip" data-level="' + escapeHtml(quality.level) + '">质量：' + quality.score + '/100 ' + escapeHtml(quality.level) + '</span>' : '';
+      var fidelity = artifact.cultureFidelity || null;
+      var fidelityMeta = fidelity ? '<span class="meta-chip fidelity-chip" data-level="' + escapeHtml(fidelity.level) + '">文化保真：' + fidelity.score + '/100 ' + escapeHtml(fidelity.level) + '</span>' : '';
+      var fidelityNote = fidelity && fidelity.tabooFound && fidelity.tabooFound.length ? '<div class="quality-note">文化禁忌命中：' + escapeHtml(fidelity.tabooFound.join('、')) + '</div>' : '';
       var qualityIssues = quality && quality.issues && quality.issues.length ? '<div class="quality-note">待优化：' + escapeHtml(quality.issues.join('；')) + '</div>' : '';
       var variants = artifact.variants ? '<details class="variant-box"><summary>查看标题和开场候选</summary><p>标题候选：' + escapeHtml((artifact.variants.titles || []).join(' / ')) + '</p><p>开场候选：' + escapeHtml((artifact.variants.openings || []).join(' / ')) + '</p></details>' : '';
       return '<article class="artifact-card' + (highRisk ? ' is-high-risk' : '') + '" data-artifact="' + escapeHtml(artifact.id) + '">' +
         '<div class="artifact-head"><div><span class="artifact-label">' + escapeHtml(artifact.label || '内容成果') + '</span><h3>' + escapeHtml(artifact.title) + '</h3></div><span class="artifact-state" data-state="' + escapeHtml(artifact.status || 'draft') + '">' + artifactStatus(artifact.status) + '</span></div>' +
         '<div class="artifact-content">' + escapeHtml(artifact.content) + '</div>' +
         '<textarea class="artifact-textarea" data-editor="' + escapeHtml(artifact.id) + '" aria-label="编辑' + escapeHtml(artifact.title) + '">' + escapeHtml(artifact.content) + '</textarea>' +
-        '<div class="artifact-meta"><span class="meta-chip">模型：' + escapeHtml((artifact.modelInfo && artifact.modelInfo.model) || 'local-rule-engine') + '</span><span class="meta-chip">提示词：' + escapeHtml((artifact.modelInfo && artifact.modelInfo.promptVersion) || 'brand-safe-content-v1.2') + '</span>' + qualityMeta + '</div>' + qualityIssues + variants +
+        '<div class="artifact-meta"><span class="meta-chip">模型：' + escapeHtml((artifact.modelInfo && artifact.modelInfo.model) || 'local-rule-engine') + '</span><span class="meta-chip">提示词：' + escapeHtml((artifact.modelInfo && artifact.modelInfo.promptVersion) || 'brand-safe-content-v1.2') + '</span>' + qualityMeta + fidelityMeta + '</div>' + qualityIssues + fidelityNote + variants +
         '<div class="fact-refs" aria-label="事实引用">' + refs + '</div>' +
         '<div class="artifact-methods" aria-label="参考宣传方法">' + methods + '</div>' +
         '<input class="artifact-note" data-note="' + escapeHtml(artifact.id) + '" placeholder="审核备注（可选）">' +
@@ -172,6 +175,51 @@
       return '<article class="publish-record"><div><strong>' + escapeHtml(record.platform) + '</strong><small>' + escapeHtml(record.date || '未填写日期') + '</small></div><div><strong>' + escapeHtml(record.status) + '</strong><small>状态</small></div><div><strong>' + (record.impressions || 0) + '</strong><small>曝光</small></div><div><strong>' + (record.likes || 0) + ' / ' + (record.saves || 0) + '</strong><small>点赞 / 收藏</small></div><div><strong>' + engagement + '</strong><small>综合互动</small></div><div><strong>' + escapeHtml(record.note || '无备注') + '</strong><small>' + (record.url ? '<a href="' + escapeHtml(record.url) + '" target="_blank" rel="noopener">查看链接/位置</a>' : '未填写链接或位置') + '</small></div></article>';
     }).join('');
   }
+  function renderMemoryGraph(state) {
+    var root = byId('memory-graph');
+    if (!root) return;
+    var graph = state.memoryGraph || { nodes: [], edges: [], stats: {} };
+    if (byId('memory-graph-count')) byId('memory-graph-count').textContent = (graph.stats.nodes || 0) + ' 节点 / ' + (graph.stats.edges || 0) + ' 关系';
+    if (!graph.nodes || !graph.nodes.length) { root.innerHTML = '<div class="empty-state"><span class="empty-glyph">图</span><p>提取事实后生成品牌关系图谱。</p></div>'; return; }
+    var center = graph.nodes.filter(function (node) { return node.type === 'brand'; })[0] || graph.nodes[0];
+    var others = graph.nodes.filter(function (node) { return node.id !== center.id; }).slice(0, 18);
+    var positions = {}; positions[center.id] = { x: 360, y: 190 };
+    others.forEach(function (node, index) { var angle = (-Math.PI / 2) + (index * 2 * Math.PI / Math.max(1, others.length)); positions[node.id] = { x: 360 + Math.cos(angle) * 245, y: 190 + Math.sin(angle) * 135 }; });
+    var lines = (graph.edges || []).filter(function (edge) { return positions[edge.source] && positions[edge.target]; }).map(function (edge) { var a = positions[edge.source], b = positions[edge.target]; return '<line class="graph-edge type-' + escapeHtml((graph.nodes.filter(function (n) { return n.id === edge.target; })[0] || {}).type || 'edge') + '" x1="' + a.x + '" y1="' + a.y + '" x2="' + b.x + '" y2="' + b.y + '"></line>'; }).join('');
+    var nodes = [center].concat(others).map(function (node) { var p = positions[node.id]; var label = String(node.label || '').length > 9 ? String(node.label).slice(0, 9) + '…' : node.label; return '<g class="graph-node type-' + escapeHtml(node.type) + '" transform="translate(' + p.x + ',' + p.y + ')"><circle r="' + (node.type === 'brand' ? 42 : 25) + '"></circle><text text-anchor="middle" dy="4">' + escapeHtml(label) + '</text><title>' + escapeHtml((node.detail || '') + '\n' + (node.evidence || '')) + '</title></g>'; }).join('');
+    root.innerHTML = '<svg class="memory-graph-svg" viewBox="0 0 720 380" role="img" aria-label="品牌记忆图谱">' + lines + nodes + '</svg><div class="graph-legend"><span class="type-brand">品牌</span><span class="type-time">时间</span><span class="type-craft">工艺</span><span class="type-product">产品</span><span class="type-honor">荣誉</span><span class="type-person">人物</span><span class="type-idea">理念</span><span class="type-evidence">证据</span></div>';
+  }
+
+  function renderCultureDna(state) {
+    var root = byId('culture-dna');
+    if (!root) return;
+    var dna = state.cultureDna;
+    if (!dna) { root.innerHTML = '<div class="empty-state"><span class="empty-glyph">因</span><p>提取资料后生成文化 DNA。</p></div>'; return; }
+    if (byId('culture-dna-count')) byId('culture-dna-count').textContent = (dna.protectedTerms || []).length + ' 项保护';
+    root.innerHTML = '<div class="dna-section"><strong>保护词</strong><div class="dna-chips">' + (dna.protectedTerms || []).map(function (term) { return '<span>' + escapeHtml(term) + '</span>'; }).join('') + '</div></div>' + '<div class="dna-section"><strong>文化禁忌</strong><div class="dna-chips is-taboo">' + (dna.tabooTerms || []).slice(0, 12).map(function (term) { return '<span>' + escapeHtml(term) + '</span>'; }).join('') + '</div></div>' + '<div class="dna-section"><strong>不可改写事实</strong>' + ((dna.immutableClaims || []).slice(0, 5).map(function (item) { return '<p><b>' + escapeHtml(item.id) + '</b>｜' + escapeHtml(item.text) + '</p>'; }).join('') || '<p>暂无</p>') + '</div>' + '<ul class="dna-guidelines">' + (dna.guidelines || []).map(function (item) { return '<li>' + escapeHtml(item) + '</li>'; }).join('') + '</ul>';
+  }
+
+  function renderEvidenceGaps(state) {
+    var root = byId('evidence-gaps');
+    if (!root) return;
+    var gaps = state.evidenceGaps || [];
+    if (byId('evidence-gap-count')) byId('evidence-gap-count').textContent = gaps.length + ' 个缺口';
+    if (!gaps.length) { root.innerHTML = '<div class="empty-state"><span class="empty-glyph">问</span><p>当前没有发现明显证据缺口。</p></div>'; return; }
+    root.innerHTML = gaps.slice(0, 12).map(function (gap) { return '<article class="gap-card" data-level="' + escapeHtml(gap.severity) + '"><div><strong>' + escapeHtml(gap.id) + '｜' + escapeHtml(gap.type) + '</strong><small>' + escapeHtml((gap.factIds || []).join('、')) + '</small></div><p>' + escapeHtml(gap.question) + '</p><small>建议材料：' + escapeHtml(gap.suggestedEvidence) + '</small></article>'; }).join('');
+  }
+
+  function renderPassport(state) {
+    var root = byId('content-passport');
+    if (!root) return;
+    var passport = state.passport;
+    var button = byId('copy-passport');
+    if (button) button.disabled = !passport;
+    if (byId('passport-id')) byId('passport-id').textContent = passport ? passport.id : '未生成';
+    if (!passport) { root.innerHTML = '<div class="empty-state"><span class="empty-glyph">证</span><p>生成内容后生成可追溯内容护照。</p></div>'; return; }
+    var fields = [['护照编号', passport.id], ['品牌', passport.brandName], ['平台', passport.platformName], ['模型', passport.model], ['提示词版本', passport.promptVersion], ['事实引用', (passport.facts || []).join('、')], ['来源文件', (passport.sourceDocuments || []).length + ' 份'], ['保护词', (passport.protectedTerms || []).join('、')], ['风险', passport.riskCount + ' 条 / 高 ' + passport.highRiskCount + ' 条'], ['审核次数', String(passport.reviewCount || 0)], ['内容哈希', passport.contentHash], ['状态', passport.status]];
+    root.innerHTML = '<div class="passport-grid">' + fields.map(function (item) { return '<div><small>' + escapeHtml(item[0]) + '</small><strong>' + escapeHtml(item[1] || '--') + '</strong></div>'; }).join('') + '</div>' + '<div class="artifact-hashes"><strong>成果指纹</strong>' + (passport.artifactHashes || []).map(function (item) { return '<p>' + escapeHtml(item.title) + '：' + escapeHtml(item.hash) + '｜' + escapeHtml(item.status) + '</p>'; }).join('') + '</div>';
+  }
+
   function renderDocuments(state) {
     var list = byId('source-documents');
     if (!list) return;
@@ -214,7 +262,7 @@
         '<div class="history-item-head"><div><strong>' + escapeHtml(brandName) + '</strong><small>' + escapeHtml(formatTime(record.createdAt)) + '</small></div><span class="status-chip" data-status="' + escapeHtml(highRisk ? 'warning' : 'ok') + '">' + escapeHtml(record.status || (highRisk ? '待修改' : '待确认')) + '</span></div>' +
         '<h3>' + escapeHtml(record.theme || '未填写主题') + '</h3>' +
         '<p>' + escapeHtml(record.platformName || '未指定平台') + '｜' + escapeHtml(record.contentTypeName || '内容方案') + '｜' + escapeHtml(record.mode || '本地处理') + '</p>' +
-        '<div class="history-meta"><span>版本：' + ((record.versions || []).length || 1) + ' 个</span><span>模型：' + escapeHtml((record.modelInfo && record.modelInfo.model) || 'local-rule-engine') + '</span><span>提示词：' + escapeHtml((record.modelInfo && record.modelInfo.promptVersion) || '') + '</span><span>风险：' + risks.length + ' 条 / 高 ' + highRisk + ' 条</span><span>审核：' + (record.reviewCount || 0) + ' 次</span><span>成果：' + ((record.artifacts || []).length || 0) + ' 份</span></div>' +
+        '<div class="history-meta"><span>护照：' + escapeHtml(record.passport && record.passport.id || '--') + '</span><span>版本：' + ((record.versions || []).length || 1) + ' 个</span><span>模型：' + escapeHtml((record.modelInfo && record.modelInfo.model) || 'local-rule-engine') + '</span><span>提示词：' + escapeHtml((record.modelInfo && record.modelInfo.promptVersion) || '') + '</span><span>风险：' + risks.length + ' 条 / 高 ' + highRisk + ' 条</span><span>审核：' + (record.reviewCount || 0) + ' 次</span><span>成果：' + ((record.artifacts || []).length || 0) + ' 份</span></div>' +
         '<p class="history-methods">宣传方法：' + escapeHtml(methods.length ? methods.join('、') : '未选择') + '</p>' +
         ((record.versions || []).length > 1 ? '<details class="history-version-panel"><summary>版本历史（' + record.versions.length + '）</summary>' + record.versions.map(function (version) { return '<div class="history-version-row"><span>v' + escapeHtml(version.version) + '｜' + escapeHtml(formatTime(version.createdAt)) + '｜' + escapeHtml(version.note || '版本快照') + '</span><button type="button" class="text-button" data-history-action="rollback" data-history-id="' + escapeHtml(record.id) + '" data-version="' + escapeHtml(version.version) + '">恢复此版本</button></div>'; }).join('') + '</details>' : '') +
         '<div class="history-item-actions"><button class="button button-outline" type="button" data-history-action="view" data-history-id="' + escapeHtml(record.id) + '"' + (canView ? '' : ' disabled') + '>查看生成内容</button><button class="button button-ghost" type="button" data-history-action="delete" data-history-id="' + escapeHtml(record.id) + '">删除记录</button></div>' +
@@ -261,6 +309,10 @@
     renderReviews: renderReviews,
     renderRoleReviews: renderRoleReviews,
     renderPublishRecords: renderPublishRecords,
+    renderMemoryGraph: renderMemoryGraph,
+    renderCultureDna: renderCultureDna,
+    renderEvidenceGaps: renderEvidenceGaps,
+    renderPassport: renderPassport,
     renderDocuments: renderDocuments,
     renderHistory: renderHistory,
     renderMetrics: renderMetrics,

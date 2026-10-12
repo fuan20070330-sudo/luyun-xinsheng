@@ -4,6 +4,10 @@
   var Engine = window.LuyunEngine;
   var Renderer = window.LuyunRenderer;
   var Data = window.LUYUN_DATA;
+  var MemoryGraph = window.LuyunMemoryGraph;
+  var CultureDna = window.LuyunCultureDna;
+  var EvidenceGaps = window.LuyunEvidenceGaps;
+  var Passport = window.LuyunPassport;
   var Config = window.LUYUN_CONFIG;
   var $ = function (id) { return document.getElementById(id); };
   var $$ = function (selector) { return Array.prototype.slice.call(document.querySelectorAll(selector)); };
@@ -520,8 +524,29 @@
     Renderer.renderRoleReviews(state);
     Renderer.renderPublishRecords(state);
     Renderer.renderDocuments(state);
+    Renderer.renderMemoryGraph(state);
+    Renderer.renderCultureDna(state);
+    Renderer.renderEvidenceGaps(state);
+    Renderer.renderPassport(state);
     Renderer.renderHistory(state);
     Renderer.renderMetrics(state);
+  }
+
+  function refreshInnovationData() {
+    state.memoryGraph = state.brand && MemoryGraph ? MemoryGraph.build(state.brand, state.facts, state.documents) : null;
+    state.cultureDna = state.brand && CultureDna ? CultureDna.build(state.brand, state.facts, state.risks, state.documents) : null;
+    state.evidenceGaps = state.facts.length && EvidenceGaps ? EvidenceGaps.build(state.facts, state.brand, state.documents) : [];
+    if (state.cultureDna) state.artifacts.forEach(function (artifact) { artifact.cultureFidelity = CultureDna.evaluateArtifact(artifact, state.cultureDna); });
+  }
+
+  function refreshPassport() {
+    if (!state.brand || !state.artifacts.length || !Passport) { state.passport = null; return; }
+    var payload = state.lastPayload || {};
+    state.passport = Passport.create({
+      jobId: state.currentJobId, brand: state.brand, platformName: payload.platformName || '', contentTypeName: payload.contentTypeName || '',
+      modelInfo: state.artifacts[0] && state.artifacts[0].modelInfo || {}, facts: state.facts, risks: state.risks, artifacts: state.artifacts,
+      cultureDna: state.cultureDna, documents: state.documents, reviews: state.reviews, transportMode: state.transportMode
+    });
   }
 
   function createHistoryRecord(payload, result) {
@@ -612,6 +637,13 @@
     state.risks = cloneData(record.risks || []);
     state.artifacts = cloneData(record.artifacts || []);
     state.roleReviews = cloneData(record.roleReviews || []);
+    state.memoryGraph = cloneData(record.memoryGraph);
+    state.cultureDna = cloneData(record.cultureDna);
+    state.evidenceGaps = cloneData(record.evidenceGaps || []);
+    state.passport = cloneData(record.passport);
+    state.lastPayload = { platformName: record.platformName || '', contentTypeName: record.contentTypeName || '' };
+    refreshInnovationData();
+    if (!state.passport) refreshPassport();
     state.metrics.facts = state.facts.filter(function (fact) { return fact.status !== '待核实'; }).length;
     state.metrics.jobs = state.tasks.length;
     state.metrics.reviews = state.reviews.length;
@@ -634,11 +666,18 @@
     state.risks = cloneData(record.risks || state.risks || []);
     state.artifacts = cloneData(version.artifacts);
     state.roleReviews = cloneData(record.roleReviews || state.roleReviews || []);
+    state.memoryGraph = cloneData(record.memoryGraph);
+    state.cultureDna = cloneData(record.cultureDna);
+    state.evidenceGaps = cloneData(record.evidenceGaps || []);
+    state.lastPayload = { platformName: record.platformName || '', contentTypeName: record.contentTypeName || '' };
+    refreshInnovationData();
+    refreshPassport();
     var after = state.artifacts.map(function (artifact) { return artifact.content || ''; }).join('\n\n');
     var review = { id: uid('review'), jobId: state.currentJobId, artifactId: 'history-version', action: 'rollback', reviewer: state.user || '当前品牌确认人', note: '恢复到历史版本 v' + versionNumber, before: before, after: after, createdAt: now() };
     state.reviews.unshift(review);
     state.metrics.reviews = state.reviews.length;
     syncHistoryRecord();
+    refreshPassport();
     persistState();
     if (Api.enabled() && state.remoteAuth) {
       Api.saveReview(review).catch(function () {});
@@ -708,6 +747,9 @@
       goal: $('content-goal').value.trim(),
       constraints: $('content-constraints').value.trim(),
       promotionMethods: selectedPromotionMethods().map(function (method) { return method.title; }),
+      cultureDna: state.cultureDna,
+      evidenceGaps: state.evidenceGaps,
+      memoryGraphStats: state.memoryGraph && state.memoryGraph.stats || null,
       promotionMethodIds: selectedPromotionMethods().map(function (method) { return method.id; }),
       performanceFeedback: performanceFeedback(),
       isDemo: !!(state.brand && state.brand.isDemo)
@@ -808,6 +850,8 @@
       state.brand = result.brand || brand;
       state.facts = result.facts || [];
       state.conflicts = Engine.detectConflicts(state.facts);
+      state.risks = [];
+      refreshInnovationData();
       state.metrics.facts = state.facts.filter(function (fact) { return fact.status !== '待核实'; }).length;
       $('brand-status').textContent = state.facts.length + ' 条事实';
       $('brand-status').className = 'status-chip is-active';
@@ -856,6 +900,9 @@
       state.risks = result.risks || [];
       state.artifacts = result.artifacts || [];
       state.roleReviews = result.roleReviews || Engine.runRoleReview({ facts: state.facts, risks: state.risks, theme: payload.theme, platformName: payload.platformName });
+      state.lastPayload = payload;
+      refreshInnovationData();
+      refreshPassport();
       state.metrics.facts = state.facts.filter(function (fact) { return fact.status !== '待核实'; }).length;
       state.metrics.jobs += 1;
       var highRisk = state.risks.filter(function (risk) { return risk.level === 'high'; }).length;
@@ -982,6 +1029,8 @@
       var result = await Api.verifyFacts(state.facts, state.brand && state.brand.name);
       state.facts = result.facts || state.facts;
       state.conflicts = Engine.detectConflicts(state.facts);
+      refreshInnovationData();
+      refreshPassport();
       rememberCurrentBrand();
       renderAll();
       toast(result.configured ? '权威核验请求已完成。' : '未配置权威核验服务，事实继续保持待核验。', result.configured ? 'info' : 'warning');
@@ -1012,6 +1061,10 @@
     state.artifacts.forEach(function (artifact) {
       lines.push('', '### ' + artifact.title, '', '状态：' + artifact.status + '  ', '模型：' + artifact.modelInfo.model + '  ', '提示词：' + artifact.modelInfo.promptVersion + '  ', '参考宣传方法：' + ((artifact.methods || []).join('、') || '未选择'), '', artifact.content);
     });
+    if (state.memoryGraph) { lines.push('', '## 品牌记忆图谱', '', '- 节点：' + state.memoryGraph.stats.nodes + ' 个', '- 关系：' + state.memoryGraph.stats.edges + ' 条', '- 来源文件：' + state.memoryGraph.stats.sources + ' 份'); }
+    if (state.cultureDna) { lines.push('', '## 文化 DNA', '', '- 保护词：' + state.cultureDna.protectedTerms.join('、'), '- 文化禁忌：' + state.cultureDna.tabooTerms.join('、'), '- 不可改写事实：' + state.cultureDna.immutableClaims.length + ' 条'); }
+    if (state.evidenceGaps && state.evidenceGaps.length) { lines.push('', '## 证据缺口与补证问题', ''); state.evidenceGaps.forEach(function (gap) { lines.push('- **' + gap.type + '**：' + gap.question + '  '); lines.push('  建议材料：' + gap.suggestedEvidence + '；关联事实：' + (gap.factIds || []).join('、')); }); }
+    if (state.passport) lines.push('', Passport.toMarkdown(state.passport));
     lines.push('', '## 品牌方确认记录');
     lines.push('', '## 发布与效果回流');
     if (!state.publishRecords.length) lines.push('- 暂无发布记录。');
@@ -1217,6 +1270,8 @@
       fact.revision = (fact.revision || 1) + 1;
       fact.updatedAt = now();
       state.conflicts = Engine.detectConflicts(state.facts);
+      refreshInnovationData();
+      refreshPassport();
       rememberCurrentBrand();
       syncHistoryRecord();
       persistState();
@@ -1252,6 +1307,8 @@
       if (name === 'close-history') closeHistory();
       if (name === 'refresh-history') { if (state.remoteAuth) syncRemoteState(); else renderAll(); toast('历史记录已刷新。'); }
       if (name === 'verify-facts') verifyFactsRemote(action);
+      if (name === 'copy-interview-questions') { if (!state.evidenceGaps.length) { toast('当前没有补证问题。', 'warning'); } else if (navigator.clipboard) navigator.clipboard.writeText(EvidenceGaps.toMarkdown(state.evidenceGaps, state.brand)).then(function () { toast('补证访谈提纲已复制。'); }); }
+      if (name === 'copy-passport') { if (!state.passport) { toast('请先生成内容。', 'warning'); } else if (navigator.clipboard) navigator.clipboard.writeText(Passport.toMarkdown(state.passport)).then(function () { toast('内容护照信息已复制。'); }); }
       if (name === 'filter-pending') {
         state.pendingOnly = !state.pendingOnly;
         action.classList.toggle('is-active', state.pendingOnly);

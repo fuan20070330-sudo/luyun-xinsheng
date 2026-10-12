@@ -71,6 +71,18 @@ GitHub Pages 静态前端
 - 无法验证工艺：古法秘制、独家秘方、纯手工等。
 - 营养健康表述：低糖、无糖等。
 
+## 品牌记忆图谱
+
+`shared/memory-graph.js` 把事实转换为品牌、时间、工艺、产品、荣誉、人物、理念和证据节点，并生成可追踪关系。
+
+## 文化 DNA
+
+`shared/culture-dna.js` 提取保护词、不可改写事实和文化禁忌，并对每个成果计算文化保真度。
+
+## 证据缺口与内容护照
+
+`shared/evidence-gaps.js` 生成补证问题和访谈提纲；`shared/content-passport.js` 为每次生成记录模型、事实、文件哈希、风险、审核和内容指纹。
+
 ## 权威核验
 
 默认公开核验使用 Wikidata 和中文维基百科，并明确标记为“外部资料待人工核验”。配置 `OFFICIAL_VERIFICATION_URL` 后，官方核验结果优先覆盖公开来源。

@@ -69,13 +69,15 @@ function buildPrompt(payload, risks) {
     '不要机械堆砌标题和小节。品牌故事要有清楚的叙事节奏；内容日历要给出每周主题、平台、内容形式和确认点。',
     '多平台文案必须是可直接继续编辑的完整文本，分别适配小红书、抖音和微信公众号，不要只写平台特征。',
     '年轻化表达方案要给出可直接改写的语态替换和示例，不要只讲原则。',
-    '所有确定事实后保留对应的 [Fxxx] 引用编号。输出 JSON，不要输出 Markdown 代码围栏。'
+    '所有确定事实后保留对应的 [Fxxx] 引用编号。输出 JSON，不要输出 Markdown 代码围栏。',
+    '必须保留 cultureDna.protectedTerms 中的文化关键词，不得使用 cultureDna.tabooTerms 中的表达。'
   ].join('\n');
   const user = JSON.stringify({
     brand: { name: payload.brand.name, type: payload.brand.type, tone: payload.brand.tone },
     platform: payload.platformName, contentType: payload.contentTypeName,
     audience: payload.audience, theme: payload.theme, goal: payload.goal, constraints: payload.constraints,
     promotionMethods: payload.promotionMethods || [], performanceFeedback: payload.performanceFeedback || [],
+    cultureDna: payload.cultureDna || null, evidenceGaps: payload.evidenceGaps || [], memoryGraphStats: payload.memoryGraphStats || null,
     facts: facts.map((fact) => ({ id: fact.id, category: fact.category, text: fact.text, source: fact.source, sourceLocation: fact.sourceLocation })),
     detectedRisks: risks.map((risk) => ({ level: risk.level, type: risk.type, term: risk.term, reason: risk.reason, suggestion: risk.suggestion }))
   });

@@ -45,6 +45,12 @@ try {
   await page.fill('#content-constraints', '不承诺功效，年份只使用档案原文');
   await page.click('#generate-button');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.artifacts.length === 4, null, { timeout: 20000 });
+  const innovation = await page.evaluate(() => ({ graphNodes: document.querySelectorAll('#memory-graph .graph-node').length, dnaCount: document.getElementById('culture-dna-count').textContent, gapCount: document.getElementById('evidence-gap-count').textContent, passportId: document.getElementById('passport-id').textContent, fidelityChips: document.querySelectorAll('[data-artifact] .fidelity-chip').length }));
+  assert.ok(innovation.graphNodes >= 6);
+  assert.match(innovation.dnaCount, /保护/);
+  assert.match(innovation.gapCount, /缺口/);
+  assert.match(innovation.passportId, /^LYXS-/);
+  assert.equal(innovation.fidelityChips, 4);
   await page.click('[data-artifact="story"] [data-review="accept"]');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.reviews.length >= 1, null, { timeout: 10000 });
   await page.click('[data-action="open-history"]');
@@ -83,7 +89,9 @@ try {
     manifest: !!document.querySelector('link[rel="manifest"]'),
     serviceWorkerSupported: 'serviceWorker' in navigator,
     qualityScore: window.__LUYUN_APP__.state.artifacts[0] && window.__LUYUN_APP__.state.artifacts[0].quality && window.__LUYUN_APP__.state.artifacts[0].quality.score,
-    evidenceLevel: window.__LUYUN_APP__.state.facts[0] && window.__LUYUN_APP__.state.facts[0].evidenceLevel
+    evidenceLevel: window.__LUYUN_APP__.state.facts[0] && window.__LUYUN_APP__.state.facts[0].evidenceLevel,
+    graphNodes: innovation.graphNodes,
+    passportId: innovation.passportId
   }));
   assert.equal(result.artifacts, 4);
   assert.ok(result.reviews >= 1);

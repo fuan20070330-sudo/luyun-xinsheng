@@ -9,6 +9,10 @@ const engine = require('../shared/generator.js');
 const { FrameParser, encodeFrame, OPCODES } = require('../server/src/ws-frame.js');
 const { createServer } = require('../server/src/server.js');
 const { PostgresStore } = require('../server/src/postgres-store.js');
+const MemoryGraph = require('../shared/memory-graph.js');
+const CultureDna = require('../shared/culture-dna.js');
+const EvidenceGaps = require('../shared/evidence-gaps.js');
+const Passport = require('../shared/content-passport.js');
 const { responsesEndpoint, chatEndpoint, extractResponseText, buildPrompt } = require('../server/src/ai-adapter.js');
 
 const materials = [
@@ -274,6 +278,27 @@ async function testApi() {
   }
 }
 
+function testInnovationModules() {
+  const facts = engine.extractFacts(materials, { sourceName: '创新模块测试', sourceDocument: { id: 'doc-1', name: '品牌档案.txt', hash: 'abc123', authority: 'official' } });
+  const risks = engine.detectRisks({ materials, constraints: '不得使用降血糖和国家级非遗', theme: '测试', goal: '测试', facts });
+  const graph = MemoryGraph.build({ id: 'brand-test', name: '鲁香斋（模拟品牌）', type: '山东传统糕点老字号' }, facts, [{ id: 'doc-1', name: '品牌档案.txt', hash: 'abc123', authority: 'official' }]);
+  assert.ok(graph.stats.nodes >= 8);
+  assert.ok(graph.nodes.some((node) => node.type === 'craft' && node.label === '蒸制'));
+  const dna = CultureDna.build({ name: '鲁香斋（模拟品牌）', tone: '克制' }, facts, risks, [{ id: 'doc-1', name: '品牌档案.txt', hash: 'abc123', authority: 'official' }]);
+  assert.ok(dna.protectedTerms.includes('蒸制'));
+  assert.ok(dna.tabooTerms.includes('降血糖'));
+  const fidelity = CultureDna.evaluateArtifact({ content: '选枣、蒸制、炒馅、包制、烘烤 [F001] [F002]' }, dna);
+  assert.ok(fidelity.score >= 70);
+  const gaps = EvidenceGaps.build(facts, { name: '测试品牌' }, []);
+  assert.ok(gaps.length >= 1);
+  assert.match(EvidenceGaps.toMarkdown(gaps, { name: '测试品牌' }), /补证访谈提纲/);
+  const passport = Passport.create({ jobId: 'job-innovation', brand: { name: '鲁香斋（模拟品牌）' }, platformName: '小红书', contentTypeName: '品牌故事', modelInfo: { model: 'test', promptVersion: 'v1' }, facts, risks, artifacts: [{ id: 'story', title: '品牌故事', content: '测试 [F001]', status: 'draft' }], cultureDna: dna, documents: [], reviews: [], transportMode: '测试模式' });
+  assert.match(passport.id, /^LYXS-/);
+  assert.equal(passport.factCount >= 1, true);
+  assert.match(Passport.toMarkdown(passport), /内容护照/);
+  return { graphNodes: graph.stats.nodes, protectedTerms: dna.protectedTerms.length, evidenceGaps: gaps.length, passport: passport.id };
+}
+
 async function testPostgresStore() {
   let pgMem;
   try { pgMem = require('pg-mem'); }
@@ -304,18 +329,21 @@ function testAdvancedAdapter() {
   assert.equal(chatEndpoint('https://example.com/v1'), 'https://example.com/v1/chat/completions');
   assert.equal(extractResponseText({ output_text: '{"story":"ok"}' }), '{"story":"ok"}');
   assert.equal(extractResponseText({ output: [{ content: [{ type: 'output_text', text: 'nested' }] }] }), 'nested');
-  const prompt = buildPrompt({ brand: { name: '测试品牌', type: '老字号', tone: '克制' }, facts: [{ id: 'F001', category: '历史', text: '成立于1918年', source: '档案', status: '已确认' }], promotionMethods: [], performanceFeedback: [] }, []);
+  const prompt = buildPrompt({ brand: { name: '测试品牌', type: '老字号', tone: '克制' }, facts: [{ id: 'F001', category: '历史', text: '成立于1918年', source: '档案', status: '已确认' }], promotionMethods: [], performanceFeedback: [], cultureDna: { protectedTerms: ['蒸制'], tabooTerms: ['国家级非遗'] }, evidenceGaps: [{ question: '年份来源？' }] }, []);
   assert.match(prompt.system, /自然、具体、克制/);
   assert.match(prompt.system, /不能补写年份/);
   assert.match(prompt.user, /F001/);
+  assert.match(prompt.user, /cultureDna/);
+  assert.match(prompt.system, /protectedTerms/);
 }
 testAdvancedAdapter();
 testFrameCodec();
 const engineResult = testEngine();
+const innovationResult = testInnovationModules();
 const postgresResult = await testPostgresStore().catch((error) => { console.error('postgres test failed:', error.stack || error.message); process.exit(1); });
 const apiResult = await testApi().catch((error) => { console.error('api test failed:', error.stack || error.message); process.exit(1); });
 const gatewayResult = await testGateway().catch((error) => { console.error('gateway test failed:', error.stack || error.message); process.exit(1); });
-console.log(JSON.stringify({ ok: true, engine: engineResult, postgres: postgresResult, api: apiResult, gateway: gatewayResult }, null, 2));
+console.log(JSON.stringify({ ok: true, engine: engineResult, innovation: innovationResult, postgres: postgresResult, api: apiResult, gateway: gatewayResult }, null, 2));
 process.exit(0);
 
 
