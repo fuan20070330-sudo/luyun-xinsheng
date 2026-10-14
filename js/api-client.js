@@ -53,7 +53,7 @@
     var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
     var timer = window.setTimeout(function () { if (controller) controller.abort(); }, this.timeoutMs);
     var method = options.method || 'GET';
-    var headers = Object.assign({ 'Content-Type': 'application/json' }, options.headers || {});
+    var headers = Object.assign({ 'Content-Type': 'text/plain;charset=UTF-8' }, options.headers || {});
     if (this.token) headers.Authorization = 'Bearer ' + this.token;
     if (!['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase()) && this.csrfToken) headers['X-CSRF-Token'] = this.csrfToken;
     return window.fetch(this.baseUrl + path, {
