@@ -14,13 +14,17 @@
       model: input.modelInfo && input.modelInfo.model || 'local-rule-engine', promptVersion: input.modelInfo && input.modelInfo.promptVersion || '', transportMode: input.transportMode || '本地处理模式',
       facts: referenced, factCount: referenced.length, sourceDocuments: documents.map(function (item) { return { name: item.name, hash: item.hash, authority: item.authority }; }),
       protectedTerms: input.cultureDna && input.cultureDna.protectedTerms || [], tabooTerms: input.cultureDna && input.cultureDna.tabooTerms || [],
+      proofId: input.proof && input.proof.claims && input.proof.claims[0] ? 'PROOF-' + fnv1a(JSON.stringify(input.proof.claims)).slice(0, 8).toUpperCase() : '',
+      proofStatus: input.proof && input.proof.validation && input.proof.validation.status || (input.proof && input.proof.status) || '未编译',
+      proofScore: input.proof && input.proof.proofScore || 0,
+      blockedClaims: input.proof && input.proof.stats && input.proof.stats.blocked || 0,
       riskCount: risks.length, highRiskCount: risks.filter(function (risk) { return risk.level === 'high'; }).length, reviewCount: reviews.filter(function (review) { return review.jobId === input.jobId; }).length,
       artifactHashes: artifacts.map(function (artifact) { return { id: artifact.id, title: artifact.title, hash: fnv1a(artifact.content || ''), status: artifact.status }; }), status: risks.some(function (risk) { return risk.level === 'high'; }) ? '待修改' : '待发布确认', createdAt: now, contentHash: fnv1a(JSON.stringify(artifacts))
     };
   }
   function toMarkdown(passport) {
     if (!passport) return '';
-    var lines = ['## 内容护照','', '- 护照编号：' + passport.id, '- 品牌：' + passport.brandName, '- 平台：' + passport.platformName, '- 内容类型：' + passport.contentTypeName, '- 模型：' + passport.model, '- 提示词版本：' + passport.promptVersion, '- 运行模式：' + passport.transportMode, '- 事实引用：' + (passport.facts || []).join('、'), '- 来源文件：' + (passport.sourceDocuments || []).length + ' 份', '- 保护词：' + (passport.protectedTerms || []).join('、'), '- 风险：' + passport.riskCount + ' 条，其中高风险 ' + passport.highRiskCount + ' 条', '- 审核次数：' + passport.reviewCount, '- 内容哈希：' + passport.contentHash, '- 状态：' + passport.status, ''];
+    var lines = ['## 内容护照','', '- 护照编号：' + passport.id, '- 品牌：' + passport.brandName, '- 平台：' + passport.platformName, '- 内容类型：' + passport.contentTypeName, '- 模型：' + passport.model, '- 提示词版本：' + passport.promptVersion, '- 运行模式：' + passport.transportMode, '- 事实引用：' + (passport.facts || []).join('、'), '- 来源文件：' + (passport.sourceDocuments || []).length + ' 份', '- 保护词：' + (passport.protectedTerms || []).join('、'), '- 风险：' + passport.riskCount + ' 条，其中高风险 ' + passport.highRiskCount + ' 条', '- 审核次数：' + passport.reviewCount, '- 内容哈希：' + passport.contentHash, '- 内容证明：' + (passport.proofId || '--') + '｜' + (passport.proofStatus || '未编译') + '｜证明分 ' + (passport.proofScore || 0), '- 阻止声明：' + (passport.blockedClaims || 0) + ' 条', '- 状态：' + passport.status, ''];
     (passport.artifactHashes || []).forEach(function (item) { lines.push('- ' + item.title + '｜' + item.hash + '｜' + item.status); });
     return lines.join('\n');
   }

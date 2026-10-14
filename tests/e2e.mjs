@@ -122,11 +122,13 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   await page.waitForFunction(() => document.getElementById('connection-pill').getAttribute('data-state') === 'connected', null, { timeout: 10000 });
   await page.click('#generate-button');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.artifacts.length === 4, null, { timeout: 20000 });
-  const innovation = await page.evaluate(() => ({ graphNodes: document.querySelectorAll('#memory-graph .graph-node').length, dnaCount: document.getElementById('culture-dna-count').textContent, gapCount: document.getElementById('evidence-gap-count').textContent, passportId: document.getElementById('passport-id').textContent, fidelityChips: document.querySelectorAll('[data-artifact] .fidelity-chip').length }));
+  const innovation = await page.evaluate(() => ({ graphNodes: document.querySelectorAll('#memory-graph .graph-node').length, proofStatus: document.getElementById('proof-status').textContent, claimCards: document.querySelectorAll('#proof-engine .claim-card').length, dnaCount: document.getElementById('culture-dna-count').textContent, gapCount: document.getElementById('evidence-gap-count').textContent, passportId: document.getElementById('passport-id').textContent, fidelityChips: document.querySelectorAll('[data-artifact] .fidelity-chip').length }));
   assert.ok(innovation.graphNodes >= 6);
   assert.match(innovation.dnaCount, /保护/);
   assert.match(innovation.gapCount, /缺口/);
   assert.match(innovation.passportId, /^LYXS-/);
+  assert.match(innovation.proofStatus, /证明/);
+  assert.ok(innovation.claimCards >= 4);
   assert.equal(innovation.fidelityChips, 4);
   await page.click('[data-artifact="story"] [data-review="accept"]');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.reviews.length >= 1, null, { timeout: 10000 });

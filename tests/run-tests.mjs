@@ -13,6 +13,7 @@ const MemoryGraph = require('../shared/memory-graph.js');
 const CultureDna = require('../shared/culture-dna.js');
 const EvidenceGaps = require('../shared/evidence-gaps.js');
 const Passport = require('../shared/content-passport.js');
+const ProofEngine = require('../shared/proof-engine.js');
 const { responsesEndpoint, chatEndpoint, extractResponseText, buildPrompt } = require('../server/src/ai-adapter.js');
 
 const materials = [
@@ -289,6 +290,11 @@ function testInnovationModules() {
   assert.ok(dna.tabooTerms.includes('降血糖'));
   const fidelity = CultureDna.evaluateArtifact({ content: '选枣、蒸制、炒馅、包制、烘烤 [F001] [F002]' }, dna);
   assert.ok(fidelity.score >= 70);
+  const proof = ProofEngine.build(facts, risks, dna);
+  assert.ok(proof.stats.total >= 1);
+  assert.ok(proof.stats.blocked >= 1);
+  const proofValidation = ProofEngine.validateArtifacts([{ id: 'story', title: '品牌故事', content: '【暂不建议发布的内容】降血糖\n\n正文 [F001]' }], proof);
+  assert.equal(proofValidation.status, '编译通过');
   const gaps = EvidenceGaps.build(facts, { name: '测试品牌' }, []);
   assert.ok(gaps.length >= 1);
   assert.match(EvidenceGaps.toMarkdown(gaps, { name: '测试品牌' }), /补证访谈提纲/);
@@ -296,7 +302,7 @@ function testInnovationModules() {
   assert.match(passport.id, /^LYXS-/);
   assert.equal(passport.factCount >= 1, true);
   assert.match(Passport.toMarkdown(passport), /内容护照/);
-  return { graphNodes: graph.stats.nodes, protectedTerms: dna.protectedTerms.length, evidenceGaps: gaps.length, passport: passport.id };
+  return { graphNodes: graph.stats.nodes, protectedTerms: dna.protectedTerms.length, evidenceGaps: gaps.length, proofBlocked: proof.stats.blocked, passport: passport.id };
 }
 
 async function testPostgresStore() {
@@ -329,12 +335,13 @@ function testAdvancedAdapter() {
   assert.equal(chatEndpoint('https://example.com/v1'), 'https://example.com/v1/chat/completions');
   assert.equal(extractResponseText({ output_text: '{"story":"ok"}' }), '{"story":"ok"}');
   assert.equal(extractResponseText({ output: [{ content: [{ type: 'output_text', text: 'nested' }] }] }), 'nested');
-  const prompt = buildPrompt({ brand: { name: '测试品牌', type: '老字号', tone: '克制' }, facts: [{ id: 'F001', category: '历史', text: '成立于1918年', source: '档案', status: '已确认' }], promotionMethods: [], performanceFeedback: [], cultureDna: { protectedTerms: ['蒸制'], tabooTerms: ['国家级非遗'] }, evidenceGaps: [{ question: '年份来源？' }] }, []);
+  const prompt = buildPrompt({ brand: { name: '测试品牌', type: '老字号', tone: '克制' }, facts: [{ id: 'F001', category: '历史', text: '成立于1918年', source: '档案', status: '已确认' }], promotionMethods: [], performanceFeedback: [], cultureDna: { protectedTerms: ['蒸制'], tabooTerms: ['国家级非遗'] }, evidenceGaps: [{ question: '年份来源？' }], proof: { blockedClaims: [{ value: '国家级非遗' }] } }, []);
   assert.match(prompt.system, /自然、具体、克制/);
   assert.match(prompt.system, /不能补写年份/);
   assert.match(prompt.user, /F001/);
   assert.match(prompt.user, /cultureDna/);
   assert.match(prompt.system, /protectedTerms/);
+  assert.match(prompt.system, /proof.blockedClaims/);
 }
 testAdvancedAdapter();
 testFrameCodec();

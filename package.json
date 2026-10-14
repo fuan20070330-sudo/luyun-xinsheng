@@ -1,5 +1,5 @@
 {
-  "version": "3.3.0",
+  "version": "3.4.0",
   "private": true,
   "name": "luyun-xinsheng",
   "type": "commonjs",
@@ -14,7 +14,7 @@
     "eval:model": "node scripts/evaluate-model.mjs",
     "eval:model:required": "node scripts/evaluate-model.mjs --require",
     "start": "node server/src/server.js",
-    "check": "node --check js/app.js && node --check js/renderer.js && node --check shared/engine.js && node --check shared/generator.js && node --check shared/quality.js && node --check shared/memory-graph.js && node --check shared/culture-dna.js && node --check shared/evidence-gaps.js && node --check shared/content-passport.js && node --check server/src/server.js && node --check server/src/api.js && node --check server/src/auth-service.js && node --check server/src/data-store.js && node --check server/src/document-service.js && node --check server/src/postgres-store.js && node --check server/src/store.js && node --check server/src/http-security.js && node --check server/src/rate-limit.js && node --check server/src/verification-service.js"
+    "check": "node --check js/app.js && node --check js/renderer.js && node --check shared/engine.js && node --check shared/generator.js && node --check shared/quality.js && node --check shared/memory-graph.js && node --check shared/culture-dna.js && node --check shared/evidence-gaps.js && node --check shared/content-passport.js && node --check shared/proof-engine.js && node --check server/src/server.js && node --check server/src/api.js && node --check server/src/auth-service.js && node --check server/src/data-store.js && node --check server/src/document-service.js && node --check server/src/postgres-store.js && node --check server/src/store.js && node --check server/src/http-security.js && node --check server/src/rate-limit.js && node --check server/src/verification-service.js"
   },
   "devDependencies": {
     "pg-mem": "^3.0.14",

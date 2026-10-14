@@ -239,6 +239,7 @@ fly deploy
 │   ├── evidence-gaps.js
 │   ├── generator.js
 │   ├── memory-graph.js
+│   ├── proof-engine.js
 │   └── quality.js
 ├── tests/
 │   ├── artifacts/

@@ -8,6 +8,7 @@
   var CultureDna = window.LuyunCultureDna;
   var EvidenceGaps = window.LuyunEvidenceGaps;
   var Passport = window.LuyunPassport;
+  var ProofEngine = window.LuyunProofEngine;
   var Config = window.LUYUN_CONFIG;
   var $ = function (id) { return document.getElementById(id); };
   var $$ = function (selector) { return Array.prototype.slice.call(document.querySelectorAll(selector)); };
@@ -527,6 +528,7 @@
     Renderer.renderMemoryGraph(state);
     Renderer.renderCultureDna(state);
     Renderer.renderEvidenceGaps(state);
+    Renderer.renderProof(state);
     Renderer.renderPassport(state);
     Renderer.renderHistory(state);
     Renderer.renderMetrics(state);
@@ -537,6 +539,8 @@
     state.cultureDna = state.brand && CultureDna ? CultureDna.build(state.brand, state.facts, state.risks, state.documents) : null;
     state.evidenceGaps = state.facts.length && EvidenceGaps ? EvidenceGaps.build(state.facts, state.brand, state.documents) : [];
     if (state.cultureDna) state.artifacts.forEach(function (artifact) { artifact.cultureFidelity = CultureDna.evaluateArtifact(artifact, state.cultureDna); });
+    state.proof = state.facts.length && ProofEngine ? ProofEngine.build(state.facts, state.risks, state.cultureDna) : null;
+    if (state.proof && state.artifacts.length) state.proof.validation = ProofEngine.validateArtifacts(state.artifacts, state.proof);
   }
 
   function refreshPassport() {
@@ -545,7 +549,7 @@
     state.passport = Passport.create({
       jobId: state.currentJobId, brand: state.brand, platformName: payload.platformName || '', contentTypeName: payload.contentTypeName || '',
       modelInfo: state.artifacts[0] && state.artifacts[0].modelInfo || {}, facts: state.facts, risks: state.risks, artifacts: state.artifacts,
-      cultureDna: state.cultureDna, documents: state.documents, reviews: state.reviews, transportMode: state.transportMode
+      cultureDna: state.cultureDna, proof: state.proof, documents: state.documents, reviews: state.reviews, transportMode: state.transportMode
     });
   }
 
@@ -639,6 +643,7 @@
     state.roleReviews = cloneData(record.roleReviews || []);
     state.memoryGraph = cloneData(record.memoryGraph);
     state.cultureDna = cloneData(record.cultureDna);
+    state.proof = cloneData(record.proof);
     state.evidenceGaps = cloneData(record.evidenceGaps || []);
     state.passport = cloneData(record.passport);
     state.lastPayload = { platformName: record.platformName || '', contentTypeName: record.contentTypeName || '' };
@@ -668,6 +673,7 @@
     state.roleReviews = cloneData(record.roleReviews || state.roleReviews || []);
     state.memoryGraph = cloneData(record.memoryGraph);
     state.cultureDna = cloneData(record.cultureDna);
+    state.proof = cloneData(record.proof);
     state.evidenceGaps = cloneData(record.evidenceGaps || []);
     state.lastPayload = { platformName: record.platformName || '', contentTypeName: record.contentTypeName || '' };
     refreshInnovationData();
@@ -749,6 +755,7 @@
       promotionMethods: selectedPromotionMethods().map(function (method) { return method.title; }),
       cultureDna: state.cultureDna,
       evidenceGaps: state.evidenceGaps,
+      proof: state.proof ? { proofScore: state.proof.proofScore, blockedClaims: state.proof.blockedClaims, pendingClaims: state.proof.pendingClaims } : null,
       memoryGraphStats: state.memoryGraph && state.memoryGraph.stats || null,
       promotionMethodIds: selectedPromotionMethods().map(function (method) { return method.id; }),
       performanceFeedback: performanceFeedback(),
@@ -1064,6 +1071,7 @@
     if (state.memoryGraph) { lines.push('', '## 品牌记忆图谱', '', '- 节点：' + state.memoryGraph.stats.nodes + ' 个', '- 关系：' + state.memoryGraph.stats.edges + ' 条', '- 来源文件：' + state.memoryGraph.stats.sources + ' 份'); }
     if (state.cultureDna) { lines.push('', '## 文化 DNA', '', '- 保护词：' + state.cultureDna.protectedTerms.join('、'), '- 文化禁忌：' + state.cultureDna.tabooTerms.join('、'), '- 不可改写事实：' + state.cultureDna.immutableClaims.length + ' 条'); }
     if (state.evidenceGaps && state.evidenceGaps.length) { lines.push('', '## 证据缺口与补证问题', ''); state.evidenceGaps.forEach(function (gap) { lines.push('- **' + gap.type + '**：' + gap.question + '  '); lines.push('  建议材料：' + gap.suggestedEvidence + '；关联事实：' + (gap.factIds || []).join('、')); }); }
+    if (state.proof) { lines.push('', '## 内容证明', '', '- 证明状态：' + state.proof.status, '- 证明分：' + state.proof.proofScore, '- 已证明声明：' + state.proof.stats.proven, '- 待证明声明：' + state.proof.stats.pending, '- 已阻止声明：' + state.proof.stats.blocked); state.proof.blockedClaims.forEach(function (claim) { lines.push('- 阻止：' + claim.value + '｜' + claim.reason); }); state.proof.pendingClaims.slice(0, 10).forEach(function (claim) { lines.push('- 待证明：' + claim.value + '｜' + claim.requiredEvidence); }); }
     if (state.passport) lines.push('', Passport.toMarkdown(state.passport));
     lines.push('', '## 品牌方确认记录');
     lines.push('', '## 发布与效果回流');
@@ -1307,6 +1315,7 @@
       if (name === 'close-history') closeHistory();
       if (name === 'refresh-history') { if (state.remoteAuth) syncRemoteState(); else renderAll(); toast('历史记录已刷新。'); }
       if (name === 'verify-facts') verifyFactsRemote(action);
+      if (name === 'run-proof') { refreshInnovationData(); renderAll(); toast('内容证明已重新编译。'); }
       if (name === 'copy-interview-questions') { if (!state.evidenceGaps.length) { toast('当前没有补证问题。', 'warning'); } else if (navigator.clipboard) navigator.clipboard.writeText(EvidenceGaps.toMarkdown(state.evidenceGaps, state.brand)).then(function () { toast('补证访谈提纲已复制。'); }); }
       if (name === 'copy-passport') { if (!state.passport) { toast('请先生成内容。', 'warning'); } else if (navigator.clipboard) navigator.clipboard.writeText(Passport.toMarkdown(state.passport)).then(function () { toast('内容护照信息已复制。'); }); }
       if (name === 'filter-pending') {

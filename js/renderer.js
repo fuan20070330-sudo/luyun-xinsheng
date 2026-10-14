@@ -208,6 +208,18 @@
     root.innerHTML = gaps.slice(0, 12).map(function (gap) { return '<article class="gap-card" data-level="' + escapeHtml(gap.severity) + '"><div><strong>' + escapeHtml(gap.id) + '｜' + escapeHtml(gap.type) + '</strong><small>' + escapeHtml((gap.factIds || []).join('、')) + '</small></div><p>' + escapeHtml(gap.question) + '</p><small>建议材料：' + escapeHtml(gap.suggestedEvidence) + '</small></article>'; }).join('');
   }
 
+  function renderProof(state) {
+    var root = byId('proof-engine');
+    if (!root) return;
+    var proof = state.proof;
+    var statusEl = byId('proof-status');
+    if (!proof) { if (statusEl) statusEl.textContent = '未编译'; root.innerHTML = '<div class="empty-state"><span class="empty-glyph">证</span><p>提取事实后建立证明义务。</p></div>'; return; }
+    if (statusEl) statusEl.textContent = proof.status + '｜证明分 ' + proof.proofScore;
+    var claims = (proof.claims || []).slice(0, 18).map(function (claim) { return '<article class="claim-card" data-status="' + escapeHtml(claim.status) + '"><div><strong>' + escapeHtml(claim.id) + '｜' + escapeHtml(claim.type) + '</strong><span>' + escapeHtml(claim.status) + '</span></div><p>' + escapeHtml(claim.value) + '</p><small>证明义务：' + escapeHtml(claim.requiredEvidence) + '</small></article>'; }).join('');
+    var validation = proof.validation ? '<div class="proof-validation"><strong>正文编译结果</strong>' + proof.validation.results.map(function (item) { return '<p>' + escapeHtml(item.title) + '：' + escapeHtml(item.status) + '｜' + item.score + ' 分｜引用 ' + item.citations + ' 处' + (item.blockedHits.length ? '｜阻止词：' + escapeHtml(item.blockedHits.join('、')) : '') + '</p>'; }).join('') + '</div>' : '';
+    root.innerHTML = '<div class="proof-stats"><span class="proof-stat proven"><b>' + proof.stats.proven + '</b> 已证明</span><span class="proof-stat pending"><b>' + proof.stats.pending + '</b> 待证明</span><span class="proof-stat blocked"><b>' + proof.stats.blocked + '</b> 已阻止</span></div>' + validation + '<div class="claim-list">' + claims + '</div>';
+  }
+
   function renderPassport(state) {
     var root = byId('content-passport');
     if (!root) return;
@@ -312,6 +324,7 @@
     renderMemoryGraph: renderMemoryGraph,
     renderCultureDna: renderCultureDna,
     renderEvidenceGaps: renderEvidenceGaps,
+    renderProof: renderProof,
     renderPassport: renderPassport,
     renderDocuments: renderDocuments,
     renderHistory: renderHistory,
