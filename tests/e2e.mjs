@@ -130,6 +130,17 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   assert.match(innovation.proofStatus, /证明/);
   assert.ok(innovation.claimCards >= 4);
   assert.equal(innovation.fidelityChips, 4);
+  await page.click('[data-action="open-analyzer"]');
+  await page.fill('#analyzer-text', '国家级非遗工艺，吃了可以降血糖。匠心独运，不容错过。');
+  await page.selectOption('#analyzer-platform', 'douyin');
+  await page.click('#analyzer-form button[type=submit]');
+  await page.waitForFunction(() => document.querySelectorAll('#analyzer-results .sentence-row').length >= 2);
+  const analyzedCopy = await page.evaluate(() => ({ status: document.querySelector('.analyzer-status')?.textContent, sentenceRows: document.querySelectorAll('#analyzer-results .sentence-row').length, riskCards: document.querySelectorAll('#analyzer-results .gap-card').length, safeRewrite: document.querySelector('.safe-rewrite')?.textContent }));
+  assert.match(analyzedCopy.status, /高风险/);
+  assert.ok(analyzedCopy.sentenceRows >= 2);
+  assert.ok(analyzedCopy.riskCards >= 2);
+  assert.match(analyzedCopy.safeRewrite, /待核实|已阻止/);
+  await page.click('button[data-action="close-analyzer"]');
   await page.click('[data-artifact="story"] [data-review="accept"]');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.reviews.length >= 1, null, { timeout: 10000 });
   const first = await page.evaluate(() => ({

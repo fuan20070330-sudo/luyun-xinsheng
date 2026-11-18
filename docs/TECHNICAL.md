@@ -87,6 +87,10 @@ GitHub Pages 静态前端
 
 默认公开核验使用 Wikidata 和中文维基百科，并明确标记为“外部资料待人工核验”。配置 `OFFICIAL_VERIFICATION_URL` 后，官方核验结果优先覆盖公开来源。
 
+## 内容护照签名与公开验证
+
+服务端使用 SHA-256 计算护照内容摘要，并使用 HMAC-SHA256 签名。签名记录存入 PostgreSQL 的 `passports` 集合。`proof.html?id=<护照编号>` 可以无需登录验证签名和查看签发信息。
+
 ## 模型评测
 
 评测集位于 `tests/fixtures/model-eval-cases.json`，运行器位于 `scripts/evaluate-model.mjs`。配置 `OPENAI_API_KEY` 后执行 `npm run eval:model:required`，报告写入 `tests/artifacts/model-eval-report.json`。

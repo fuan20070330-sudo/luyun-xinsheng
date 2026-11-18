@@ -14,6 +14,9 @@ const CultureDna = require('../shared/culture-dna.js');
 const EvidenceGaps = require('../shared/evidence-gaps.js');
 const Passport = require('../shared/content-passport.js');
 const ProofEngine = require('../shared/proof-engine.js');
+const ClaimAnalyzer = require('../shared/claim-analyzer.js');
+const { signPassport, verifyPassport } = require('../server/src/passport-service.js');
+const { lookupOfficial } = require('../server/src/official-registry-service.js');
 const { responsesEndpoint, chatEndpoint, extractResponseText, buildPrompt } = require('../server/src/ai-adapter.js');
 
 const materials = [
@@ -268,11 +271,18 @@ async function testApi() {
     for (let i = 0; i < 5; i += 1) await apiJson(base, '/api/auth/login', { method: 'POST', body: JSON.stringify({ email: 'lock-test@example.com', password: 'bad-pass' }) });
     const locked = await apiJson(base, '/api/auth/login', { method: 'POST', body: JSON.stringify({ email: 'lock-test@example.com', password: 'lock-pass-123' }) });
     assert.equal(locked.status, 423);
+    const passportPayload = { id: 'LYXS-API-TEST', brandName: 'API 测试品牌', platformName: '小红书', facts: ['F001'], artifactHashes: [{ id: 'story', title: '品牌故事', hash: 'abc123', status: 'draft' }], contentHash: 'abc123', proofScore: 80, proofStatus: '编译通过', createdAt: new Date().toISOString() };
+    const signed = await apiJson(base, '/api/passport/sign', { method: 'POST', body: JSON.stringify({ passport: passportPayload }) }, token);
+    assert.equal(signed.status, 201);
+    assert.ok(signed.payload.passport.signature);
+    const verifiedPassport = await apiJson(base, '/api/passport/verify?id=' + encodeURIComponent(passportPayload.id), {}, '');
+    assert.equal(verifiedPassport.status, 200);
+    assert.equal(verifiedPassport.payload.valid, true);
     const loggedOut = await apiJson(base, '/api/auth/logout', { method: 'POST' }, token);
     assert.equal(loggedOut.status, 200);
     const expired = await apiJson(base, '/api/auth/me', {}, token);
     assert.equal(expired.status, 401);
-    return { health: true, register: true, login: true, changePassword: true, httpOnlyCookie: true, csrf: true, accountLockout: true, history: true, documentExtraction: true, verificationPending: true, invalidPassword: true, logout: true };
+    return { health: true, register: true, login: true, changePassword: true, httpOnlyCookie: true, csrf: true, accountLockout: true, passportSignature: true, history: true, documentExtraction: true, verificationPending: true, invalidPassword: true, logout: true };
   } finally {
     bundle.gateway.close();
     await new Promise((resolve) => bundle.server.close(resolve));
@@ -295,6 +305,15 @@ function testInnovationModules() {
   assert.ok(proof.stats.blocked >= 1);
   const proofValidation = ProofEngine.validateArtifacts([{ id: 'story', title: '品牌故事', content: '【暂不建议发布的内容】降血糖\n\n正文 [F001]' }], proof);
   assert.equal(proofValidation.status, '编译通过');
+  const sentenceProof = ProofEngine.analyzeText('国家级非遗工艺，始创于1918年。这是一句品牌表达。', facts, risks, dna);
+  assert.ok(sentenceProof.stats.blocked + sentenceProof.stats.unbound + sentenceProof.stats.pending >= 1);
+  const analyzedCopy = ClaimAnalyzer.analyze({ text: '国家级非遗工艺，吃了可以降血糖。匠心独运，不容错过。', facts, brand: { name: '测试品牌' }, cultureDna: dna, platform: 'xiaohongshu' });
+  assert.ok(analyzedCopy.highRiskCount >= 2);
+  assert.match(analyzedCopy.status, /高风险/);
+  assert.ok(analyzedCopy.suggestions.length >= 1);
+  const signedPassport = signPassport(Passport.create({ jobId: 'job-proof', brand: { name: '测试品牌' }, platformName: '小红书', contentTypeName: '品牌故事', modelInfo: { model: 'test', promptVersion: 'v1' }, facts, risks, artifacts: [{ id: 'story', title: '品牌故事', content: '正文 [F001]', status: 'draft' }], cultureDna: dna, proof, documents: [], reviews: [], transportMode: '测试模式' }), { PASSPORT_SIGNING_KEY: 'test-signing-key' });
+  assert.equal(verifyPassport(signedPassport, { PASSPORT_SIGNING_KEY: 'test-signing-key' }).valid, true);
+  assert.equal(verifyPassport(Object.assign({}, signedPassport, { brandName: '被篡改' }), { PASSPORT_SIGNING_KEY: 'test-signing-key' }).valid, false);
   const gaps = EvidenceGaps.build(facts, { name: '测试品牌' }, []);
   assert.ok(gaps.length >= 1);
   assert.match(EvidenceGaps.toMarkdown(gaps, { name: '测试品牌' }), /补证访谈提纲/);
@@ -302,7 +321,14 @@ function testInnovationModules() {
   assert.match(passport.id, /^LYXS-/);
   assert.equal(passport.factCount >= 1, true);
   assert.match(Passport.toMarkdown(passport), /内容护照/);
-  return { graphNodes: graph.stats.nodes, protectedTerms: dna.protectedTerms.length, evidenceGaps: gaps.length, proofBlocked: proof.stats.blocked, passport: passport.id };
+  return { graphNodes: graph.stats.nodes, protectedTerms: dna.protectedTerms.length, evidenceGaps: gaps.length, proofBlocked: proof.stats.blocked, claimAnalyzer: true, signedPassport: true, sentenceProof: sentenceProof.stats, passport: passport.id };
+}
+
+async function testOfficialRegistryConnector() {
+  const server = http.createServer((req, res) => { let body=''; req.on('data', c => body += c); req.on('end', () => { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ results: [{ id: 'F001', status: '已核验', evidenceLevel: '强', method: 'official-registry', authority: '测试官方登记' }] })); }); });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const port = server.address().port;
+  try { const result = await lookupOfficial('测试品牌', [{ id: 'F001', category: '荣誉', text: '测试' }], { OFFICIAL_REGISTRY_URL: 'http://127.0.0.1:' + port + '/verify' }); assert.equal(result.configured, true); assert.equal(result.results[0].status, '已核验'); return { configured: true, verified: true }; } finally { await new Promise((resolve) => server.close(resolve)); }
 }
 
 async function testPostgresStore() {
@@ -347,10 +373,11 @@ testAdvancedAdapter();
 testFrameCodec();
 const engineResult = testEngine();
 const innovationResult = testInnovationModules();
+const officialRegistryResult = await testOfficialRegistryConnector();
 const postgresResult = await testPostgresStore().catch((error) => { console.error('postgres test failed:', error.stack || error.message); process.exit(1); });
 const apiResult = await testApi().catch((error) => { console.error('api test failed:', error.stack || error.message); process.exit(1); });
 const gatewayResult = await testGateway().catch((error) => { console.error('gateway test failed:', error.stack || error.message); process.exit(1); });
-console.log(JSON.stringify({ ok: true, engine: engineResult, innovation: innovationResult, postgres: postgresResult, api: apiResult, gateway: gatewayResult }, null, 2));
+console.log(JSON.stringify({ ok: true, engine: engineResult, innovation: innovationResult, officialRegistry: officialRegistryResult, postgres: postgresResult, api: apiResult, gateway: gatewayResult }, null, 2));
 process.exit(0);
 
 

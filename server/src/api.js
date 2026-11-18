@@ -2,6 +2,7 @@
 
 const { extractDocument } = require('./document-service');
 const { verifyFacts } = require('./verification-service');
+const { signPassport, verifyPassport } = require('./passport-service');
 const { createRateLimiter } = require('./rate-limit');
 const {
   setSessionCookies,
@@ -103,6 +104,14 @@ function createApi(options) {
         return true;
       }
 
+      if (path === '/api/passport/verify' && request.method === 'GET') {
+        const passportId = url.searchParams.get('id') || '';
+        const record = passportId ? await store.getAnyRecord('passports', passportId) : null;
+        if (!record || !record.passport) throw Object.assign(new Error('内容护照不存在。'), { code: 'NOT_FOUND', status: 404 });
+        const verification = verifyPassport(record.passport, env);
+        sendJson(response, 200, { ok: true, valid: verification.valid, verification: verification, passport: record.passport });
+        return true;
+      }
       const token = tokenFromRequest(request);
       const authenticated = await auth.authenticate(token);
       const bearerRequest = /^Bearer\s+/i.test(String(request.headers.authorization || ''));
@@ -131,10 +140,18 @@ function createApi(options) {
       if (!authenticated) throw Object.assign(new Error('请先登录。'), { code: 'UNAUTHORIZED', status: 401 });
       const userId = authenticated.user.id;
 
+      if (path === '/api/passport/sign' && request.method === 'POST') {
+        const body = await readJsonBody(request);
+        if (!body.passport || !body.passport.id) throw Object.assign(new Error('缺少内容护照。'), { code: 'INVALID_PASSPORT', status: 400 });
+        const signed = signPassport(body.passport, env);
+        await store.putRecord('passports', userId, { id: signed.id, passport: signed });
+        sendJson(response, 201, { ok: true, passport: signed });
+        return true;
+      }
       if (path === '/api/verification/facts' && request.method === 'POST') {
         const body = await readJsonBody(request);
         const verified = await verifyFacts(body.facts || [], env, { brandName: body.brandName || '' });
-        sendJson(response, 200, { ok: true, configured: verified.configured, publicSources: verified.publicSources, facts: verified.facts });
+        sendJson(response, 200, { ok: true, configured: verified.configured, officialRegistryConfigured: verified.officialRegistryConfigured, publicSources: verified.publicSources, facts: verified.facts });
         return true;
       }
       if (path === '/api/documents/extract' && request.method === 'POST') {

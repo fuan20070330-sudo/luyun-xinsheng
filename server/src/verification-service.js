@@ -1,5 +1,7 @@
 'use strict';
 
+const { lookupOfficial } = require('./official-registry-service');
+
 function withTimeout(promise, timeoutMs) {
   let timer;
   const timeout = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('外部核验超时')), timeoutMs); });
@@ -42,6 +44,10 @@ async function verifyFacts(facts, env, context) {
   context = context || {};
   const baseFacts = (facts || []).map((fact) => Object.assign({}, fact));
   let externalResults = new Map();
+  let officialRegistryConfigured = !!env.OFFICIAL_REGISTRY_URL;
+  if (officialRegistryConfigured) {
+    try { const official = await lookupOfficial(context.brandName, baseFacts, env); (official.results || []).forEach((item) => externalResults.set(item.id, item)); } catch (error) { officialRegistryConfigured = true; }
+  }
   if (env.OFFICIAL_VERIFICATION_URL) {
     const response = await postJson(env.OFFICIAL_VERIFICATION_URL, env.OFFICIAL_VERIFICATION_API_KEY ? { Authorization: 'Bearer ' + env.OFFICIAL_VERIFICATION_API_KEY } : {}, { facts: baseFacts, brandName: context.brandName || '', sourcePolicy: 'official-first' }, Number(env.OFFICIAL_VERIFICATION_TIMEOUT_MS || 30000));
     if (response && Array.isArray(response.results)) externalResults = new Map(response.results.map((item) => [item.id, item]));
@@ -77,7 +83,7 @@ async function verifyFacts(facts, env, context) {
       externalEvidence: []
     }));
   }
-  return { configured: !!env.OFFICIAL_VERIFICATION_URL, publicSources: String(env.PUBLIC_VERIFICATION_ENABLED || 'true').toLowerCase() !== 'false', facts: verified };
+  return { configured: !!env.OFFICIAL_VERIFICATION_URL || officialRegistryConfigured, officialRegistryConfigured: officialRegistryConfigured, publicSources: String(env.PUBLIC_VERIFICATION_ENABLED || 'true').toLowerCase() !== 'false', facts: verified };
 }
 
 module.exports = { verifyFacts, publicEvidence };

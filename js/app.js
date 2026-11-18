@@ -9,6 +9,7 @@
   var EvidenceGaps = window.LuyunEvidenceGaps;
   var Passport = window.LuyunPassport;
   var ProofEngine = window.LuyunProofEngine;
+  var ClaimAnalyzer = window.LuyunClaimAnalyzer;
   var Config = window.LUYUN_CONFIG;
   var $ = function (id) { return document.getElementById(id); };
   var $$ = function (selector) { return Array.prototype.slice.call(document.querySelectorAll(selector)); };
@@ -193,6 +194,7 @@
     if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
     if (window.location.hash) history.replaceState(null, '', window.location.pathname + window.location.search);
     closeHistory();
+    closeAnalyzer();
     state.user = '';
     clearAccountState();
     state.currentStep = 1;
@@ -257,6 +259,7 @@
     persistState();
     if (Api.enabled() && state.remoteAuth) Api.logout().catch(function () {});
     closeHistory();
+    closeAnalyzer();
     clearAccountState();
     state.user = '';
     state.currentStep = 1;
@@ -540,7 +543,7 @@
     state.evidenceGaps = state.facts.length && EvidenceGaps ? EvidenceGaps.build(state.facts, state.brand, state.documents) : [];
     if (state.cultureDna) state.artifacts.forEach(function (artifact) { artifact.cultureFidelity = CultureDna.evaluateArtifact(artifact, state.cultureDna); });
     state.proof = state.facts.length && ProofEngine ? ProofEngine.build(state.facts, state.risks, state.cultureDna) : null;
-    if (state.proof && state.artifacts.length) state.proof.validation = ProofEngine.validateArtifacts(state.artifacts, state.proof);
+    if (state.proof && state.artifacts.length) state.proof.validation = ProofEngine.validateArtifacts(state.artifacts, state.proof, state.facts, state.risks, state.cultureDna);
   }
 
   function refreshPassport() {
@@ -551,6 +554,16 @@
       modelInfo: state.artifacts[0] && state.artifacts[0].modelInfo || {}, facts: state.facts, risks: state.risks, artifacts: state.artifacts,
       cultureDna: state.cultureDna, proof: state.proof, documents: state.documents, reviews: state.reviews, transportMode: state.transportMode
     });
+    if (Api.enabled() && state.remoteAuth) {
+      var passportId = state.passport.id;
+      Api.signPassport(state.passport).then(function (signed) {
+        if (!state.passport || state.passport.id !== passportId) return;
+        state.passport = signed;
+        syncHistoryRecord();
+        persistState();
+        renderAll();
+      }).catch(function () {});
+    }
   }
 
   function createHistoryRecord(payload, result) {
@@ -627,6 +640,24 @@
     document.body.classList.remove('history-open');
     if (historyReturnFocus && historyReturnFocus.focus) historyReturnFocus.focus();
     historyReturnFocus = null;
+  }
+
+  function openAnalyzer() {
+    var drawer = $('analyzer-drawer'); if (!drawer) return;
+    drawer.hidden = false; document.body.classList.add('analyzer-open');
+    if (state.analysisResult) Renderer.renderClaimAnalysis(state.analysisResult);
+    if ($('analyzer-text')) $('analyzer-text').focus();
+  }
+  function closeAnalyzer() { var drawer = $('analyzer-drawer'); if (!drawer) return; drawer.hidden = true; document.body.classList.remove('analyzer-open'); }
+  function runClaimAnalysis(event) {
+    if (event) event.preventDefault();
+    var text = $('analyzer-text') ? $('analyzer-text').value.trim() : '';
+    if (!text) { toast('请粘贴广告语或脚本。', 'warning'); return; }
+    try {
+      state.analysisResult = ClaimAnalyzer.analyze({ text: text, facts: state.facts, brand: state.brand, cultureDna: state.cultureDna, platform: $('analyzer-platform').value });
+      Renderer.renderClaimAnalysis(state.analysisResult);
+      toast(state.analysisResult.status);
+    } catch (error) { toast(error.message || '文案体检失败。', 'error'); }
   }
 
   function viewHistoryRecord(recordId) {
@@ -1250,6 +1281,7 @@
     $('auth-tab-register').addEventListener('click', function () { setAuthMode('register'); });
     $('content-form').addEventListener('submit', function (event) { event.preventDefault(); generateContent(); });
     $('publish-form').addEventListener('submit', addPublishRecord);
+    $('analyzer-form').addEventListener('submit', runClaimAnalysis);
     $('brand-select').addEventListener('change', function () {
       if (this.value === 'new' || !state.brandLibrary[this.value]) {
         startNewBrand(true);
@@ -1312,6 +1344,9 @@
       if (name === 'new-brand') startNewBrand(true);
       if (name === 'change-password') changePassword();
       if (name === 'open-history') openHistory();
+      if (name === 'open-analyzer') openAnalyzer();
+      if (name === 'close-analyzer') closeAnalyzer();
+      if (name === 'copy-safe-rewrite') { if (state.analysisResult && navigator.clipboard) navigator.clipboard.writeText(state.analysisResult.safeRewrite).then(function () { toast('安全改写已复制。'); }); }
       if (name === 'close-history') closeHistory();
       if (name === 'refresh-history') { if (state.remoteAuth) syncRemoteState(); else renderAll(); toast('历史记录已刷新。'); }
       if (name === 'verify-facts') verifyFactsRemote(action);
@@ -1328,6 +1363,8 @@
     if ($('history-search')) $('history-search').addEventListener('input', function () { state.historyQuery = this.value.trim().toLowerCase(); Renderer.renderHistory(state); });
     if ($('history-status-filter')) $('history-status-filter').addEventListener('change', function () { state.historyStatus = this.value; Renderer.renderHistory(state); });
     document.addEventListener('keydown', function (event) {
+      var analyzer = $('analyzer-drawer');
+      if (analyzer && !analyzer.hidden && event.key === 'Escape') { closeAnalyzer(); return; }
       var drawer = $('history-drawer');
       if (!drawer || drawer.hidden) return;
       if (event.key === 'Escape') { closeHistory(); return; }
@@ -1397,6 +1434,9 @@
       openHistory: openHistory,
       closeHistory: closeHistory,
       viewHistoryRecord: viewHistoryRecord,
+      openAnalyzer: openAnalyzer,
+      closeAnalyzer: closeAnalyzer,
+      runClaimAnalysis: runClaimAnalysis,
       rollbackHistoryVersion: rollbackHistoryVersion,
       login: showApp
     };

@@ -224,6 +224,8 @@ fly deploy
 │       ├── data-store.js
 │       ├── document-service.js
 │       ├── http-security.js
+│       ├── official-registry-service.js
+│       ├── passport-service.js
 │       ├── postgres-store.js
 │       ├── rate-limit.js
 │       ├── store.js
@@ -233,6 +235,7 @@ fly deploy
 │       ├── ws-frame.js
 │       └── ws-server.js
 ├── shared/
+│   ├── claim-analyzer.js
 │   ├── content-passport.js
 │   ├── culture-dna.js
 │   ├── engine.js
@@ -254,6 +257,7 @@ fly deploy
 ├── index.html
 ├── manifest.webmanifest
 ├── package.json
+├── proof.html
 ├── railway.json
 ├── render.yaml
 ├── sw.js

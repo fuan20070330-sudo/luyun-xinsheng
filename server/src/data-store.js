@@ -155,20 +155,23 @@ class JsonStore {
       createdAt: record.createdAt || now(),
       updatedAt: now()
     });
+    if (!this.data[collection]) this.data[collection] = {};
     this.data[collection][id] = item;
     this.audit(collection + '.save', { userId, id });
     this.save();
     return clone(item);
   }
 
+  getAnyRecord(collection, id) { const item = (this.data[collection] || {})[id]; return item ? clone(item) : null; }
+
   getRecord(collection, userId, id) {
-    const item = this.data[collection][id];
+    const item = (this.data[collection] || {})[id];
     if (!item || item.userId !== userId) return null;
     return clone(item);
   }
 
   deleteRecord(collection, userId, id) {
-    const item = this.data[collection][id];
+    const item = (this.data[collection] || {})[id];
     if (!item || item.userId !== userId) return false;
     delete this.data[collection][id];
     this.audit(collection + '.delete', { userId, id });

@@ -102,6 +102,8 @@
   ApiClient.prototype.saveReview = function (record) { return this.request('/api/reviews', { method: 'POST', body: { record: record } }).then(function (payload) { return payload.record; }); };
   ApiClient.prototype.savePublish = function (record) { return this.request('/api/publish', { method: 'POST', body: { record: record } }).then(function (payload) { return payload.record; }); };
   ApiClient.prototype.saveDocument = function (record) { return this.request('/api/documents', { method: 'POST', body: { record: record } }).then(function (payload) { return payload.record; }); };
+  ApiClient.prototype.signPassport = function (passport) { return this.request('/api/passport/sign', { method: 'POST', body: { passport: passport } }).then(function (payload) { return payload.passport; }); };
+  ApiClient.prototype.verifyPassport = function (id) { return this.request('/api/passport/verify?id=' + encodeURIComponent(id)); };
   ApiClient.prototype.verifyFacts = function (facts, brandName) { return this.request('/api/verification/facts', { method: 'POST', body: { facts: facts || [], brandName: brandName || '' } }).then(function (payload) { return payload; }); };
   ApiClient.prototype.extractDocument = function (file) {
     return file.arrayBuffer().then(function (buffer) {

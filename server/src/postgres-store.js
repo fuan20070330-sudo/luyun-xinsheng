@@ -177,6 +177,8 @@ class PostgresStore {
     return result.rows.length ? clone(result.rows[0].payload) : null;
   }
 
+  async getAnyRecord(collection, id) { const result = await this.query('SELECT payload FROM records WHERE collection=$1 AND id=$2', [collection, id]); return result.rows.length ? clone(result.rows[0].payload) : null; }
+
   async deleteRecord(collection, userId, id) {
     const result = await this.query('DELETE FROM records WHERE collection=$1 AND user_id=$2 AND id=$3', [collection, userId, id]);
     if (result.rowCount) await this.audit(collection + '.delete', { id }, userId);

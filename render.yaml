@@ -28,6 +28,10 @@ services:
       - key: DATA_FILE
         value: /data/luyun-store.json
       # 生产环境请为 /data 配置持久化磁盘；免费实例文件系统可能被重置。
+      - key: OFFICIAL_REGISTRY_URL
+        sync: false
+      - key: OFFICIAL_REGISTRY_API_KEY
+        sync: false
       - key: OFFICIAL_VERIFICATION_URL
         sync: false
       - key: OFFICIAL_VERIFICATION_API_KEY
