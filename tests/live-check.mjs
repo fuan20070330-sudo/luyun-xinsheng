@@ -118,6 +118,10 @@ try {
   assert.ok(analyzer.riskCards >= 3);
   assert.ok(analyzer.safeRewriteLength > 20);
   await page.click('#analyzer-drawer .history-drawer-panel button[data-action="close-analyzer"]');
+  if (await page.evaluate(() => window.__LUYUN_APP__.state.evidenceGate.status === 'blocked')) {
+    await page.click('[data-action="confirm-sourced-facts"]');
+  }
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.evidenceGate.status !== 'blocked', null, { timeout: 10000 });
   await page.click('[data-artifact="story"] [data-review="accept"]');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.reviews.length >= 1, null, { timeout: 10000 });
   await page.click('[data-action="open-history"]');
@@ -125,6 +129,21 @@ try {
   const historyRecords = await page.locator('#history-list .history-item').count();
   assert.ok(historyRecords >= 1, '线上账号应保存生成历史');
   await page.click('button[data-action="close-history"]');
+  await page.click('[data-action="open-collaboration"]');
+  await page.waitForFunction(() => document.getElementById('collaboration-drawer').hidden === false && document.querySelectorAll('#collaboration-source option').length >= 2);
+  await page.selectOption('#collaboration-source', { index: 1 });
+  await page.fill('#collaboration-name', '线上协作验收空间');
+  await page.click('#collaboration-create-form button[type="submit"]');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.collaboration.workspaces.length >= 1, null, { timeout: 20000 });
+  const collaborationRecords = await page.evaluate(() => window.__LUYUN_APP__.state.collaboration.workspaces.length);
+  await page.click('#collaboration-drawer .history-drawer-panel button[data-action="close-collaboration"]');
+  const accountExport = await page.evaluate(async () => {
+    const response = await fetch(window.LUYUN_CONFIG.apiBaseUrl + '/api/account/export', { credentials: 'include' });
+    const body = await response.json();
+    return { status: response.status, ok: !!body.ok, historyCount: body.data && Array.isArray(body.data.jobs) ? body.data.jobs.length : 0 };
+  });
+  assert.equal(accountExport.status, 200);
+  assert.equal(accountExport.ok, true);
   await page.click('[data-action="show-mode-hub"]');
   await page.waitForFunction(() => document.getElementById('mode-hub').hidden === false);
   await page.click('[data-app-mode="revise"]');
@@ -213,6 +232,8 @@ try {
   result.evidenceGateStatus = evidenceGateStatus;
   result.suggestionDecision = true;
   result.factSourceLocators = await page.locator('.fact-source-locator').count();
+  result.collaborationRecords = collaborationRecords;
+  result.accountExportStatus = accountExport.status;
   assert.equal(result.artifacts, 4);
   assert.ok(result.reviews >= 1);
   assert.equal(result.mobileWidth, result.viewport);
