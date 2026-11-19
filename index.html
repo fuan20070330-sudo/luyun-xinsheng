@@ -8,8 +8,8 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta name="description" content="老字号叙事工坊：老字号与非遗品牌内容助手。">
   <title>老字号叙事工坊｜老字号与非遗品牌内容助手</title>
-  <link rel="icon" href="assets/favicon.svg?v=3.6.0" type="image/svg+xml">
-  <link rel="stylesheet" href="css/styles.css?v=3.6.0">
+  <link rel="icon" href="assets/favicon.svg?v=3.6.1" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css?v=3.6.1">
 </head>
 <body data-authenticated="false">
   <div class="paper-noise" aria-hidden="true"></div>
@@ -54,36 +54,29 @@
       </div>
     </header>
 
-    <section class="mode-hub" id="mode-hub" aria-labelledby="mode-hub-title">
-      <div class="mode-hub-heading">
-        <p class="section-kicker">内容工作台</p>
-        <h1 id="mode-hub-title">今天从哪一步开始？</h1>
-        <p>从品牌资料生成一份新稿，或把已有文稿、历史生成稿带进改稿台逐段检查。</p>
-      </div>
-      <div class="mode-card-grid">
-        <article class="mode-card mode-card-generate">
-          <span class="mode-index">一线</span>
-          <span class="mode-seal" aria-hidden="true">写</span>
-          <h2>生成文稿</h2>
-          <p>录入品牌资料和创作要求，生成品牌故事、内容日历、多平台文案与表达方案。</p>
-          <ul><li>品牌事实入库与来源核对</li><li>多平台内容与宣传方法组合</li><li>风险初筛与人工审核留痕</li></ul>
-          <button class="button button-primary" type="button" data-app-mode="generate">进入生成线</button>
-        </article>
-        <article class="mode-card mode-card-revise">
-          <span class="mode-index">二线</span>
-          <span class="mode-seal" aria-hidden="true">改</span>
-          <h2>修改文稿</h2>
-          <p>导入一份现有稿件，或从历史生成结果中选择一篇，再按要求检查和重写。</p>
-          <ul><li>导入 TXT、Markdown、JSON、CSV 等文件</li><li>选择历史生成稿继续编辑</li><li>问题语段定位、风险解释与修订对照</li></ul>
-          <button class="button button-secondary" type="button" data-app-mode="revise">进入改稿线</button>
-        </article>
-      </div>
-      <div class="mode-recent-bar">
-        <div><span>当前账号</span><strong id="mode-account-name">--</strong></div>
-        <div><span>可修改生成稿</span><strong id="mode-draft-count">0 份</strong></div>
-        <div><span>改稿记录</span><strong id="mode-revision-count">0 条</strong></div>
-        <button class="button button-ghost" type="button" data-action="open-history">查看最近生成</button>
-      </div>
+    <section class="mode-hub" id="mode-hub" aria-label="选择工作线">
+      <article class="mode-choice mode-choice-generate" data-app-mode="generate" role="button" tabindex="0" aria-labelledby="generate-mode-title">
+        <div class="mode-choice-inner">
+          <div class="mode-choice-top"><span class="mode-choice-index">工作线一</span><span class="mode-choice-seal" aria-hidden="true">写</span></div>
+          <p class="section-kicker">从资料到成稿</p>
+          <h1 id="generate-mode-title">生成文稿</h1>
+          <p class="mode-choice-lead">录入品牌历史、产品资料和创作要求，生成一套可追溯、可审核的多平台内容。</p>
+          <ul class="mode-choice-list"><li>品牌事实入库与来源核对</li><li>多平台内容与宣传方法组合</li><li>风险初筛、内容护照与审核留痕</li></ul>
+          <div class="mode-choice-meta"><span>当前账号</span><strong id="mode-account-name">--</strong><span>历史生成稿</span><strong id="mode-draft-count">0 份</strong></div>
+          <span class="mode-choice-action">进入生成文稿 <b aria-hidden="true">→</b></span>
+        </div>
+      </article>
+      <article class="mode-choice mode-choice-revise" data-app-mode="revise" role="button" tabindex="0" aria-labelledby="revise-mode-title">
+        <div class="mode-choice-inner">
+          <div class="mode-choice-top"><span class="mode-choice-index">工作线二</span><span class="mode-choice-seal" aria-hidden="true">改</span></div>
+          <p class="section-kicker">从已有稿件到安全修订</p>
+          <h1 id="revise-mode-title">修改文稿</h1>
+          <p class="mode-choice-lead">导入本地文件，或从历史生成稿中选一篇，按要求排查问题语段并生成修订稿。</p>
+          <ul class="mode-choice-list"><li>导入 TXT、Markdown、JSON、CSV、PDF、DOCX</li><li>选择历史生成稿继续编辑</li><li>问题语段定位、安全改写与修改说明</li></ul>
+          <div class="mode-choice-meta"><span>可修改生成稿</span><strong id="mode-draft-count-revise">0 份</strong><span>改稿记录</span><strong id="mode-revision-count">0 条</strong></div>
+          <span class="mode-choice-action">进入修改文稿 <b aria-hidden="true">→</b></span>
+        </div>
+      </article>
     </section>
 
     <div class="app-layout" id="generation-layout" hidden>
@@ -211,7 +204,11 @@
             </div>
             <div class="revision-divider"><span>或者</span></div>
             <input id="revision-file-import" type="file" accept=".txt,.md,.markdown,.json,.csv,.pdf,.docx,text/plain,application/json,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
-            <div class="revision-import-row"><button class="button button-ghost" type="button" data-action="trigger-revision-import">导入本地文件</button><small id="revision-file-status">支持 TXT、Markdown、JSON、CSV；PDF、DOCX 需在线网关解析。</small></div>
+            <label class="revision-dropzone" id="revision-dropzone" for="revision-file-import" tabindex="0">
+              <span class="revision-drop-icon" aria-hidden="true">导</span>
+              <span class="revision-drop-copy"><strong>导入本地文件</strong><small id="revision-file-status">点击选择文件，也可以直接拖入。支持 TXT、Markdown、JSON、CSV；PDF、DOCX 需在线网关解析。</small></span>
+              <span class="revision-drop-action">选择文件</span>
+            </label>
             <label class="field"><span>待修改的原文</span><textarea id="revision-original-text" rows="15" placeholder="在这里粘贴广告语、公众号文章、短视频脚本或品牌介绍，也可以从上方选择一份生成稿。"></textarea><small class="field-hint">原文会保留在改稿记录中，AI 原稿与人工修改稿分开保存。</small></label>
             <div class="field-row two-col">
               <label class="field"><span>目标平台</span><select id="revision-platform"><option value="xiaohongshu">小红书</option><option value="douyin">抖音</option><option value="wechat">微信公众号</option><option value="matrix">多平台矩阵</option><option value="offline">线下物料 / 通用文案</option></select><small class="field-hint">平台会影响语感检查和修改建议。</small></label>
@@ -279,22 +276,22 @@
   </div>
 
   <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
-  <script src="js/config.js?v=3.6.0"></script>
-  <script src="js/api-client.js?v=3.6.0"></script>
-  <script src="shared/engine.js?v=3.6.0"></script>
-  <script src="shared/quality.js?v=3.6.0"></script>
-  <script src="shared/memory-graph.js?v=3.6.0"></script>
-  <script src="shared/culture-dna.js?v=3.6.0"></script>
-  <script src="shared/evidence-gaps.js?v=3.6.0"></script>
-  <script src="shared/content-passport.js?v=3.6.0"></script>
-  <script src="shared/proof-engine.js?v=3.6.0"></script>
-  <script src="shared/claim-analyzer.js?v=3.6.0"></script>
-  <script src="shared/draft-reviser.js?v=3.6.0"></script>
-  <script src="shared/generator.js?v=3.6.0"></script>
-  <script src="js/data.js?v=3.6.0"></script>
-  <script src="js/gateway-client.js?v=3.6.0"></script>
-  <script src="js/renderer.js?v=3.6.0"></script>
-  <script src="js/app.js?v=3.6.0"></script>
+  <script src="js/config.js?v=3.6.1"></script>
+  <script src="js/api-client.js?v=3.6.1"></script>
+  <script src="shared/engine.js?v=3.6.1"></script>
+  <script src="shared/quality.js?v=3.6.1"></script>
+  <script src="shared/memory-graph.js?v=3.6.1"></script>
+  <script src="shared/culture-dna.js?v=3.6.1"></script>
+  <script src="shared/evidence-gaps.js?v=3.6.1"></script>
+  <script src="shared/content-passport.js?v=3.6.1"></script>
+  <script src="shared/proof-engine.js?v=3.6.1"></script>
+  <script src="shared/claim-analyzer.js?v=3.6.1"></script>
+  <script src="shared/draft-reviser.js?v=3.6.1"></script>
+  <script src="shared/generator.js?v=3.6.1"></script>
+  <script src="js/data.js?v=3.6.1"></script>
+  <script src="js/gateway-client.js?v=3.6.1"></script>
+  <script src="js/renderer.js?v=3.6.1"></script>
+  <script src="js/app.js?v=3.6.1"></script>
 </body>
 </html>
 

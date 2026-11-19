@@ -773,6 +773,7 @@
     if ($('revision-keep')) $('revision-keep').value = revision.keep || '';
     if ($('revision-platform')) $('revision-platform').value = revision.platform || 'xiaohongshu';
     if ($('revision-result-text')) $('revision-result-text').value = revision.resultText || '';
+    if ($('revision-file-status') && revision.sourceType === 'file') $('revision-file-status').textContent = '已载入：' + (revision.sourceTitle || '本地文件') + '。可以在下方继续编辑或重新排查问题语段。';
   }
 
   function loadRevisionSource() {
@@ -1642,6 +1643,16 @@
     });
     $('file-import').addEventListener('change', function () { if (this.files[0]) handleFile(this.files[0]); });
     if ($('revision-file-import')) $('revision-file-import').addEventListener('change', function () { if (this.files[0]) importRevisionFile(this.files[0]); this.value = ''; });
+    if ($('revision-dropzone')) {
+      var dropzone = $('revision-dropzone');
+      ['dragenter', 'dragover'].forEach(function (name) { dropzone.addEventListener(name, function (event) { event.preventDefault(); dropzone.classList.add('is-dragover'); }); });
+      ['dragleave', 'drop'].forEach(function (name) { dropzone.addEventListener(name, function (event) { event.preventDefault(); dropzone.classList.remove('is-dragover'); }); });
+      dropzone.addEventListener('drop', function (event) { var file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]; if (file) importRevisionFile(file); });
+      dropzone.addEventListener('keydown', function (event) { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); $('revision-file-import').click(); } });
+    }
+    $$('.mode-choice[data-app-mode]').forEach(function (choice) {
+      choice.addEventListener('keydown', function (event) { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); showAppMode(choice.getAttribute('data-app-mode')); } });
+    });
     if ($('revision-source-select')) $('revision-source-select').addEventListener('change', function () { if (this.value) loadRevisionSource(); });
     if ($('revision-original-text')) $('revision-original-text').addEventListener('input', function () { state.revision = state.revision || {}; state.revision.originalText = this.value; });
     if ($('revision-result-text')) $('revision-result-text').addEventListener('input', function () { state.revision = state.revision || {}; state.revision.resultText = this.value; });
@@ -1679,7 +1690,7 @@
       if (pageButton) { showStep(Number(pageButton.getAttribute('data-page'))); return; }
       var nextButton = event.target.closest('[data-next]');
       if (nextButton) { handleNext(nextButton); return; }
-      var modeButton = event.target.closest('button[data-app-mode]');
+      var modeButton = event.target.closest('.mode-choice[data-app-mode], button[data-app-mode]');
       if (modeButton) { showAppMode(modeButton.getAttribute('data-app-mode')); return; }
       var revisionAction = event.target.closest('[data-revision-action]');
       if (revisionAction) {

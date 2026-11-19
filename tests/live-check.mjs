@@ -27,6 +27,9 @@ try {
   });
   assert.equal(remoteSession.status, 200);
   assert.equal(remoteSession.body.user.email, liveEmail);
+  const splitEntry = await page.evaluate(() => Array.from(document.querySelectorAll('.mode-choice')).map((item) => Math.round(item.getBoundingClientRect().width)));
+  assert.equal(splitEntry.length, 2);
+  assert.ok(Math.abs(splitEntry[0] - splitEntry[1]) <= 2);
   await page.click('[data-app-mode="generate"]');
   await page.waitForFunction(() => document.getElementById('generation-layout').hidden === false);
   await page.fill('#brand-type', '山东传统糕点老字号');
@@ -122,6 +125,7 @@ try {
   await page.waitForFunction(() => document.getElementById('mode-hub').hidden === false);
   await page.click('[data-app-mode="revise"]');
   await page.waitForFunction(() => document.getElementById('revise-workspace').hidden === false);
+  assert.equal(await page.locator('#revision-dropzone').isVisible(), true);
   await page.selectOption('#revision-source-select', { index: 1 });
   await page.waitForFunction(() => window.__LUYUN_APP__.state.revision && window.__LUYUN_APP__.state.revision.originalText.length > 100);
   await page.fill('#revision-keep', '保留1918年和五道主要工序');
@@ -195,6 +199,7 @@ try {
   result.revisionOriginalRetained = revision.originalRetained;
   result.revisionResultRetained = revision.resultRetained;
   result.revisionIssueRows = revision.issues;
+  result.splitEntryWidths = splitEntry;
   assert.equal(result.artifacts, 4);
   assert.ok(result.reviews >= 1);
   assert.equal(result.mobileWidth, result.viewport);

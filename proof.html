@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#9f2f25">
   <title>内容护照验证｜老字号叙事工坊</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="css/styles.css?v=3.6.0">
+  <link rel="stylesheet" href="css/styles.css?v=3.6.1">
   <style>
     body{min-height:100vh;background:radial-gradient(circle at 80% 10%,rgba(159,47,37,.12),transparent 32%),var(--paper)}
     .proof-page{width:min(900px,calc(100% - 24px));margin:0 auto;padding:48px 0}
@@ -28,7 +28,7 @@
       <div class="proof-actions"><a class="button button-primary" href="./">返回应用</a><a class="button button-ghost" id="proof-api-link" href="#" target="_blank" rel="noopener">查看验证接口</a></div>
     </section>
   </main>
-  <script src="js/config.js?v=3.6.0"></script>
+  <script src="js/config.js?v=3.6.1"></script>
   <script>
     (function(){'use strict';var id=new URLSearchParams(location.search).get('id')||'';var state=document.getElementById('proof-state');var grid=document.getElementById('proof-grid');var api=window.LUYUN_CONFIG.apiBaseUrl;if(!id){state.textContent='缺少内容护照编号。';return;}var endpoint=api+'/api/passport/verify?id='+encodeURIComponent(id);document.getElementById('proof-api-link').href=endpoint;fetch(endpoint,{credentials:'include'}).then(function(r){return r.json().then(function(body){return {status:r.status,body:body}})}).then(function(result){var body=result.body||{};var p=body.passport||{};var valid=!!body.valid;state.dataset.valid=String(valid);state.textContent=valid?'数字签名有效，内容护照未被篡改。':'验证失败：'+(body.verification&&body.verification.reason||body.error&&body.error.message||'无法验证');var fields=[['护照编号',p.id],['品牌',p.brandName],['平台',p.platformName],['模型',p.model],['提示词版本',p.promptVersion],['证明编号',p.proofId],['证明状态',p.proofStatus],['证明分',p.proofScore],['事实引用',(p.facts||[]).join('、')],['内容哈希',p.contentHash],['数字签名',p.signature?'已签名':'未签名'],['签发时间',p.signedAt||p.createdAt],['审核次数',p.reviewCount||0],['状态',p.status]];grid.innerHTML=fields.map(function(x){return '<div><small>'+escapeHtml(x[0])+'</small><strong>'+escapeHtml(x[1]||'--')+'</strong></div>'}).join('')}).catch(function(){state.textContent='无法连接内容护照验证服务。'});function escapeHtml(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}})();
   </script>

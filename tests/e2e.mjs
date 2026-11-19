@@ -87,6 +87,15 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   assert.equal(Object.prototype.hasOwnProperty.call(authRecord, 'password'), false);
   assert.equal(await page.locator('#mode-hub').isVisible(), true);
   assert.equal(await page.locator('#generation-layout').isVisible(), false);
+  const splitEntry = await page.evaluate(() => {
+    const choices = Array.from(document.querySelectorAll('.mode-choice')).map((item) => { const rect = item.getBoundingClientRect(); return { left: rect.left, width: rect.width, height: rect.height }; });
+    return { choices, viewport: window.innerWidth };
+  });
+  assert.equal(splitEntry.choices.length, 2);
+  assert.ok(Math.abs(splitEntry.choices[0].width - splitEntry.choices[1].width) <= 2, '两条工作线应各占一半宽度');
+  assert.ok(splitEntry.choices[0].width >= splitEntry.viewport * 0.49, '生成工作线应占约 50%');
+  assert.ok(splitEntry.choices[1].left >= splitEntry.viewport * 0.49, '修改工作线应位于右侧一半');
+  await page.screenshot({ path: path.join(artifactsDir, 'mode-entry.png'), fullPage: true });
   await page.click('[data-app-mode="generate"]');
   await page.waitForFunction(() => document.getElementById('generation-layout').hidden === false);
   assert.equal(await page.locator('.app-step.is-active').getAttribute('data-step'), '1');
@@ -153,6 +162,7 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   assert.match(modeHub.drafts, /4 份/);
   await page.click('[data-app-mode="revise"]');
   await page.waitForFunction(() => document.getElementById('revise-workspace').hidden === false);
+  assert.equal(await page.locator('#revision-dropzone').isVisible(), true);
   await page.setInputFiles('#revision-file-import', { name: 'legacy-copy.md', mimeType: 'text/markdown', buffer: Buffer.from('鲁香斋是宫廷御用点心。产品可以降血糖。这款最正宗。', 'utf8') });
   await page.waitForFunction(() => window.__LUYUN_APP__.state.revision && window.__LUYUN_APP__.state.revision.sourceType === 'file' && window.__LUYUN_APP__.state.revision.originalText.includes('宫廷御用'));
   assert.match(await page.locator('#revision-file-status').textContent(), /legacy-copy\.md/);
@@ -291,6 +301,8 @@ assert.ok(persisted.history.length >= 1);
   await page.waitForFunction(() => document.getElementById('mode-hub').hidden === false);
   const hubMobile = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, innerWidth: window.innerWidth }));
   assert.ok(hubMobile.scrollWidth <= hubMobile.innerWidth, '390px 工作台入口不应产生横向滚动');
+  const hubChoicesMobile = await page.evaluate(() => Array.from(document.querySelectorAll('.mode-choice')).map((item) => Math.round(item.getBoundingClientRect().width)));
+  assert.ok(hubChoicesMobile.every((width) => Math.abs(width - 390) <= 1), '手机端两条工作线应纵向各占满屏宽');
   await page.click('[data-app-mode="revise"]');
   await page.waitForFunction(() => document.getElementById('revise-workspace').hidden === false);
   const reviseMobile = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, innerWidth: window.innerWidth }));
@@ -478,7 +490,7 @@ try {
   await page.close();
   const fallback = await runFallbackFlow(context, baseUrl, []);
   const remoteApi = await runRemoteApiFlow(context, baseUrl, gatewayPort, consoleErrors);
-  console.log(JSON.stringify({ ok: true, baseUrl, connected, historyIsolation, fallback, remoteApi, screenshots: ['login-page.png', 'desktop-full.png', 'mobile-full.png', 'revision-mobile.png', 'fallback-mobile.png'] }, null, 2));
+  console.log(JSON.stringify({ ok: true, baseUrl, connected, historyIsolation, fallback, remoteApi, screenshots: ['login-page.png', 'mode-entry.png', 'desktop-full.png', 'mobile-full.png', 'revision-mobile.png', 'fallback-mobile.png'] }, null, 2));
 } finally {
   await browser.close();
   gatewayBundle.gateway.close();

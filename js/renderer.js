@@ -236,6 +236,7 @@
   function renderModeHub(state) {
     if (byId('mode-account-name')) byId('mode-account-name').textContent = state.accountName || state.user || '--';
     if (byId('mode-draft-count')) byId('mode-draft-count').textContent = ((state.revisionSources || []).length || 0) + ' 份';
+    if (byId('mode-draft-count-revise')) byId('mode-draft-count-revise').textContent = ((state.revisionSources || []).length || 0) + ' 份';
     if (byId('mode-revision-count')) byId('mode-revision-count').textContent = ((state.revisionHistory || []).length || 0) + ' 条';
   }
 
