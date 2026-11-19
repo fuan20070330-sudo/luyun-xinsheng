@@ -7,7 +7,7 @@ from docx.shared import Cm, Pt, RGBColor
 
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUT = ROOT / "docs" / "老字号叙事工坊项目简要说明.docx"
+OUTPUT = ROOT / "docs" / "简要说明文件.docx"
 FONT = "Noto Sans SC"
 
 
