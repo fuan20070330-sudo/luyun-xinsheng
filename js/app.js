@@ -11,8 +11,16 @@
   var ProofEngine = window.LuyunProofEngine;
   var ClaimAnalyzer = window.LuyunClaimAnalyzer;
   var DraftReviser = window.LuyunDraftReviser;
-  var EvidenceGate = window.LuyunEvidenceGate;
-  var PlatformChecker = window.LuyunPlatformChecker;
+  var EvidenceGate = window.LuyunEvidenceGate || {
+    build: function () {
+      return { status: 'blocked', blockers: [{ code: 'MODULE_LOAD_FAILED', message: '证据门禁模块未加载，请刷新页面后重试。' }], warnings: [], counts: { criticalFacts: 0, confirmedFacts: 0, highRisks: 0 }, checkedAt: now() };
+    }
+  };
+  var PlatformChecker = window.LuyunPlatformChecker || {
+    check: function (text, platform) {
+      return { platform: platform || 'matrix', label: '平台检查', length: String(text || '').length, limit: 0, status: 'warning', findings: [{ level: 'low', message: '平台检查模块未加载，请刷新页面。' }] };
+    }
+  };
   var Config = window.LUYUN_CONFIG;
   var $ = function (id) { return document.getElementById(id); };
   var $$ = function (selector) { return Array.prototype.slice.call(document.querySelectorAll(selector)); };

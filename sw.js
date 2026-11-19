@@ -1,5 +1,5 @@
 'use strict';
-const CACHE_NAME = 'luyun-xinsheng-v3.7.0';
+const CACHE_NAME = 'luyun-xinsheng-v3.7.1';
 const ASSETS = [
   './',
   './index.html',
@@ -21,6 +21,9 @@ const ASSETS = [
   './shared/content-passport.js',
   './shared/proof-engine.js',
   './shared/claim-analyzer.js',
+  './shared/draft-reviser.js',
+  './shared/evidence-gate.js',
+  './shared/platform-checker.js',
   './shared/generator.js'
 ];
 self.addEventListener('install', (event) => {
@@ -32,11 +35,17 @@ self.addEventListener('activate', (event) => {
 });
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
-  event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
+  if (!/^https?:/.test(event.request.url)) return;
+  event.respondWith(fetch(event.request).then((response) => {
     if (response && response.ok && new URL(event.request.url).origin === self.location.origin) {
       const copy = response.clone();
       caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
     }
     return response;
-  }).catch(() => caches.match('./index.html'))));
+  }).catch(async () => {
+    const cached = await caches.match(event.request);
+    if (cached) return cached;
+    if (event.request.mode === 'navigate') return caches.match('./index.html');
+    return new Response('', { status: 503, statusText: 'Offline asset unavailable' });
+  }));
 });
