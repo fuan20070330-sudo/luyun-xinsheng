@@ -6,7 +6,8 @@ const url = process.env.LIVE_URL || 'https://fuan20070330-sudo.github.io/luyun-x
 const playwrightSpecifier = process.env.PLAYWRIGHT_PATH ? pathToFileURL(process.env.PLAYWRIGHT_PATH).href : 'playwright';
 const { chromium } = await import(playwrightSpecifier);
 const browser = await chromium.launch({ headless: true, executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe' });
-const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+const page = await context.newPage();
 const errors = [];
 page.on('console', (message) => { if (message.type() === 'error') errors.push('console: ' + message.text()); });
 page.on('pageerror', (error) => errors.push('pageerror: ' + error.message));
@@ -53,6 +54,61 @@ try {
   assert.equal(innovation.fidelityChips, 4);
   assert.match(innovation.proofStatus, /证明/);
   assert.ok(innovation.claimCards >= 4);
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.passport && window.__LUYUN_APP__.state.passport.signature, null, { timeout: 20000 });
+  const passportVerification = await page.evaluate(async () => {
+    const passport = window.__LUYUN_APP__.state.passport;
+    const response = await fetch(window.LUYUN_CONFIG.apiBaseUrl + '/api/passport/verify?id=' + encodeURIComponent(passport.id), { credentials: 'include' });
+    const body = await response.json();
+    return {
+      id: passport.id,
+      endpointStatus: response.status,
+      valid: body.valid,
+      signed: !!passport.signature,
+      signingKeyId: passport.signingKeyId,
+      verification: body.verification
+    };
+  });
+  assert.equal(passportVerification.endpointStatus, 200);
+  assert.equal(passportVerification.valid, true);
+  assert.equal(passportVerification.signed, true);
+  assert.ok(passportVerification.signingKeyId);
+  const proofPage = await context.newPage();
+  proofPage.on('console', (message) => { if (message.type() === 'error') errors.push('proof console: ' + message.text()); });
+  proofPage.on('pageerror', (error) => errors.push('proof pageerror: ' + error.message));
+  const proofUrl = new URL('proof.html?id=' + encodeURIComponent(passportVerification.id), url).href;
+  const proofResponse = await proofPage.goto(proofUrl, { waitUntil: 'networkidle', timeout: 45000 });
+  assert.equal(proofResponse.status(), 200);
+  await proofPage.waitForFunction(() => document.getElementById('proof-state').dataset.valid === 'true', null, { timeout: 15000 });
+  const proof = await proofPage.evaluate(() => ({
+    status: document.getElementById('proof-state').textContent,
+    valid: document.getElementById('proof-state').dataset.valid,
+    fields: document.querySelectorAll('#proof-grid > div').length,
+    passportShown: document.body.textContent.includes('LYXS-')
+  }));
+  assert.equal(proof.valid, 'true');
+  assert.match(proof.status, /签名有效/);
+  assert.ok(proof.fields >= 12);
+  assert.equal(proof.passportShown, true);
+  await proofPage.close();
+  await page.click('[data-action="open-analyzer"]');
+  await page.waitForFunction(() => document.getElementById('analyzer-drawer').hidden === false);
+  await page.fill('#analyzer-text', '鲁香斋是宫廷御用点心。品牌是国家级非遗。产品吃一块就能降血糖。1918年全国第一。');
+  await page.selectOption('#analyzer-platform', 'douyin');
+  await page.click('#analyzer-form button[type="submit"]');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.analysisResult && window.__LUYUN_APP__.state.analysisResult.highRiskCount >= 3, null, { timeout: 10000 });
+  const analyzer = await page.evaluate(() => ({
+    status: window.__LUYUN_APP__.state.analysisResult.status,
+    highRiskCount: window.__LUYUN_APP__.state.analysisResult.highRiskCount,
+    sentenceRows: document.querySelectorAll('#analyzer-results .sentence-row').length,
+    riskCards: document.querySelectorAll('#analyzer-results .gap-card').length,
+    safeRewriteLength: document.querySelector('#analyzer-results .safe-rewrite').textContent.trim().length
+  }));
+  assert.match(analyzer.status, /高风险/);
+  assert.ok(analyzer.highRiskCount >= 3);
+  assert.ok(analyzer.sentenceRows >= 3);
+  assert.ok(analyzer.riskCards >= 3);
+  assert.ok(analyzer.safeRewriteLength > 20);
+  await page.click('#analyzer-drawer .history-drawer-panel button[data-action="close-analyzer"]');
   await page.click('[data-artifact="story"] [data-review="accept"]');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.reviews.length >= 1, null, { timeout: 10000 });
   await page.click('[data-action="open-history"]');
@@ -95,6 +151,12 @@ try {
   }));
   result.graphNodes = innovation.graphNodes;
   result.passportId = innovation.passportId;
+  result.passportSigned = passportVerification.signed;
+  result.passportVerificationValid = passportVerification.valid;
+  result.proofStatus = proof.status;
+  result.analyzerStatus = analyzer.status;
+  result.analyzerHighRiskCount = analyzer.highRiskCount;
+  result.analyzerSentenceRows = analyzer.sentenceRows;
   assert.equal(result.artifacts, 4);
   assert.ok(result.reviews >= 1);
   assert.equal(result.mobileWidth, result.viewport);
@@ -118,6 +180,7 @@ try {
   assert.equal(errors.length, 0, errors.join('\n'));
   console.log(JSON.stringify({ ok: true, url, ...result }, null, 2));
 } finally {
+  await context.close();
   await browser.close();
 }
 
