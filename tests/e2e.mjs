@@ -147,6 +147,7 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   assert.equal(innovation.fidelityChips, 4);
   assert.equal(await page.locator('#evidence-gate').isVisible(), true);
   assert.ok(await page.locator('.fact-source-locator').count() >= 5);
+  await page.screenshot({ path: path.join(artifactsDir, 'results-desktop.png'), fullPage: true });
   await page.click('[data-action="open-analyzer"]');
   await page.fill('#analyzer-text', '国家级非遗工艺，吃了可以降血糖。匠心独运，不容错过。');
   await page.selectOption('#analyzer-platform', 'douyin');
@@ -521,7 +522,7 @@ try {
   await page.close();
   const fallback = await runFallbackFlow(context, baseUrl, []);
   const remoteApi = await runRemoteApiFlow(context, baseUrl, gatewayPort, consoleErrors);
-  console.log(JSON.stringify({ ok: true, baseUrl, connected, historyIsolation, fallback, remoteApi, screenshots: ['login-page.png', 'mode-entry.png', 'desktop-full.png', 'mobile-full.png', 'revision-mobile.png', 'fallback-mobile.png'] }, null, 2));
+  console.log(JSON.stringify({ ok: true, baseUrl, connected, historyIsolation, fallback, remoteApi, screenshots: ['login-page.png', 'mode-entry.png', 'results-desktop.png', 'desktop-full.png', 'mobile-full.png', 'revision-mobile.png', 'fallback-mobile.png'] }, null, 2));
 } finally {
   await browser.close();
   gatewayBundle.gateway.close();

@@ -46,6 +46,7 @@
     var risks = state.risks || [];
     var counts = { high: 0, medium: 0, low: 0 };
     risks.forEach(function (risk) { counts[risk.level] = (counts[risk.level] || 0) + 1; });
+    if (byId('results-risk-count')) byId('results-risk-count').textContent = risks.length + ' 项';
     var summary = byId('risk-summary');
     summary.querySelector('.risk-high b').textContent = counts.high;
     summary.querySelector('.risk-medium b').textContent = counts.medium;
@@ -78,6 +79,7 @@
     var artifacts = state.artifacts || [];
     var status = byId('result-status');
     byId('export-markdown').disabled = !artifacts.length;
+    if (byId('results-artifact-count')) byId('results-artifact-count').textContent = artifacts.length + ' 份';
     if (byId('export-calendar')) byId('export-calendar').disabled = !artifacts.some(function (artifact) { return artifact.id === 'calendar'; });
     status.textContent = artifacts.length ? artifacts.length + ' 项成果已生成' : '尚无生成结果';
     if (!artifacts.length) {
@@ -248,8 +250,9 @@
     var status = byId('evidence-gate-status');
     if (!root || !status) return;
     var gate = state.evidenceGate;
-    if (!gate) { status.textContent = '等待检查'; root.innerHTML = '<div class="empty-state"><span class="empty-glyph">证</span><p>生成内容后检查关键事实确认、原文定位、风险项和品牌禁用表达。</p></div>'; return; }
+    if (!gate) { status.textContent = '等待检查'; if (byId('results-gate-summary')) byId('results-gate-summary').textContent = '待检查'; root.innerHTML = '<div class="empty-state"><span class="empty-glyph">证</span><p>生成内容后检查关键事实确认、原文定位、风险项和品牌禁用表达。</p></div>'; return; }
     status.textContent = gate.status === 'ready' ? '可进入批准' : gate.status === 'warning' ? '有提醒' : '已阻止批准';
+    if (byId('results-gate-summary')) byId('results-gate-summary').textContent = gate.status === 'ready' ? '可进入批准' : gate.status === 'warning' ? '有提醒' : '已阻止批准';
     status.className = 'status-chip ' + (gate.status === 'ready' ? 'is-active' : gate.status === 'blocked' ? 'is-warning' : '');
     var blockers = (gate.blockers || []).slice(0, 12).map(function (item) { return '<li>' + escapeHtml(item.message) + '</li>'; }).join('');
     var warnings = (gate.warnings || []).slice(0, 10).map(function (item) { return '<li>' + escapeHtml(item.message) + '</li>'; }).join('');

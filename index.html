@@ -8,8 +8,8 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta name="description" content="老字号叙事工坊：老字号与非遗品牌内容助手。">
   <title>老字号叙事工坊｜老字号与非遗品牌内容助手</title>
-  <link rel="icon" href="assets/favicon.svg?v=3.8.0" type="image/svg+xml">
-  <link rel="stylesheet" href="css/styles.css?v=3.8.0">
+  <link rel="icon" href="assets/favicon.svg?v=3.8.1" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css?v=3.8.1">
 </head>
 <body data-authenticated="false">
   <div class="paper-noise" aria-hidden="true"></div>
@@ -167,21 +167,43 @@
         </section>
 
         <section class="app-step" data-step="5" id="results" aria-labelledby="step5-title">
-          <div class="step-heading"><div><p class="section-kicker">步骤 5 / 6</p><h2 id="step5-title">查看生成结果</h2><p>先核对事实引用和风险，再完成多角色审查与品牌方确认。</p></div><div class="result-actions"><span id="result-status">尚无生成结果</span><button class="button button-outline" type="button" id="export-calendar" disabled>导出日历 CSV</button><button class="button button-outline" type="button" id="export-markdown" disabled>导出品牌确认包</button></div></div>
-          <article class="panel evidence-gate-panel" id="evidence-gate"><div class="panel-head"><div><span class="panel-index">门</span><h3>发布证据门禁</h3></div><span class="status-chip" id="evidence-gate-status">等待检查</span></div><div id="evidence-gate-body"><div class="empty-state"><span class="empty-glyph">证</span><p>生成内容后检查关键事实确认、原文定位、风险项和品牌禁用表达。</p></div></div></article>
-          <article class="panel proof-panel"><div class="panel-head"><div><span class="panel-index">证</span><h3>内容证明编译器</h3></div><div class="passport-actions"><span class="status-chip" id="proof-status">未编译</span><button class="button button-outline" type="button" data-action="run-proof">重新执行编译证明</button></div></div><div class="proof-engine" id="proof-engine"><div class="empty-state"><span class="empty-glyph">证</span><p>生成内容后检查声明类型、证明义务和正文编译结果。</p></div></div></article>
-          <article class="panel passport-panel"><div class="panel-head"><div><span class="panel-index">证</span><h3>内容护照</h3></div><div class="passport-actions"><span class="status-chip" id="passport-id">未生成</span><button class="button button-outline" type="button" id="copy-passport" disabled>复制护照信息</button></div></div><div class="content-passport" id="content-passport"><div class="empty-state"><span class="empty-glyph">证</span><p>生成内容后生成可追溯内容护照。</p></div></div></article>
-          <div class="risk-summary" id="risk-summary"><span class="risk-count risk-high"><b>0</b> 高风险</span><span class="risk-count risk-medium"><b>0</b> 中风险</span><span class="risk-count risk-low"><b>0</b> 待关注</span></div>
-          <div class="result-layout">
-            <div class="risk-list" id="risk-list"><div class="empty-state panel"><span class="empty-glyph">检</span><p>生成后自动显示医疗功效、非遗身份、文化正统性、绝对化、年份与工艺风险。</p></div></div>
-            <aside class="boundary-note panel"><span class="boundary-seal">界</span><h3>发布边界</h3><p>助手先出初稿，再做事实与风险初筛；品牌方确认后，方可定稿发布。</p><ul><li>确定事实必须引用 [Fxxx]</li><li>待核实信息不得写成确定事实</li><li>高风险内容需要修改和重新确认</li></ul><button class="button button-ghost button-full" type="button" data-next="6">进入人工审核</button></aside>
-          </div>
-          <div class="panel role-review-panel"><div class="panel-head"><div><span class="panel-index">审</span><h3>多角色审核</h3></div><span class="status-chip" id="role-review-count">0 项</span></div><div class="role-review-list" id="role-review-list"><div class="empty-state"><span class="empty-glyph">审</span><p>生成后显示档案、编辑、平台、文化和合规角色的审查结果。</p></div></div></div>          <div class="artifact-grid" id="artifact-grid">
-            <article class="artifact-card empty-artifact"><span>事</span><h3>品牌故事</h3><p>基于品牌历史与受访内容形成可追溯叙事。</p></article>
-            <article class="artifact-card empty-artifact"><span>历</span><h3>内容日历</h3><p>按节点、主题与平台规划持续内容。</p></article>
-            <article class="artifact-card empty-artifact"><span>传</span><h3>多平台文案</h3><p>适配小红书、抖音和微信公众号表达。</p></article>
-            <article class="artifact-card empty-artifact"><span>新</span><h3>年轻化表达方案</h3><p>在保持文化内涵的前提下提出年轻受众可理解的表达。</p></article>
-          </div>
+          <div class="step-heading results-heading"><div><p class="section-kicker">步骤 5 / 6</p><h2 id="step5-title">内容成果与发布检查</h2><p>先看四份可编辑稿件，再处理风险、审核意见和发布前核验。</p></div><div class="result-actions"><button class="button button-outline" type="button" id="export-calendar" disabled>导出内容日历</button><button class="button button-outline" type="button" id="export-markdown" disabled>导出完整确认包</button></div></div>
+
+          <div class="results-status-strip"><div><span>本次成果</span><strong id="results-artifact-count">0 份</strong></div><div><span>风险总计</span><strong id="results-risk-count">0 项</strong></div><div><span>发布门禁</span><strong id="results-gate-summary">待检查</strong></div><div><span>当前状态</span><strong id="result-status">尚无生成结果</strong></div></div>
+
+          <section class="result-section results-content-section" aria-labelledby="results-content-title">
+            <div class="result-section-head"><div class="result-section-title"><span class="result-section-index">01</span><div><p>主要内容</p><h3 id="results-content-title">四份可编辑内容成果</h3></div></div><span class="result-section-note">每份稿件都可以确认、修改、复制和进入审核</span></div>
+            <div class="artifact-grid" id="artifact-grid">
+              <article class="artifact-card empty-artifact"><span>事</span><h3>品牌故事</h3><p>基于品牌历史与受访内容形成可追溯叙事。</p></article>
+              <article class="artifact-card empty-artifact"><span>历</span><h3>内容日历</h3><p>按节点、主题与平台规划持续内容。</p></article>
+              <article class="artifact-card empty-artifact"><span>传</span><h3>多平台文案</h3><p>适配小红书、抖音和微信公众号表达。</p></article>
+              <article class="artifact-card empty-artifact"><span>新</span><h3>年轻化表达方案</h3><p>在保持文化内涵的前提下提出年轻受众可理解的表达。</p></article>
+            </div>
+          </section>
+
+          <section class="result-section results-risk-section" aria-labelledby="results-risk-title">
+            <div class="result-section-head"><div class="result-section-title"><span class="result-section-index">02</span><div><p>需要处理</p><h3 id="results-risk-title">风险检查与修改建议</h3></div></div><div class="risk-summary" id="risk-summary"><span class="risk-count risk-high"><b>0</b> 高风险</span><span class="risk-count risk-medium"><b>0</b> 中风险</span><span class="risk-count risk-low"><b>0</b> 待关注</span></div></div>
+            <div class="result-layout">
+              <div class="risk-list" id="risk-list"><div class="empty-state panel"><span class="empty-glyph">检</span><p>生成后自动显示医疗功效、非遗身份、文化正统性、绝对化、年份与工艺风险。</p></div></div>
+              <aside class="boundary-note panel"><span class="boundary-seal">界</span><h3>发布规则</h3><p>助手先出初稿，再做事实与风险初筛；品牌方确认后，方可定稿发布。</p><ul><li>确定事实必须引用 [Fxxx]</li><li>待核实信息不得写成确定事实</li><li>高风险内容需要修改和重新确认</li></ul></aside>
+            </div>
+          </section>
+
+          <section class="result-section results-review-section" aria-labelledby="results-review-title">
+            <div class="result-section-head"><div class="result-section-title"><span class="result-section-index">03</span><div><p>审核意见</p><h3 id="results-review-title">五个角色的检查结论</h3></div></div><span class="status-chip" id="role-review-count">0 项</span></div>
+            <div class="panel role-review-panel"><div class="role-review-list" id="role-review-list"><div class="empty-state"><span class="empty-glyph">审</span><p>生成后显示档案、编辑、平台、文化和合规角色的审查结果。</p></div></div></div>
+          </section>
+
+          <section class="result-section results-verification-section" aria-labelledby="results-verification-title">
+            <div class="result-section-head"><div class="result-section-title"><span class="result-section-index">04</span><div><p>发布前检查</p><h3 id="results-verification-title">事实证据与内容证明</h3></div></div><span class="result-section-note">技术细节已收进下方折叠区，不需要逐项阅读</span></div>
+            <article class="panel evidence-gate-panel" id="evidence-gate"><div class="panel-head"><div><span class="panel-index">门</span><h3>发布门禁：是否可以进入最终批准</h3></div><span class="status-chip" id="evidence-gate-status">等待检查</span></div><div id="evidence-gate-body"><div class="empty-state"><span class="empty-glyph">证</span><p>生成内容后检查关键事实确认、原文定位、风险项和品牌禁用表达。</p></div></div></article>
+            <div class="verification-details">
+              <details class="panel result-disclosure"><summary><span class="panel-index">证</span><div><strong>声明证明详情</strong><small>查看每句话属于哪种声明、需要什么证据</small></div><span class="status-chip" id="proof-status">未编译</span></summary><div class="disclosure-body"><div class="proof-engine" id="proof-engine"><div class="empty-state"><span class="empty-glyph">证</span><p>生成内容后检查声明类型、证明义务和正文编译结果。</p></div></div><button class="button button-outline" type="button" data-action="run-proof">重新执行声明检查</button></div></details>
+              <details class="panel result-disclosure"><summary><span class="panel-index">照</span><div><strong>内容护照</strong><small>查看内容指纹、数字签名和公开验证地址</small></div><span class="status-chip" id="passport-id">未生成</span></summary><div class="disclosure-body"><div class="content-passport" id="content-passport"><div class="empty-state"><span class="empty-glyph">照</span><p>生成内容后生成可追溯内容护照。</p></div></div><button class="button button-outline" type="button" id="copy-passport" disabled>复制护照信息</button></div></details>
+            </div>
+          </section>
+
+          <div class="results-next-step"><div><span class="section-kicker">下一步</span><h3>进入人工审核与发布记录</h3><p>确认稿件、记录审核动作，并保存发布平台和效果数据。</p></div><button class="button button-primary" type="button" data-next="6">进入人工审核</button></div>
         </section>
 
         <section class="app-step" data-step="6" id="reviews" aria-labelledby="step6-title">
@@ -326,25 +348,25 @@
   </div>
 
   <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
-  <script src="js/config.js?v=3.8.0"></script>
-  <script src="js/api-client.js?v=3.8.0"></script>
-  <script src="shared/engine.js?v=3.8.0"></script>
-  <script src="shared/quality.js?v=3.8.0"></script>
-  <script src="shared/memory-graph.js?v=3.8.0"></script>
-  <script src="shared/culture-dna.js?v=3.8.0"></script>
-  <script src="shared/evidence-gaps.js?v=3.8.0"></script>
-  <script src="shared/content-passport.js?v=3.8.0"></script>
-  <script src="shared/proof-engine.js?v=3.8.0"></script>
-  <script src="shared/claim-analyzer.js?v=3.8.0"></script>
-  <script src="shared/draft-reviser.js?v=3.8.0"></script>
-  <script src="shared/evidence-gate.js?v=3.8.0"></script>
-  <script src="shared/platform-checker.js?v=3.8.0"></script>
-  <script src="shared/ad-copy-craft.js?v=3.8.0"></script>
-  <script src="shared/generator.js?v=3.8.0"></script>
-  <script src="js/data.js?v=3.8.0"></script>
-  <script src="js/gateway-client.js?v=3.8.0"></script>
-  <script src="js/renderer.js?v=3.8.0"></script>
-  <script src="js/app.js?v=3.8.0"></script>
+  <script src="js/config.js?v=3.8.1"></script>
+  <script src="js/api-client.js?v=3.8.1"></script>
+  <script src="shared/engine.js?v=3.8.1"></script>
+  <script src="shared/quality.js?v=3.8.1"></script>
+  <script src="shared/memory-graph.js?v=3.8.1"></script>
+  <script src="shared/culture-dna.js?v=3.8.1"></script>
+  <script src="shared/evidence-gaps.js?v=3.8.1"></script>
+  <script src="shared/content-passport.js?v=3.8.1"></script>
+  <script src="shared/proof-engine.js?v=3.8.1"></script>
+  <script src="shared/claim-analyzer.js?v=3.8.1"></script>
+  <script src="shared/draft-reviser.js?v=3.8.1"></script>
+  <script src="shared/evidence-gate.js?v=3.8.1"></script>
+  <script src="shared/platform-checker.js?v=3.8.1"></script>
+  <script src="shared/ad-copy-craft.js?v=3.8.1"></script>
+  <script src="shared/generator.js?v=3.8.1"></script>
+  <script src="js/data.js?v=3.8.1"></script>
+  <script src="js/gateway-client.js?v=3.8.1"></script>
+  <script src="js/renderer.js?v=3.8.1"></script>
+  <script src="js/app.js?v=3.8.1"></script>
 </body>
 </html>
 
