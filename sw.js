@@ -1,5 +1,5 @@
 'use strict';
-const CACHE_NAME = 'luyun-xinsheng-v3.7.1';
+const CACHE_NAME = 'luyun-xinsheng-v3.8.0';
 const ASSETS = [
   './',
   './index.html',
@@ -24,6 +24,7 @@ const ASSETS = [
   './shared/draft-reviser.js',
   './shared/evidence-gate.js',
   './shared/platform-checker.js',
+  './shared/ad-copy-craft.js',
   './shared/generator.js'
 ];
 self.addEventListener('install', (event) => {

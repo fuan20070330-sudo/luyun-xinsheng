@@ -63,6 +63,14 @@ const REVISION_SCHEMA = {
   properties: { text: { type: 'string' } }
 };
 
+const AD_COPY_RULES = [
+  '广告语规则：先从 facts 中选一个具体细节，再写一句只承载一个卖点的短句。',
+  '广告语控制在 30 字内；避免对称排比、三连口号、“不仅而且”“从到”“不是而是”等模板。',
+  '每条广告语必须保留事实引用或明确标为创作表达，禁止补写年份、荣誉、工艺、销量和功效。',
+  '如果有足够事实，至少给出时间、工艺、产品、使用场景、人物原话和品牌态度六种不同角度，不要重复同一句式。',
+  '可参考广告语方法论：具体名词胜过抽象形容词；场景胜过口号；一个动作胜过三个排比；留一点空白，不解释已经说清楚的话。'
+].join('\n');
+
 function buildPrompt(payload, risks) {
   const facts = (payload.facts || []).filter((fact) => fact.status !== '待核实');
   const system = [
@@ -76,7 +84,8 @@ function buildPrompt(payload, risks) {
     '年轻化表达方案要给出可直接改写的语态替换和示例，不要只讲原则。',
     '所有确定事实后保留对应的 [Fxxx] 引用编号。输出 JSON，不要输出 Markdown 代码围栏。',
     '必须保留 cultureDna.protectedTerms 中的文化关键词，不得使用 cultureDna.tabooTerms 中的表达。',
-    'proof.blockedClaims 中的声明不得写入正文，proof.pendingClaims 只能以“待核实”方式出现。'
+      'proof.blockedClaims 中的声明不得写入正文，proof.pendingClaims 只能以“待核实”方式出现。',
+      AD_COPY_RULES
   ].join('\n');
   const user = JSON.stringify({
     brand: { name: payload.brand.name, type: payload.brand.type, tone: payload.brand.tone },
@@ -98,7 +107,8 @@ function buildRevisionPrompt(payload, risks) {
     '无来源信息写“待核实”或删除，不得把风险表达改写成新的确定事实。',
     '按修改要求调整篇幅、语气、平台结构和表达，但必须保留用户指定的重点事实。',
     '保留原文中的 [Fxxx] 事实引用。语气自然、具体、克制，避免模板化 AI 套话。',
-    '只输出 JSON，格式为 {"text":"完整修订稿"}，不要输出 Markdown 代码围栏。'
+    '只输出 JSON，格式为 {"text":"完整修订稿"}，不要输出 Markdown 代码围栏。',
+    AD_COPY_RULES
   ].join('\n');
   const user = JSON.stringify({
     originalText: String(payload.text || '').slice(0, 20000),

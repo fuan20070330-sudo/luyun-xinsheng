@@ -380,6 +380,21 @@
     root.innerHTML = '<div class="analyzer-summary"><div><b>' + result.overallScore + '</b><small>综合体检分</small></div><div><b>' + result.highRiskCount + '</b><small>高风险</small></div><div><b>' + result.evidenceCoverage + '%</b><small>证据覆盖</small></div><div><b>' + result.naturalness + '</b><small>自然度</small></div></div><p class="analyzer-status">' + escapeHtml(result.status) + '｜平台：' + escapeHtml(result.platform) + '｜品牌：' + escapeHtml(result.brandName) + '</p><div class="analyzer-section"><h3>逐句分析</h3><div class="sentence-trace">' + (sentences || '<p>没有可用句子。</p>') + '</div></div><div class="analyzer-section"><h3>风险提示</h3>' + (risks || '<p>未检出高风险词。</p>') + '</div><div class="analyzer-section"><h3>修改建议</h3><ul class="dna-guidelines">' + (suggestions || '<li>未发现明显问题。</li>') + '</ul></div><div class="analyzer-section"><h3>安全改写参考</h3><pre class="safe-rewrite">' + escapeHtml(result.safeRewrite) + '</pre><button class="button button-outline" type="button" data-action="copy-safe-rewrite">复制安全改写</button></div>';
   }
 
+  function renderAdCopy(state) {
+    var root = byId('adcopy-results');
+    if (!root) return;
+    var result = state.adCopyResult;
+    if (!result || !result.lines || !result.lines.length) {
+      root.innerHTML = '<div class="empty-state"><span class="empty-glyph">词</span><p>先在生成线提取品牌事实，再生成广告词候选。</p></div>';
+      return;
+    }
+    var cards = result.lines.map(function (item, index) {
+      var issues = (item.issues || []).length ? '<div class="adcopy-issues">' + item.issues.map(function (issue) { return '<span>' + escapeHtml(issue) + '</span>'; }).join('') + '</div>' : '<div class="adcopy-clean">未检出常见套话</div>';
+      return '<article class="adcopy-card' + (index < 3 ? ' is-best' : '') + '"><div class="adcopy-card-head"><span>' + escapeHtml(item.angle) + '</span><strong>' + item.score + ' 分</strong></div><p class="adcopy-line">' + escapeHtml(item.text) + '</p><small>依据：' + escapeHtml(item.factIds.join('、') || '创作表达') + '｜' + escapeHtml(item.source || '无确定事实') + '</small>' + issues + '<div class="adcopy-card-actions"><button type="button" class="text-button" data-adcopy-copy="' + index + '">复制这句</button><button type="button" class="text-button" data-action="open-analyzer">送去做风险体检</button></div></article>';
+    }).join('');
+    root.innerHTML = '<div class="adcopy-summary"><span>品牌：' + escapeHtml(result.brandName) + '</span><span>候选：' + result.lines.length + ' 条</span><span>提示词：' + escapeHtml(result.promptVersion) + '</span><button class="button button-outline" type="button" data-action="copy-all-adcopy">复制全部</button></div><div class="adcopy-grid">' + cards + '</div>';
+  }
+
   function renderDocuments(state) {
     var list = byId('source-documents');
     if (!list) return;
@@ -473,6 +488,7 @@
     renderCultureDna: renderCultureDna,
     renderEvidenceGaps: renderEvidenceGaps,
     renderClaimAnalysis: renderClaimAnalysis,
+    renderAdCopy: renderAdCopy,
     renderProof: renderProof,
     renderPassport: renderPassport,
     renderDocuments: renderDocuments,

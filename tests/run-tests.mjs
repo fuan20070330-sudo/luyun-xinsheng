@@ -18,6 +18,7 @@ const ClaimAnalyzer = require('../shared/claim-analyzer.js');
 const DraftReviser = require('../shared/draft-reviser.js');
 const EvidenceGate = require('../shared/evidence-gate.js');
 const PlatformChecker = require('../shared/platform-checker.js');
+const AdCopyCraft = require('../shared/ad-copy-craft.js');
 const { signPassport, verifyPassport } = require('../server/src/passport-service.js');
 const { lookupOfficial } = require('../server/src/official-registry-service.js');
 const { responsesEndpoint, chatEndpoint, extractResponseText, buildPrompt } = require('../server/src/ai-adapter.js');
@@ -359,6 +360,11 @@ function testInnovationModules() {
   const platformCheck = PlatformChecker.check('镜头一：案板上的枣泥。\n镜头二：蒸制工序。\n字幕：保留传统口感。', 'douyin', { bannedTerms: ['宫廷御用'], preferredTerms: ['枣泥酥'] });
   assert.equal(platformCheck.status, 'warning');
   assert.ok(platformCheck.findings.some((item) => item.code === 'PREFERRED_TERM'));
+  const adCopy = AdCopyCraft.generate({ facts, brand: { name: '鲁香斋（模拟品牌）', tone: '克制、具体' }, audience: '25-35岁城市消费者', platform: 'xiaohongshu' });
+  assert.ok(adCopy.lines.length >= 6);
+  assert.ok(adCopy.lines.every((item) => item.score >= 20 && item.text.length > 0));
+  assert.ok(adCopy.lines.some((item) => item.factIds.includes('F001')));
+  assert.doesNotMatch(adCopy.lines.map((item) => item.text).join(' '), /匠心独运|赋能|打造闭环/);
   const signedPassport = signPassport(Passport.create({ jobId: 'job-proof', brand: { name: '测试品牌' }, platformName: '小红书', contentTypeName: '品牌故事', modelInfo: { model: 'test', promptVersion: 'v1' }, facts, risks, artifacts: [{ id: 'story', title: '品牌故事', content: '正文 [F001]', status: 'draft' }], cultureDna: dna, proof, documents: [], reviews: [], transportMode: '测试模式' }), { PASSPORT_SIGNING_KEY: 'test-signing-key' });
   assert.equal(verifyPassport(signedPassport, { PASSPORT_SIGNING_KEY: 'test-signing-key' }).valid, true);
   assert.equal(verifyPassport(Object.assign({}, signedPassport, { brandName: '被篡改' }), { PASSPORT_SIGNING_KEY: 'test-signing-key' }).valid, false);
@@ -369,7 +375,7 @@ function testInnovationModules() {
   assert.match(passport.id, /^LYXS-/);
   assert.equal(passport.factCount >= 1, true);
   assert.match(Passport.toMarkdown(passport), /内容护照/);
-  return { graphNodes: graph.stats.nodes, protectedTerms: dna.protectedTerms.length, evidenceGaps: gaps.length, proofBlocked: proof.stats.blocked, claimAnalyzer: true, draftReviser: true, evidenceGate: true, platformChecker: true, signedPassport: true, sentenceProof: sentenceProof.stats, passport: passport.id };
+  return { graphNodes: graph.stats.nodes, protectedTerms: dna.protectedTerms.length, evidenceGaps: gaps.length, proofBlocked: proof.stats.blocked, claimAnalyzer: true, draftReviser: true, evidenceGate: true, platformChecker: true, adCopyCraft: true, signedPassport: true, sentenceProof: sentenceProof.stats, passport: passport.id };
 }
 
 async function testOfficialRegistryConnector() {

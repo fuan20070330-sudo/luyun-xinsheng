@@ -8,8 +8,8 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta name="description" content="老字号叙事工坊：老字号与非遗品牌内容助手。">
   <title>老字号叙事工坊｜老字号与非遗品牌内容助手</title>
-  <link rel="icon" href="assets/favicon.svg?v=3.7.1" type="image/svg+xml">
-  <link rel="stylesheet" href="css/styles.css?v=3.7.1">
+  <link rel="icon" href="assets/favicon.svg?v=3.8.0" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css?v=3.8.0">
 </head>
 <body data-authenticated="false">
   <div class="paper-noise" aria-hidden="true"></div>
@@ -47,6 +47,7 @@
         <span class="user-chip">当前用户：<strong id="current-user">--</strong></span>
         <div class="connection-pill" id="connection-pill" data-state="connecting" role="status" aria-live="polite"><span class="connection-dot"></span><span id="connection-label">连接中</span><span class="mode-badge" id="mode-label">初始化</span></div>
         <button class="icon-button" type="button" data-action="show-mode-hub">工作台</button>
+        <button class="icon-button" type="button" data-action="open-adcopy">广告词实验室</button>
         <button class="icon-button" type="button" data-action="open-analyzer">文案体检</button>
         <button class="icon-button" type="button" data-action="open-collaboration">协作审核</button>
         <button class="icon-button" type="button" data-action="open-account">账号数据</button>
@@ -289,6 +290,16 @@
     </aside>
   </div>
 
+  <div class="history-drawer analyzer-drawer" id="adcopy-drawer" hidden>
+    <div class="history-drawer-backdrop" data-action="close-adcopy" aria-hidden="true"></div>
+    <aside class="history-drawer-panel adcopy-panel" role="dialog" aria-modal="true" aria-labelledby="adcopy-title">
+      <div class="history-drawer-head"><div><p class="section-kicker">广告词创作</p><h2 id="adcopy-title">广告词实验室</h2><p>从已确认的品牌事实里找具体细节，生成短、实、有场景的广告语，并标出套话和证据。</p></div><button class="icon-button" type="button" data-action="close-adcopy">关闭</button></div>
+      <form id="adcopy-form" class="analyzer-form"><div class="field-row two-col"><label class="field"><span>目标受众</span><input id="adcopy-audience" placeholder="例如：25-35岁关注地方文化的城市消费者"><small class="field-hint">越具体，广告语越容易写出真实场景。</small></label><label class="field"><span>目标平台</span><select id="adcopy-platform"><option value="xiaohongshu">小红书</option><option value="douyin">抖音</option><option value="wechat">微信公众号</option><option value="offline">门店 / 包装 / 线下物料</option></select></label></div><label class="field"><span>希望突出的品牌气质</span><input id="adcopy-tone" placeholder="例如：克制、有烟火气、讲事实，不煽情"></label><button class="button button-primary" type="submit">生成广告词候选</button></form>
+      <div class="adcopy-guide"><strong>不会做什么</strong><span>不补写年份、荣誉、工艺、销量和功效；不把套话写得更响。</span></div>
+      <div class="adcopy-results" id="adcopy-results"><div class="empty-state"><span class="empty-glyph">词</span><p>先在生成线提取品牌事实，再生成广告词候选。</p></div></div>
+    </aside>
+  </div>
+
   <div class="history-drawer" id="collaboration-drawer" hidden>
     <div class="history-drawer-backdrop" data-action="close-collaboration" aria-hidden="true"></div>
     <aside class="history-drawer-panel collaboration-panel" role="dialog" aria-modal="true" aria-labelledby="collaboration-title">
@@ -315,24 +326,25 @@
   </div>
 
   <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
-  <script src="js/config.js?v=3.7.1"></script>
-  <script src="js/api-client.js?v=3.7.1"></script>
-  <script src="shared/engine.js?v=3.7.1"></script>
-  <script src="shared/quality.js?v=3.7.1"></script>
-  <script src="shared/memory-graph.js?v=3.7.1"></script>
-  <script src="shared/culture-dna.js?v=3.7.1"></script>
-  <script src="shared/evidence-gaps.js?v=3.7.1"></script>
-  <script src="shared/content-passport.js?v=3.7.1"></script>
-  <script src="shared/proof-engine.js?v=3.7.1"></script>
-  <script src="shared/claim-analyzer.js?v=3.7.1"></script>
-  <script src="shared/draft-reviser.js?v=3.7.1"></script>
-  <script src="shared/evidence-gate.js?v=3.7.1"></script>
-  <script src="shared/platform-checker.js?v=3.7.1"></script>
-  <script src="shared/generator.js?v=3.7.1"></script>
-  <script src="js/data.js?v=3.7.1"></script>
-  <script src="js/gateway-client.js?v=3.7.1"></script>
-  <script src="js/renderer.js?v=3.7.1"></script>
-  <script src="js/app.js?v=3.7.1"></script>
+  <script src="js/config.js?v=3.8.0"></script>
+  <script src="js/api-client.js?v=3.8.0"></script>
+  <script src="shared/engine.js?v=3.8.0"></script>
+  <script src="shared/quality.js?v=3.8.0"></script>
+  <script src="shared/memory-graph.js?v=3.8.0"></script>
+  <script src="shared/culture-dna.js?v=3.8.0"></script>
+  <script src="shared/evidence-gaps.js?v=3.8.0"></script>
+  <script src="shared/content-passport.js?v=3.8.0"></script>
+  <script src="shared/proof-engine.js?v=3.8.0"></script>
+  <script src="shared/claim-analyzer.js?v=3.8.0"></script>
+  <script src="shared/draft-reviser.js?v=3.8.0"></script>
+  <script src="shared/evidence-gate.js?v=3.8.0"></script>
+  <script src="shared/platform-checker.js?v=3.8.0"></script>
+  <script src="shared/ad-copy-craft.js?v=3.8.0"></script>
+  <script src="shared/generator.js?v=3.8.0"></script>
+  <script src="js/data.js?v=3.8.0"></script>
+  <script src="js/gateway-client.js?v=3.8.0"></script>
+  <script src="js/renderer.js?v=3.8.0"></script>
+  <script src="js/app.js?v=3.8.0"></script>
 </body>
 </html>
 

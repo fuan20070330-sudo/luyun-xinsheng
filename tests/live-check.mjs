@@ -59,6 +59,13 @@ try {
   assert.equal(innovation.fidelityChips, 4);
   assert.match(innovation.proofStatus, /证明/);
   assert.ok(innovation.claimCards >= 4);
+  await page.click('[data-action="open-adcopy"]');
+  await page.fill('#adcopy-audience', '25-35岁关注地方文化的城市消费者');
+  await page.click('#adcopy-form button[type="submit"]');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.adCopyResult && window.__LUYUN_APP__.state.adCopyResult.lines.length >= 6);
+  const adCopyLines = await page.locator('#adcopy-results .adcopy-card').count();
+  assert.ok(adCopyLines >= 6);
+  await page.click('#adcopy-drawer .history-drawer-panel button[data-action="close-adcopy"]');
   assert.equal(await page.evaluate(() => window.__LUYUN_APP__.state.evidenceGate.status), 'blocked');
   await page.click('[data-action="confirm-sourced-facts"]');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.evidenceGate.status !== 'blocked');
@@ -234,6 +241,7 @@ try {
   result.factSourceLocators = await page.locator('.fact-source-locator').count();
   result.collaborationRecords = collaborationRecords;
   result.accountExportStatus = accountExport.status;
+  result.adCopyLines = adCopyLines;
   assert.equal(result.artifacts, 4);
   assert.ok(result.reviews >= 1);
   assert.equal(result.mobileWidth, result.viewport);

@@ -22,6 +22,7 @@ GitHub Pages 静态前端
 - `shared/draft-reviser.js`：问题语段安全改写、修改要求处理和改稿差异记录。
 - `shared/evidence-gate.js`：事实确认、原文定位、高风险、引用完整性和品牌规则门禁。
 - `shared/platform-checker.js`：小红书、抖音、公众号、矩阵和线下文案的字数与结构检查。
+- `shared/ad-copy-craft.js`：从事实生成短广告语、检查套话并进行自然度评分。
 
 前端不保存 API Key。远程模型由网关读取 `OPENAI_API_KEY`，优先调用 Responses API；也可配置 `AI_API_URL` 作为 OpenAI 兼容备用接口。配置 `apiBaseUrl` 后，前端通过 HTTP API 使用服务端邮箱账号、云端品牌数据和云端历史。设置 `DATABASE_URL` 后由 PostgreSQLStore 运行；否则使用兼容模式的 JsonStore。生产环境使用 HttpOnly Cookie、CSRF 和限流；Bearer Token 仅用于兼容测试。
 
@@ -67,6 +68,10 @@ GitHub Pages 静态前端
 ## 账号数据生命周期
 
 `/api/account/export` 导出当前账号的历史、品牌、评论、审批等记录；`DELETE /api/account` 在输入 `DELETE` 确认后删除用户并由数据库级联删除会话和记录。前端也提供本地状态导出和清除本次导入文本。
+
+## 广告词 Skill
+
+`skills/ad-copy-craft/SKILL.md` 是可复用的广告词方法论：从具体事实起笔、一句只承载一个卖点、拒绝对称排比和常见 AI 套话。网页端通过 `shared/ad-copy-craft.js` 提供可离线运行的候选生成和自检；远程模型提示词也加载同一套广告语规则。Codex Skill 本身不能直接在浏览器运行，因此这里采用“Skill 规范 + 前端模块 + 服务端提示词”的三层接入。
 
 ## WebSocket 协议
 

@@ -29,6 +29,7 @@
 - 模型对比：按历史任务比较本地模型和远程模型的平均质量、风险数、高风险任务数与提示词版本。
 - 日历导出：内容日历可导出为带 BOM 的 CSV，直接用 Excel 打开。
 - 账号数据：支持导出账号 JSON、清理本次导入文本和彻底删除服务端账号及记录。
+- 广告词实验室：从已确认事实中生成时间、工艺、产品、场景、人物和品牌态度等多角度广告语，并检查套话、长度和证据。
 - 叙事资料导入：品牌历史、产品资料、受访内容，支持 TXT、Markdown、JSON、CSV 和直接粘贴；配置解析服务后支持 PDF、DOCX、OCR 与音频转写。
 - 事实提取：按历史、工艺、荣誉、人物、产品、品牌理念、访谈洞察分类，显示原文来源、置信度和“待核实”状态。
 - 多平台生成：小红书、抖音、微信公众号、多平台矩阵。
@@ -251,6 +252,7 @@ fly deploy
 ├── shared/
 │   ├── evidence-gate.js
 │   ├── platform-checker.js
+│   ├── ad-copy-craft.js
 │   ├── draft-reviser.js
 │   ├── claim-analyzer.js
 │   ├── content-passport.js
@@ -268,6 +270,8 @@ fly deploy
 │   ├── e2e.mjs
 │   ├── live-check.mjs
 │   └── run-tests.mjs
+├── skills/
+│   └── ad-copy-craft/SKILL.md
 ├── Dockerfile
 ├── LICENSE
 ├── fly.toml

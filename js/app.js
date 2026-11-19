@@ -21,6 +21,7 @@
       return { platform: platform || 'matrix', label: '平台检查', length: String(text || '').length, limit: 0, status: 'warning', findings: [{ level: 'low', message: '平台检查模块未加载，请刷新页面。' }] };
     }
   };
+  var AdCopyCraft = window.LuyunAdCopyCraft;
   var Config = window.LUYUN_CONFIG;
   var $ = function (id) { return document.getElementById(id); };
   var $$ = function (selector) { return Array.prototype.slice.call(document.querySelectorAll(selector)); };
@@ -58,6 +59,7 @@
     brandRules: { preferredTerms: [], bannedTerms: [] },
     evidenceGate: null,
     collaboration: { workspaces: [], comments: [], approvals: [], selectedId: '', loaded: false },
+    adCopyResult: null,
     initialized: false
   };
 
@@ -89,6 +91,7 @@
     state.revision = saved.revision || null;
     state.revisionHistory = Array.isArray(saved.revisionHistory) ? saved.revisionHistory : [];
     state.brandRules = Object.assign({ preferredTerms: [], bannedTerms: [] }, saved.brandRules || {});
+    state.adCopyResult = saved.adCopyResult || null;
     state.metrics = saved.metrics || { facts: 0, jobs: state.tasks.length, reviews: state.reviews.length };
   }
 
@@ -125,6 +128,7 @@
         revision: state.revision,
         revisionHistory: state.revisionHistory.slice(0, HISTORY_LIMIT),
         brandRules: state.brandRules,
+        adCopyResult: state.adCopyResult,
         metrics: state.metrics
       }));
     } catch (error) {}
@@ -147,6 +151,7 @@
     state.revision = null;
     state.revisionHistory = [];
     state.brandRules = { preferredTerms: [], bannedTerms: [] };
+    state.adCopyResult = null;
     state.evidenceGate = null;
     state.collaboration = { workspaces: [], comments: [], approvals: [], selectedId: '', loaded: false };
     state.appMode = 'hub';
@@ -610,6 +615,7 @@
     Renderer.renderEvidenceGate(state);
     Renderer.renderModelComparison(state);
     Renderer.renderCollaboration(state);
+    Renderer.renderAdCopy(state);
     renderRevisionDraftOptions();
   }
 
@@ -733,6 +739,40 @@
     if ($('analyzer-text')) $('analyzer-text').focus();
   }
   function closeAnalyzer() { var drawer = $('analyzer-drawer'); if (!drawer) return; drawer.hidden = true; document.body.classList.remove('analyzer-open'); }
+
+  function openAdCopy() {
+    var drawer = $('adcopy-drawer');
+    if (!drawer) return;
+    drawer.hidden = false;
+    document.body.classList.add('analyzer-open');
+    if ($('adcopy-audience') && !$('adcopy-audience').value && state.lastPayload) $('adcopy-audience').value = state.lastPayload.audience || '';
+    if ($('adcopy-tone') && !$('adcopy-tone').value && state.brand) $('adcopy-tone').value = state.brand.tone || '';
+    Renderer.renderAdCopy(state);
+  }
+  function closeAdCopy() {
+    var drawer = $('adcopy-drawer');
+    if (!drawer) return;
+    drawer.hidden = true;
+    document.body.classList.remove('analyzer-open');
+  }
+  function generateAdCopy() {
+    if (!AdCopyCraft) { toast('广告词模块未加载，请刷新页面。', 'error'); return; }
+    if (!state.facts.length) { toast('请先在生成线提取品牌事实，广告词必须建立在可追溯资料上。', 'warning'); return; }
+    var brand = state.brand || { name: '未绑定品牌', tone: $('adcopy-tone') ? $('adcopy-tone').value : '' };
+    state.adCopyResult = AdCopyCraft.generate({ facts: state.facts, brand: brand, audience: $('adcopy-audience') ? $('adcopy-audience').value.trim() : '', tone: $('adcopy-tone') ? $('adcopy-tone').value.trim() : brand.tone, platform: $('adcopy-platform') ? $('adcopy-platform').value : 'xiaohongshu' });
+    persistState();
+    Renderer.renderAdCopy(state);
+    toast('已生成 ' + state.adCopyResult.lines.length + ' 条广告词候选。');
+  }
+  function copyAdCopy(text) {
+    if (!text || !navigator.clipboard) return;
+    navigator.clipboard.writeText(text).then(function () { toast('广告词已复制。'); });
+  }
+  function copyAllAdCopy() {
+    if (!state.adCopyResult || !state.adCopyResult.lines.length) return;
+    var text = state.adCopyResult.lines.map(function (item) { return item.text + '｜' + item.factIds.join('、'); }).join('\n');
+    copyAdCopy(text);
+  }
 
   function openCollaboration() {
     var drawer = $('collaboration-drawer');
@@ -1962,6 +2002,7 @@
     $('content-form').addEventListener('submit', function (event) { event.preventDefault(); generateContent(); });
     $('publish-form').addEventListener('submit', addPublishRecord);
     $('analyzer-form').addEventListener('submit', runClaimAnalysis);
+    if ($('adcopy-form')) $('adcopy-form').addEventListener('submit', function (event) { event.preventDefault(); generateAdCopy(); });
     $('brand-select').addEventListener('change', function () {
       if (this.value === 'new' || !state.brandLibrary[this.value]) {
         startNewBrand(true);
@@ -2031,6 +2072,8 @@
       if (modeButton) { showAppMode(modeButton.getAttribute('data-app-mode')); return; }
       var suggestionAction = event.target.closest('[data-revision-suggestion-action]');
       if (suggestionAction) { setRevisionSuggestion(suggestionAction.getAttribute('data-index'), suggestionAction.getAttribute('data-revision-suggestion-action')); return; }
+      var adcopyCopy = event.target.closest('[data-adcopy-copy]');
+      if (adcopyCopy) { var adcopyIndex = Number(adcopyCopy.getAttribute('data-adcopy-copy')); if (state.adCopyResult && state.adCopyResult.lines[adcopyIndex]) copyAdCopy(state.adCopyResult.lines[adcopyIndex].text); return; }
       var collaborationAction = event.target.closest('[data-collaboration-action]');
       if (collaborationAction && collaborationAction.getAttribute('data-collaboration-action') === 'open') { selectCollaborationWorkspace(collaborationAction.getAttribute('data-workspace-id')); return; }
       var revisionAction = event.target.closest('[data-revision-action]');
@@ -2076,6 +2119,9 @@
       if (name === 'open-history') openHistory();
       if (name === 'open-analyzer') openAnalyzer();
       if (name === 'close-analyzer') closeAnalyzer();
+      if (name === 'open-adcopy') openAdCopy();
+      if (name === 'close-adcopy') closeAdCopy();
+      if (name === 'copy-all-adcopy') copyAllAdCopy();
       if (name === 'copy-safe-rewrite') { if (state.analysisResult && navigator.clipboard) navigator.clipboard.writeText(state.analysisResult.safeRewrite).then(function () { toast('安全改写已复制。'); }); }
       if (name === 'close-history') closeHistory();
       if (name === 'refresh-history') { if (state.remoteAuth) syncRemoteState(); else renderAll(); toast('历史记录已刷新。'); }
@@ -2095,6 +2141,8 @@
     document.addEventListener('keydown', function (event) {
       var analyzer = $('analyzer-drawer');
       if (analyzer && !analyzer.hidden && event.key === 'Escape') { closeAnalyzer(); return; }
+      var adcopy = $('adcopy-drawer');
+      if (adcopy && !adcopy.hidden && event.key === 'Escape') { closeAdCopy(); return; }
       var collaboration = $('collaboration-drawer');
       if (collaboration && !collaboration.hidden && event.key === 'Escape') { closeCollaboration(); return; }
       var account = $('account-drawer');

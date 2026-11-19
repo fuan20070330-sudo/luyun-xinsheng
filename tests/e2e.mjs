@@ -158,6 +158,14 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   assert.ok(analyzedCopy.riskCards >= 2);
   assert.match(analyzedCopy.safeRewrite, /待核实|已阻止/);
   await page.click('button[data-action="close-analyzer"]');
+  await page.click('[data-action="open-adcopy"]');
+  await page.fill('#adcopy-audience', '25-35岁关注地方文化的城市消费者');
+  await page.fill('#adcopy-tone', '克制、具体、有烟火气');
+  await page.click('#adcopy-form button[type="submit"]');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.adCopyResult && window.__LUYUN_APP__.state.adCopyResult.lines.length >= 6);
+  assert.ok(await page.locator('#adcopy-results .adcopy-card').count() >= 6);
+  assert.ok(await page.locator('#adcopy-results .adcopy-line').first().textContent().then((text) => text.trim().length > 0));
+  await page.click('#adcopy-drawer .history-drawer-panel button[data-action="close-adcopy"]');
   await page.click('[data-action="show-mode-hub"]');
   await page.waitForFunction(() => document.getElementById('mode-hub').hidden === false);
   const modeHub = await page.evaluate(() => ({ drafts: document.getElementById('mode-draft-count').textContent, revisions: document.getElementById('mode-revision-count').textContent }));
