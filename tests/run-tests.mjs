@@ -16,6 +16,8 @@ const Passport = require('../shared/content-passport.js');
 const ProofEngine = require('../shared/proof-engine.js');
 const ClaimAnalyzer = require('../shared/claim-analyzer.js');
 const DraftReviser = require('../shared/draft-reviser.js');
+const EvidenceGate = require('../shared/evidence-gate.js');
+const PlatformChecker = require('../shared/platform-checker.js');
 const { signPassport, verifyPassport } = require('../server/src/passport-service.js');
 const { lookupOfficial } = require('../server/src/official-registry-service.js');
 const { responsesEndpoint, chatEndpoint, extractResponseText, buildPrompt } = require('../server/src/ai-adapter.js');
@@ -200,6 +202,14 @@ async function testGateway() {
     assert.equal(job.payload.roleReviews.length, 5);
     assert.ok(job.payload.risks.length >= 0);
     client.sendJson({
+      event: 'content.revise', requestId: 'revision-test',
+      payload: { text: '鲁香斋是宫廷御用点心。产品可以降血糖。', requirements: '更自然，保留品牌名称', facts: brandReady.payload.facts, brand: brandReady.payload.brand, platform: 'xiaohongshu' }
+    });
+    const revision = await client.waitFor('revision.ready');
+    assert.ok(revision.payload.text.length > 20);
+    assert.doesNotMatch(revision.payload.text, /宫廷御用|降血糖/);
+    assert.equal(revision.payload.usedRemote, false);
+    client.sendJson({
       event: 'review.update', requestId: 'review-test',
       payload: { jobId: job.payload.jobId, artifactId: 'story', action: 'accept', reviewer: '自动化测试员', before: job.payload.artifacts[0].content, after: '', note: '测试审核' }
     });
@@ -210,7 +220,7 @@ async function testGateway() {
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
-  return { port, health: true, websocket: true, job: true, review: true };
+  return { port, health: true, websocket: true, job: true, revision: true, review: true };
 }
 
 async function apiJson(base, path, options, token) {
@@ -279,11 +289,37 @@ async function testApi() {
     const verifiedPassport = await apiJson(base, '/api/passport/verify?id=' + encodeURIComponent(passportPayload.id), {}, '');
     assert.equal(verifiedPassport.status, 200);
     assert.equal(verifiedPassport.payload.valid, true);
+    const second = await apiJson(base, '/api/auth/register', { method: 'POST', body: JSON.stringify({ email: 'reviewer@example.com', password: 'review-pass-123', role: '品牌确认人' }) });
+    assert.equal(second.status, 201);
+    const reviewerToken = second.payload.token;
+    const safeSnapshot = { brand: { name: '协作测试品牌' }, facts: [{ id: 'F001', category: '历史', text: '品牌始创于1918年', status: '已确认', verificationStatus: '品牌方已确认', source: '档案', sourceExcerpt: '品牌始创于1918年', sourceAuthorityScore: 4 }], risks: [], proof: { stats: { blocked: 0 } }, artifacts: [{ id: 'story', title: '品牌故事', content: '品牌始创于1918年。 [F001]', status: 'draft' }], brandRules: { preferredTerms: [], bannedTerms: [] } };
+    const workspaceCreated = await apiJson(base, '/api/collaboration/workspaces', { method: 'POST', body: JSON.stringify({ workspace: { id: 'ws-api-test', name: '协作测试', members: [{ email: 'reviewer@example.com', role: 'reviewer' }], snapshot: safeSnapshot } }) }, token);
+    assert.equal(workspaceCreated.status, 201);
+    const reviewerWorkspaces = await apiJson(base, '/api/collaboration/workspaces', {}, reviewerToken);
+    assert.equal(reviewerWorkspaces.status, 200);
+    assert.equal(reviewerWorkspaces.payload.workspaces[0].myRole, 'reviewer');
+    const comment = await apiJson(base, '/api/collaboration/comments', { method: 'POST', body: JSON.stringify({ workspaceId: 'ws-api-test', text: '请补充礼盒包装信息。', target: '品牌故事第2段' }) }, reviewerToken);
+    assert.equal(comment.status, 201);
+    const approval = await apiJson(base, '/api/collaboration/approvals', { method: 'POST', body: JSON.stringify({ workspaceId: 'ws-api-test', action: 'approve', note: '证据已确认' }) }, reviewerToken);
+    assert.equal(approval.status, 201);
+    assert.equal(approval.payload.workspace.status, 'approved');
+    const blockedWorkspace = await apiJson(base, '/api/collaboration/workspaces', { method: 'POST', body: JSON.stringify({ workspace: { id: 'ws-blocked', name: '阻断测试', members: [{ email: 'reviewer@example.com', role: 'reviewer' }], snapshot: Object.assign({}, safeSnapshot, { risks: [{ level: 'high', term: '降血糖', type: '医疗功效' }] }) } }) }, token);
+    assert.equal(blockedWorkspace.status, 201);
+    const blockedApproval = await apiJson(base, '/api/collaboration/approvals', { method: 'POST', body: JSON.stringify({ workspaceId: 'ws-blocked', action: 'approve', note: '尝试批准' }) }, reviewerToken);
+    assert.equal(blockedApproval.status, 409);
+    const exportedAccount = await apiJson(base, '/api/account/export', {}, token);
+    assert.equal(exportedAccount.status, 200);
+    assert.ok(Array.isArray(exportedAccount.payload.data.jobs));
+    const disposable = await apiJson(base, '/api/auth/register', { method: 'POST', body: JSON.stringify({ email: 'delete-test@example.com', password: 'delete-pass-123', role: '内容编辑' }) });
+    const deletedAccount = await apiJson(base, '/api/account', { method: 'DELETE', body: JSON.stringify({ confirmation: 'DELETE' }) }, disposable.payload.token);
+    assert.equal(deletedAccount.status, 200);
+    const deletedMe = await apiJson(base, '/api/auth/me', {}, disposable.payload.token);
+    assert.equal(deletedMe.status, 401);
     const loggedOut = await apiJson(base, '/api/auth/logout', { method: 'POST' }, token);
     assert.equal(loggedOut.status, 200);
     const expired = await apiJson(base, '/api/auth/me', {}, token);
     assert.equal(expired.status, 401);
-    return { health: true, register: true, login: true, changePassword: true, httpOnlyCookie: true, csrf: true, accountLockout: true, passportSignature: true, history: true, documentExtraction: true, verificationPending: true, invalidPassword: true, logout: true };
+    return { health: true, register: true, login: true, changePassword: true, httpOnlyCookie: true, csrf: true, accountLockout: true, passportSignature: true, history: true, documentExtraction: true, verificationPending: true, invalidPassword: true, collaboration: true, evidenceGate: true, accountExport: true, accountDeletion: true, logout: true };
   } finally {
     bundle.gateway.close();
     await new Promise((resolve) => bundle.server.close(resolve));
@@ -318,6 +354,11 @@ function testInnovationModules() {
   assert.equal(revisedCopy.revisedAnalysis.highRiskCount, 0);
   assert.ok(revisedCopy.changes.length >= 3);
   assert.doesNotMatch(revisedCopy.text, /宫廷御用|降血糖|最正宗/);
+  const blockedGate = EvidenceGate.build({ facts, risks, proof, artifacts: [{ content: '正文 [F001]' }], brandRules: { preferredTerms: [], bannedTerms: [] } });
+  assert.equal(blockedGate.status, 'blocked');
+  const platformCheck = PlatformChecker.check('镜头一：案板上的枣泥。\n镜头二：蒸制工序。\n字幕：保留传统口感。', 'douyin', { bannedTerms: ['宫廷御用'], preferredTerms: ['枣泥酥'] });
+  assert.equal(platformCheck.status, 'warning');
+  assert.ok(platformCheck.findings.some((item) => item.code === 'PREFERRED_TERM'));
   const signedPassport = signPassport(Passport.create({ jobId: 'job-proof', brand: { name: '测试品牌' }, platformName: '小红书', contentTypeName: '品牌故事', modelInfo: { model: 'test', promptVersion: 'v1' }, facts, risks, artifacts: [{ id: 'story', title: '品牌故事', content: '正文 [F001]', status: 'draft' }], cultureDna: dna, proof, documents: [], reviews: [], transportMode: '测试模式' }), { PASSPORT_SIGNING_KEY: 'test-signing-key' });
   assert.equal(verifyPassport(signedPassport, { PASSPORT_SIGNING_KEY: 'test-signing-key' }).valid, true);
   assert.equal(verifyPassport(Object.assign({}, signedPassport, { brandName: '被篡改' }), { PASSPORT_SIGNING_KEY: 'test-signing-key' }).valid, false);
@@ -328,7 +369,7 @@ function testInnovationModules() {
   assert.match(passport.id, /^LYXS-/);
   assert.equal(passport.factCount >= 1, true);
   assert.match(Passport.toMarkdown(passport), /内容护照/);
-  return { graphNodes: graph.stats.nodes, protectedTerms: dna.protectedTerms.length, evidenceGaps: gaps.length, proofBlocked: proof.stats.blocked, claimAnalyzer: true, draftReviser: true, signedPassport: true, sentenceProof: sentenceProof.stats, passport: passport.id };
+  return { graphNodes: graph.stats.nodes, protectedTerms: dna.protectedTerms.length, evidenceGaps: gaps.length, proofBlocked: proof.stats.blocked, claimAnalyzer: true, draftReviser: true, evidenceGate: true, platformChecker: true, signedPassport: true, sentenceProof: sentenceProof.stats, passport: passport.id };
 }
 
 async function testOfficialRegistryConnector() {

@@ -113,6 +113,12 @@
       return { name: file.name, type: file.type || 'application/octet-stream', base64: window.btoa(binary) };
     }).then(function (body) { return this.request('/api/documents/extract', { method: 'POST', body: body }); }.bind(this)).then(function (payload) { return payload.document; });
   };
+  ApiClient.prototype.listCollaboration = function () { return this.request('/api/collaboration/workspaces'); };
+  ApiClient.prototype.saveWorkspace = function (workspace) { return this.request('/api/collaboration/workspaces', { method: 'POST', body: { workspace: workspace } }).then(function (payload) { return payload.workspace; }); };
+  ApiClient.prototype.saveCollabComment = function (comment) { return this.request('/api/collaboration/comments', { method: 'POST', body: comment }).then(function (payload) { return payload.comment; }); };
+  ApiClient.prototype.saveCollabApproval = function (approval) { return this.request('/api/collaboration/approvals', { method: 'POST', body: approval }); };
+  ApiClient.prototype.exportAccountData = function () { return this.request('/api/account/export'); };
+  ApiClient.prototype.deleteAccount = function () { return this.request('/api/account', { method: 'DELETE', body: { confirmation: 'DELETE' } }); };
 
   root.LuyunApi = { create: function (options) { return new ApiClient(options); }, ApiClient: ApiClient, ApiError: ApiError, DEFAULT_TOKEN_KEY: DEFAULT_TOKEN_KEY, DEFAULT_CSRF_KEY: DEFAULT_CSRF_KEY };
 }(window));

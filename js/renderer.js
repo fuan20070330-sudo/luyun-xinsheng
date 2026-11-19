@@ -33,6 +33,7 @@
         '<div class="fact-meta"><span class="fact-category">' + escapeHtml(fact.category) + '</span><span class="fact-id">' + escapeHtml(fact.id) + '</span></div>' +
         '<p>' + escapeHtml(fact.text) + '</p>' +
         '<p class="fact-source">来源：' + escapeHtml(fact.source || '未找到来源') + '｜位置：' + escapeHtml(fact.sourceLocation || '待补充') + '｜来源权威度：' + escapeHtml(fact.sourceAuthority || '待评估') + '｜核验：' + escapeHtml(fact.verificationStatus || '待核验') + '｜提取置信度：' + confidence + '%｜证据：' + escapeHtml(fact.evidenceLevel || '待评估') + '｜状态：' + status + '</p>' +
+        '<details class="fact-source-locator"><summary>查看原文与位置</summary><blockquote>' + escapeHtml(fact.sourceExcerpt || fact.source || '未找到可定位原文') + '</blockquote><p>' + escapeHtml(fact.sourceDocumentName || '未绑定文件') + '｜' + escapeHtml(fact.sourceLocation || '位置待补充') + (fact.sourceHash ? '｜SHA-256 ' + escapeHtml(fact.sourceHash.slice(0, 24)) + '…' : '') + '</p></details>' +
         (fact.sourceHash ? '<p class="fact-fingerprint">文档：' + escapeHtml(fact.sourceDocumentName || '未命名来源') + '｜SHA-256：' + escapeHtml(fact.sourceHash) + '</p>' : '') +
         '<div class="confidence" title="置信度 ' + confidence + '%"><span>置信度 ' + confidence + '%</span><i style="--confidence:' + confidence + '%"></i></div>' +
         '<div class="fact-actions"><button type="button" data-fact-action="confirm" data-fact-id="' + escapeHtml(fact.id) + '">确认事实</button><button type="button" data-fact-action="pending" data-fact-id="' + escapeHtml(fact.id) + '">标记待核实</button></div>' +
@@ -77,6 +78,7 @@
     var artifacts = state.artifacts || [];
     var status = byId('result-status');
     byId('export-markdown').disabled = !artifacts.length;
+    if (byId('export-calendar')) byId('export-calendar').disabled = !artifacts.some(function (artifact) { return artifact.id === 'calendar'; });
     status.textContent = artifacts.length ? artifacts.length + ' 项成果已生成' : '尚无生成结果';
     if (!artifacts.length) {
       grid.innerHTML = [
@@ -93,6 +95,7 @@
       var highRisk = artifact.status === 'flagged';
       var quality = artifact.quality || null;
       var qualityMeta = quality ? '<span class="meta-chip quality-chip" data-level="' + escapeHtml(quality.level) + '">质量：' + quality.score + '/100 ' + escapeHtml(quality.level) + '</span>' : '';
+      var platformMeta = artifact.platformCheck ? '<span class="meta-chip platform-chip" data-status="' + escapeHtml(artifact.platformCheck.status) + '">平台：' + escapeHtml(artifact.platformCheck.label) + '｜' + artifact.platformCheck.length + ' 字</span>' : '';
       var fidelity = artifact.cultureFidelity || null;
       var fidelityMeta = fidelity ? '<span class="meta-chip fidelity-chip" data-level="' + escapeHtml(fidelity.level) + '">文化保真：' + fidelity.score + '/100 ' + escapeHtml(fidelity.level) + '</span>' : '';
       var fidelityNote = fidelity && fidelity.tabooFound && fidelity.tabooFound.length ? '<div class="quality-note">文化禁忌命中：' + escapeHtml(fidelity.tabooFound.join('、')) + '</div>' : '';
@@ -102,7 +105,7 @@
         '<div class="artifact-head"><div><span class="artifact-label">' + escapeHtml(artifact.label || '内容成果') + '</span><h3>' + escapeHtml(artifact.title) + '</h3></div><span class="artifact-state" data-state="' + escapeHtml(artifact.status || 'draft') + '">' + artifactStatus(artifact.status) + '</span></div>' +
         '<div class="artifact-content">' + escapeHtml(artifact.content) + '</div>' +
         '<textarea class="artifact-textarea" data-editor="' + escapeHtml(artifact.id) + '" aria-label="编辑' + escapeHtml(artifact.title) + '">' + escapeHtml(artifact.content) + '</textarea>' +
-        '<div class="artifact-meta"><span class="meta-chip">模型：' + escapeHtml((artifact.modelInfo && artifact.modelInfo.model) || 'local-rule-engine') + '</span><span class="meta-chip">提示词：' + escapeHtml((artifact.modelInfo && artifact.modelInfo.promptVersion) || 'brand-safe-content-v1.2') + '</span>' + qualityMeta + fidelityMeta + '</div>' + qualityIssues + fidelityNote + variants +
+        '<div class="artifact-meta"><span class="meta-chip">模型：' + escapeHtml((artifact.modelInfo && artifact.modelInfo.model) || 'local-rule-engine') + '</span><span class="meta-chip">提示词：' + escapeHtml((artifact.modelInfo && artifact.modelInfo.promptVersion) || 'brand-safe-content-v1.2') + '</span>' + qualityMeta + platformMeta + fidelityMeta + '</div>' + qualityIssues + fidelityNote + variants +
         '<div class="fact-refs" aria-label="事实引用">' + refs + '</div>' +
         '<div class="artifact-methods" aria-label="参考宣传方法">' + methods + '</div>' +
         '<input class="artifact-note" data-note="' + escapeHtml(artifact.id) + '" placeholder="审核备注（可选）">' +
@@ -240,6 +243,67 @@
     if (byId('mode-revision-count')) byId('mode-revision-count').textContent = ((state.revisionHistory || []).length || 0) + ' 条';
   }
 
+  function renderEvidenceGate(state) {
+    var root = byId('evidence-gate-body');
+    var status = byId('evidence-gate-status');
+    if (!root || !status) return;
+    var gate = state.evidenceGate;
+    if (!gate) { status.textContent = '等待检查'; root.innerHTML = '<div class="empty-state"><span class="empty-glyph">证</span><p>生成内容后检查关键事实确认、原文定位、风险项和品牌禁用表达。</p></div>'; return; }
+    status.textContent = gate.status === 'ready' ? '可进入批准' : gate.status === 'warning' ? '有提醒' : '已阻止批准';
+    status.className = 'status-chip ' + (gate.status === 'ready' ? 'is-active' : gate.status === 'blocked' ? 'is-warning' : '');
+    var blockers = (gate.blockers || []).slice(0, 12).map(function (item) { return '<li>' + escapeHtml(item.message) + '</li>'; }).join('');
+    var warnings = (gate.warnings || []).slice(0, 10).map(function (item) { return '<li>' + escapeHtml(item.message) + '</li>'; }).join('');
+    root.innerHTML = '<div class="evidence-gate-stats"><div><b>' + gate.counts.confirmedFacts + '/' + gate.counts.criticalFacts + '</b><small>关键事实已确认</small></div><div><b>' + gate.counts.highRisks + '</b><small>高风险项</small></div><div><b>' + gate.blockers.length + '</b><small>阻止项</small></div><div><b>' + gate.warnings.length + '</b><small>提醒项</small></div></div>' + (blockers ? '<div class="gate-blockers"><strong>阻止批准</strong><ul>' + blockers + '</ul></div>' : '<div class="gate-ready"><strong>证据门禁已通过</strong><p>仍建议由品牌负责人进行最终事实和对外表达确认。</p></div>') + (warnings ? '<details class="gate-warnings"><summary>查看提醒（' + gate.warnings.length + '）</summary><ul>' + warnings + '</ul></details>' : '') + (gate.blockers.some(function (item) { return item.code === 'FACT_UNCONFIRMED'; }) ? '<button class="button button-outline" type="button" data-action="confirm-sourced-facts">确认所有有来源事实</button>' : '');
+  }
+
+  function renderModelComparison(state) {
+    var body = byId('model-comparison-body');
+    var count = byId('model-comparison-count');
+    if (!body || !count) return;
+    var groups = {};
+    (state.history || []).forEach(function (record) {
+      var model = record.modelInfo && record.modelInfo.model || 'local-rule-engine';
+      groups[model] = groups[model] || { model: model, tasks: 0, quality: 0, qualityCount: 0, risks: 0, highRiskTasks: 0, prompts: {} };
+      groups[model].tasks += 1;
+      (record.artifacts || []).forEach(function (artifact) { if (artifact.quality && Number.isFinite(Number(artifact.quality.score))) { groups[model].quality += Number(artifact.quality.score); groups[model].qualityCount += 1; } });
+      groups[model].risks += (record.risks || []).length;
+      if ((record.risks || []).some(function (risk) { return risk.level === 'high'; })) groups[model].highRiskTasks += 1;
+      groups[model].prompts[record.modelInfo && record.modelInfo.promptVersion || '--'] = true;
+    });
+    var models = Object.values(groups);
+    count.textContent = models.length + ' 个模型';
+    body.innerHTML = models.length ? models.map(function (group) { return '<tr><td><strong>' + escapeHtml(group.model) + '</strong></td><td>' + group.tasks + '</td><td>' + (group.qualityCount ? Math.round(group.quality / group.qualityCount) : '--') + '</td><td>' + (group.tasks ? (group.risks / group.tasks).toFixed(1) : '0') + '</td><td>' + group.highRiskTasks + '</td><td>' + escapeHtml(Object.keys(group.prompts).join('、')) + '</td></tr>'; }).join('') : '<tr><td colspan="6" class="table-empty">完成生成任务后显示模型对比。</td></tr>';
+  }
+
+  function renderCollaboration(state) {
+    var collab = state.collaboration || { workspaces: [], comments: [], approvals: [], selectedId: '' };
+    var source = byId('collaboration-source');
+    if (source) {
+      var current = source.value || '';
+      source.innerHTML = '<option value="">请选择生成记录</option>' + (state.history || []).filter(function (record) { return record.artifacts && record.artifacts.length; }).map(function (record) { return '<option value="' + escapeHtml(record.id) + '">' + escapeHtml(((record.brand && record.brand.name) || '未命名品牌') + '｜' + (record.theme || '未填写主题') + '｜' + formatTime(record.createdAt)) + '</option>'; }).join('');
+      source.value = current;
+    }
+    var list = byId('collaboration-list');
+    if (list) {
+      if (!collab.workspaces.length) list.innerHTML = '<div class="empty-state"><span class="empty-glyph">协</span><p>尚未创建协作空间。选择一条生成记录并填写邀请邮箱后创建。</p></div>';
+      else list.innerHTML = collab.workspaces.map(function (workspace) { return '<button type="button" class="collaboration-item' + (workspace.id === collab.selectedId ? ' is-active' : '') + '" data-collaboration-action="open" data-workspace-id="' + escapeHtml(workspace.id) + '"><strong>' + escapeHtml(workspace.name) + '</strong><small>' + escapeHtml(workspace.ownerEmail || '') + '｜' + escapeHtml(workspace.myRole || '') + '</small><span data-status="' + escapeHtml(workspace.status) + '">' + escapeHtml(workspace.status) + '</span></button>'; }).join('');
+    }
+    var detail = byId('collaboration-detail');
+    var selected = collab.workspaces.filter(function (workspace) { return workspace.id === collab.selectedId; })[0];
+    if (detail) {
+      if (!selected) detail.innerHTML = '<div class="empty-state"><span class="empty-glyph">审</span><p>选择一个协作空间查看评论与审批记录。</p></div>';
+      else {
+        var comments = collab.comments.filter(function (item) { return item.workspaceId === selected.id; });
+        var approvals = collab.approvals.filter(function (item) { return item.workspaceId === selected.id; });
+        var snapshot = selected.snapshot || {};
+        var preview = (snapshot.artifacts || []).map(function (artifact) { return '<details><summary>' + escapeHtml(artifact.title || artifact.id) + '</summary><pre>' + escapeHtml(artifact.content || '') + '</pre></details>'; }).join('');
+        detail.innerHTML = '<div class="collaboration-detail-head"><div><h3>' + escapeHtml(selected.name) + '</h3><p>所有者：' + escapeHtml(selected.ownerEmail || '') + '｜我的角色：' + escapeHtml(selected.myRole || '') + '｜状态：' + escapeHtml(selected.status) + '</p></div><span class="status-chip">' + ((selected.members || []).length + 1) + ' 名成员</span></div><div class="collaboration-members">' + [{ email: selected.ownerEmail, role: 'owner' }].concat(selected.members || []).map(function (member) { return '<span>' + escapeHtml(member.email) + '｜' + escapeHtml(member.role) + '</span>'; }).join('') + '</div><div class="collaboration-preview"><strong>内容快照</strong>' + (preview || '<p>没有可预览成果。</p>') + '</div><div class="collaboration-records"><h4>评论（' + comments.length + '）</h4>' + (comments.length ? comments.map(function (comment) { return '<article><strong>' + escapeHtml(comment.authorEmail) + '｜' + escapeHtml(comment.target) + '</strong><p>' + escapeHtml(comment.text) + '</p><small>' + escapeHtml(formatTime(comment.createdAt)) + '</small></article>'; }).join('') : '<p>暂无评论。</p>') + '</div><div class="collaboration-records"><h4>审批（' + approvals.length + '）</h4>' + (approvals.length ? approvals.map(function (approval) { return '<article><strong>' + escapeHtml(approval.authorEmail) + '｜' + escapeHtml(approval.action) + '</strong><p>' + escapeHtml(approval.note || '未填写说明') + '</p><small>' + escapeHtml(formatTime(approval.createdAt)) + '</small></article>'; }).join('') : '<p>暂无审批动作。</p>') + '</div>';
+      }
+    }
+    if (byId('collaboration-comment-form')) byId('collaboration-comment-form').hidden = !selected;
+    if (byId('collaboration-approval-form')) byId('collaboration-approval-form').hidden = !selected;
+  }
+
   function renderRevision(state) {
     var revision = state.revision || {};
     var analysis = revision.analysis;
@@ -269,8 +333,24 @@
         issueRoot.innerHTML = '<div class="revision-summary"><div><b>' + analysis.highRiskCount + '</b><small>高风险</small></div><div><b>' + analysis.evidenceCoverage + '%</b><small>证据覆盖</small></div><div><b>' + analysis.naturalness + '</b><small>自然度</small></div><div><b>' + issues.length + '</b><small>待确认语段</small></div></div>' + (riskCards ? '<div class="revision-risk-list">' + riskCards + '</div>' : '') + '<div class="revision-sentence-list">' + (sentenceCards || '<div class="revision-clear"><strong>未发现需要阻断的语段</strong><p>仍建议人工核对事实来源、文化语境和品牌语气。</p></div>') + '</div>';
       }
     }
+    var platformRoot = byId('revision-platform-check');
+    if (platformRoot) {
+      var platformCheck = revision.platformCheck;
+      if (!platformCheck) platformRoot.innerHTML = '<div class="empty-state"><span class="empty-glyph">台</span><p>生成修订稿后显示目标平台字数、结构和品牌规则检查。</p></div>';
+      else platformRoot.innerHTML = '<div class="revision-check-head"><strong>平台与品牌规则</strong><span data-status="' + escapeHtml(platformCheck.status) + '">' + ({ pass: '通过', warning: '有提醒', fail: '未通过' }[platformCheck.status] || platformCheck.status) + '</span></div><p>' + escapeHtml(platformCheck.label) + '｜' + platformCheck.length + ' 字 / 建议不超过 ' + platformCheck.limit + ' 字</p>' + (platformCheck.findings.length ? '<ul>' + platformCheck.findings.map(function (item) { return '<li data-level="' + escapeHtml(item.level) + '">' + escapeHtml(item.message) + '</li>'; }).join('') + '</ul>' : '<p class="revision-clear-note">未发现平台结构或品牌规则问题。</p>');
+    }
+    var suggestionsRoot = byId('revision-suggestions');
+    if (suggestionsRoot) {
+      var suggestions = revision.suggestions || [];
+      if (byId('revision-suggestion-count')) byId('revision-suggestion-count').textContent = suggestions.length ? suggestions.length + ' 条建议' : '尚未生成';
+      if (!suggestions.length) suggestionsRoot.innerHTML = '<div class="empty-state"><span class="empty-glyph">段</span><p>生成修订稿后，可逐条接受、忽略或手动编辑每个问题语段。</p></div>';
+      else suggestionsRoot.innerHTML = suggestions.map(function (item, index) {
+        var editing = item.status === 'editing';
+        return '<article class="revision-suggestion" data-decision="' + escapeHtml(item.status) + '"><div class="revision-suggestion-head"><strong>建议 ' + (index + 1) + '｜' + escapeHtml(item.type || '风险改写') + '</strong><span>' + escapeHtml(item.status) + '</span></div><div class="revision-diff"><div><small>原文</small><p>' + escapeHtml(item.original) + '</p></div><div><small>建议</small>' + (editing ? '<textarea data-suggestion-editor="' + index + '">' + escapeHtml(item.final || item.proposed) + '</textarea>' : '<p>' + escapeHtml(item.final || item.proposed) + '</p>') + '</div></div><small>' + escapeHtml(item.reason || '') + '</small><div class="revision-issue-actions"><button type="button" class="text-button" data-revision-suggestion-action="accept" data-index="' + index + '">接受</button><button type="button" class="text-button" data-revision-suggestion-action="ignore" data-index="' + index + '">忽略</button><button type="button" class="text-button" data-revision-suggestion-action="edit" data-index="' + index + '">手动编辑</button>' + (editing ? '<button type="button" class="text-button" data-revision-suggestion-action="save-edit" data-index="' + index + '">保存此段</button>' : '') + '</div></article>';
+      }).join('');
+    }
     if (byId('revision-compare-summary')) {
-      byId('revision-compare-summary').innerHTML = '<span>原文 ' + String((revision.originalText || '').length) + ' 字</span><span>修订稿 ' + String((revision.resultText || '').length) + ' 字</span><span>待处理 ' + issues.length + ' 项</span>';
+      byId('revision-compare-summary').innerHTML = '<span>原文 ' + String((revision.originalText || '').length) + ' 字</span><span>修订稿 ' + String((revision.resultText || '').length) + ' 字</span><span>待处理 ' + issues.length + ' 项</span>' + (revision.modelInfo ? '<span>模型 ' + escapeHtml(revision.modelInfo.model || '--') + '</span><span>提示词 ' + escapeHtml(revision.modelInfo.promptVersion || '--') + '</span>' : '');
     }
     if (byId('revision-change-list')) {
       var changes = revision.changes || [];
@@ -400,6 +480,9 @@
     renderMetrics: renderMetrics,
     renderModeHub: renderModeHub,
     renderRevision: renderRevision,
+    renderEvidenceGate: renderEvidenceGate,
+    renderModelComparison: renderModelComparison,
+    renderCollaboration: renderCollaboration,
     updatePipeline: updatePipeline,
     setConnection: setConnection
   };

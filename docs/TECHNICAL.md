@@ -20,6 +20,8 @@ GitHub Pages 静态前端
 - `shared/generator.js`：品牌故事、内容日历、多平台文案、年轻化表达方案生成。
 - `shared/claim-analyzer.js`：已有广告语、脚本和文稿的逐句风险分析。
 - `shared/draft-reviser.js`：问题语段安全改写、修改要求处理和改稿差异记录。
+- `shared/evidence-gate.js`：事实确认、原文定位、高风险、引用完整性和品牌规则门禁。
+- `shared/platform-checker.js`：小红书、抖音、公众号、矩阵和线下文案的字数与结构检查。
 
 前端不保存 API Key。远程模型由网关读取 `OPENAI_API_KEY`，优先调用 Responses API；也可配置 `AI_API_URL` 作为 OpenAI 兼容备用接口。配置 `apiBaseUrl` 后，前端通过 HTTP API 使用服务端邮箱账号、云端品牌数据和云端历史。设置 `DATABASE_URL` 后由 PostgreSQLStore 运行；否则使用兼容模式的 JsonStore。生产环境使用 HttpOnly Cookie、CSRF 和限流；Bearer Token 仅用于兼容测试。
 
@@ -51,6 +53,20 @@ GitHub Pages 静态前端
 登录后可进入“生成文稿”或“修改文稿”。修改文稿支持两类来源：当前账号历史生成稿，以及 TXT、Markdown、JSON、CSV 文件；配置服务端文档解析器后可扩展 PDF、DOCX、OCR 和音频转写。
 
 改稿流程为：来源载入 → 逐句 Claim 与风险分析 → 问题语段定位/安全改写 → 修改要求处理 → 修订稿人工编辑 → 保存改稿记录。`shared/draft-reviser.js` 只替换或移除无依据、高风险表达，不会补写年份、荣誉、人物、销量和功效。压缩篇幅时会优先保留用户指定的年份、工艺和品牌事实。
+
+改稿请求通过 WebSocket `content.revise` 发送到网关。配置 `OPENAI_API_KEY` 时由服务端 AI 适配层执行；未配置或调用失败时自动使用同一个本地改稿引擎，并在结果中记录模型与提示词版本。
+
+## 发布证据门禁
+
+`shared/evidence-gate.js` 只检查可发布正文，忽略工作说明和改写建议。门禁要求关键事实已由品牌方确认或完成核验、来源摘录可定位、正文引用存在、无高风险表达、无品牌禁用词。服务端在协作空间批准动作中再次执行同一门禁，不能只依赖前端状态。
+
+## 协作空间
+
+`workspaces`、`collabComments` 和 `collabApprovals` 使用通用记录集合保存。协作空间包含所有者、成员邮箱与角色、内容快照、状态和审批记录；成员通过已登录邮箱匹配访问权限。批准接口会重新运行证据门禁，未通过时返回 `409 EVIDENCE_GATE_BLOCKED`。
+
+## 账号数据生命周期
+
+`/api/account/export` 导出当前账号的历史、品牌、评论、审批等记录；`DELETE /api/account` 在输入 `DELETE` 确认后删除用户并由数据库级联删除会话和记录。前端也提供本地状态导出和清除本次导入文本。
 
 ## WebSocket 协议
 

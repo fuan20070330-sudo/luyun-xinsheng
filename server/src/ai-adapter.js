@@ -57,6 +57,11 @@ const OUTPUT_SCHEMA = {
   required: ['story', 'calendar', 'copy', 'youth'],
   properties: { story: { type: 'string' }, calendar: { type: 'string' }, copy: { type: 'string' }, youth: { type: 'string' } }
 };
+const REVISION_SCHEMA = {
+  type: 'object', additionalProperties: false,
+  required: ['text'],
+  properties: { text: { type: 'string' } }
+};
 
 function buildPrompt(payload, risks) {
   const facts = (payload.facts || []).filter((fact) => fact.status !== '待核实');
@@ -85,6 +90,29 @@ function buildPrompt(payload, risks) {
   return { system, user };
 }
 
+function buildRevisionPrompt(payload, risks) {
+  const facts = (payload.facts || []).filter((fact) => fact.status !== '待核实');
+  const system = [
+    '你是一名资深中文品牌编辑，负责修改老字号、非遗和文创品牌已有文稿。',
+    '只能使用 facts 中的信息作为确定事实，不得新增年份、荣誉、非遗身份、人物、销量、功效或工艺细节。',
+    '无来源信息写“待核实”或删除，不得把风险表达改写成新的确定事实。',
+    '按修改要求调整篇幅、语气、平台结构和表达，但必须保留用户指定的重点事实。',
+    '保留原文中的 [Fxxx] 事实引用。语气自然、具体、克制，避免模板化 AI 套话。',
+    '只输出 JSON，格式为 {"text":"完整修订稿"}，不要输出 Markdown 代码围栏。'
+  ].join('\n');
+  const user = JSON.stringify({
+    originalText: String(payload.text || '').slice(0, 20000),
+    requirements: String(payload.requirements || '').slice(0, 3000),
+    keep: String(payload.keep || '').slice(0, 1000),
+    platform: payload.platform || 'xiaohongshu',
+    brand: payload.brand || {},
+    brandRules: payload.brandRules || {},
+    facts: facts.map((fact) => ({ id: fact.id, category: fact.category, text: fact.text, source: fact.source, sourceLocation: fact.sourceLocation })),
+    detectedRisks: (risks || []).map((risk) => ({ level: risk.level, type: risk.type, term: risk.term, reason: risk.reason, suggestion: risk.suggestion }))
+  });
+  return { system, user };
+}
+
 function createAiAdapter(env = {}) {
   const openaiKey = env.OPENAI_API_KEY || env.AI_API_KEY || '';
   const openaiBase = trimSlash(env.OPENAI_BASE_URL || 'https://api.openai.com/v1');
@@ -94,12 +122,12 @@ function createAiAdapter(env = {}) {
   const enabled = !!(openaiKey && (openaiBase || compatibleUrl));
   const mode = String(env.AI_API_MODE || (env.OPENAI_API_KEY ? 'responses' : 'chat')).toLowerCase();
 
-  async function callResponses(system, user) {
+  async function callResponses(system, user, schema, schemaName) {
     const data = await requestJson(responsesEndpoint(openaiBase), { headers: { Authorization: 'Bearer ' + openaiKey } }, {
       model: model,
       instructions: system,
       input: [{ role: 'user', content: user }],
-      text: { format: { type: 'json_schema', name: 'luyun_narrative_package', strict: true, schema: OUTPUT_SCHEMA } },
+      text: { format: { type: 'json_schema', name: schemaName || 'luyun_narrative_package', strict: true, schema: schema || OUTPUT_SCHEMA } },
       max_output_tokens: Number(env.AI_MAX_OUTPUT_TOKENS || 6000)
     }, timeoutMs);
     return parseJsonText(extractResponseText(data));
@@ -122,7 +150,7 @@ function createAiAdapter(env = {}) {
     let parsed;
     let adapterMode = mode;
     if (mode === 'responses') {
-      try { parsed = await callResponses(prompt.system, prompt.user); }
+      try { parsed = await callResponses(prompt.system, prompt.user, OUTPUT_SCHEMA, 'luyun_narrative_package'); }
       catch (error) { if (!compatibleUrl) throw error; parsed = await callChat(prompt.system, prompt.user); adapterMode = 'chat-completions-fallback'; }
     } else { parsed = await callChat(prompt.system, prompt.user); }
     const modelInfo = { model: model, mode: '高级模型适配层 / ' + adapterMode, promptVersion: engine.PROMPT_VERSION };
@@ -138,8 +166,21 @@ function createAiAdapter(env = {}) {
     return { artifacts: results, modelInfo: modelInfo };
   }
 
-  return { enabled, model, mode, generate };
+  async function revise(payload) {
+    if (!enabled) return null;
+    const prompt = buildRevisionPrompt(payload, payload.risks || []);
+    let parsed;
+    let adapterMode = mode;
+    if (mode === 'responses') {
+      try { parsed = await callResponses(prompt.system, prompt.user, REVISION_SCHEMA, 'luyun_revision'); }
+      catch (error) { if (!compatibleUrl) throw error; parsed = await callChat(prompt.system, prompt.user); adapterMode = 'chat-completions-fallback'; }
+    } else parsed = await callChat(prompt.system, prompt.user);
+    if (!parsed || !String(parsed.text || '').trim()) throw new Error('模型没有返回可用修订稿');
+    return { text: String(parsed.text).trim(), modelInfo: { model: model, mode: '高级模型改稿 / ' + adapterMode, promptVersion: 'draft-revision-ai-v1.0' }, mode: 'remote' };
+  }
+
+  return { enabled, model, mode, generate, revise };
 }
 
-module.exports = { createAiAdapter, requestJson, responsesEndpoint, chatEndpoint, extractResponseText, parseJsonText, buildPrompt };
+module.exports = { createAiAdapter, requestJson, responsesEndpoint, chatEndpoint, extractResponseText, parseJsonText, buildPrompt, buildRevisionPrompt };
 

@@ -2,6 +2,7 @@
 
 const { randomUUID } = require('crypto');
 const engine = require('../../shared/generator');
+const DraftReviser = require('../../shared/draft-reviser');
 const { WebSocketServer } = require('./ws-server');
 const { createAiAdapter } = require('./ai-adapter');
 
@@ -57,6 +58,7 @@ class LuyunGateway {
     const payload = message.payload || {};
     if (event === 'brand.ingest') return this.handleBrandIngest(client, requestId, payload);
     if (event === 'content.generate') return this.handleContentGenerate(client, requestId, payload);
+    if (event === 'content.revise') return this.handleContentRevise(client, requestId, payload);
     if (event === 'review.update') return this.handleReviewUpdate(client, requestId, payload);
     if (event === 'state.sync') { this.sendSnapshot(client, requestId); return; }
     if (event === 'ping') {
@@ -163,6 +165,28 @@ class LuyunGateway {
     this.metrics.reviews += 1;
     this.send(client, 'review.saved', requestId, review);
     this.sendSnapshot(client, '');
+  }
+
+  async handleContentRevise(client, requestId, payload) {
+    const text = String(payload.text || '').trim();
+    if (!text) throw new Error('content.revise 需要待修改文稿');
+    if (text.length > 30000) throw new Error('待修改文稿超过 30000 字限制');
+    const facts = Array.isArray(payload.facts) ? payload.facts : [];
+    const risks = engine.detectRisks({ materials: text, constraints: payload.requirements || '', theme: '', goal: '修改文稿', facts: facts });
+    this.sendProgress(client, requestId, 'revision', 'analyze', 25, '正在检查事实边界、风险语段和修改要求');
+    let remote = null;
+    if (this.adapter.enabled) {
+      try { remote = await this.adapter.revise(Object.assign({}, payload, { risks: risks })); }
+      catch (error) { this.sendProgress(client, requestId, 'revision', 'generate', 45, '远程模型改稿失败，自动切换到本地安全修订'); }
+    }
+    if (remote && remote.text) {
+      this.sendProgress(client, requestId, 'revision', 'verify', 80, '远程修订稿已返回，请继续人工核对事实与品牌语气');
+      this.send(client, 'revision.ready', requestId, { text: remote.text, changes: [], analysis: DraftReviser.analyze({ text: remote.text, facts: facts, brand: payload.brand, cultureDna: payload.cultureDna, platform: payload.platform }), modelInfo: remote.modelInfo, usedRemote: true });
+      return;
+    }
+    const local = DraftReviser.revise({ text: text, requirements: payload.requirements || '', keep: payload.keep || '', facts: facts, brand: payload.brand || {}, cultureDna: payload.cultureDna || null, platform: payload.platform || 'xiaohongshu' });
+    this.sendProgress(client, requestId, 'revision', 'verify', 80, '本地安全修订完成，请逐段确认修改建议');
+    this.send(client, 'revision.ready', requestId, Object.assign({}, local, { modelInfo: { model: 'local-draft-reviser', mode: '本地确定性改稿引擎', promptVersion: DraftReviser.PROMPT_VERSION }, usedRemote: false }));
   }
 
   sendProgress(client, requestId, jobId, stage, percent, message) {

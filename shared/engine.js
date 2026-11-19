@@ -80,13 +80,25 @@
     return Math.max(0.55, Math.min(0.98, Number(score.toFixed(2))));
   }
 
+  function sourceLocationFor(sentence, options, index) {
+    var document = options && options.sourceDocument || {};
+    var pages = document.meta && Array.isArray(document.meta.pages) ? document.meta.pages : [];
+    for (var pageIndex = 0; pageIndex < pages.length; pageIndex += 1) {
+      var page = pages[pageIndex];
+      var pageText = typeof page === 'string' ? page : page && page.text || '';
+      if (pageText && pageText.indexOf(sentence) !== -1) return '第' + (page.number || pageIndex + 1) + '页';
+    }
+    if (document.meta && Number(document.meta.startLine)) return '原文第' + (Number(document.meta.startLine) + index) + '行';
+    return '原文第' + (index + 1) + '条';
+  }
+
   function extractFacts(materials, options) {
     options = options || {};
     var sourceName = options.sourceName || '用户提交品牌资料';
     var lines = splitText(materials);
     var categoryCount = {};
     var facts = [];
-    lines.forEach(function (sentence) {
+    lines.forEach(function (sentence, index) {
       var category = classifySentence(sentence);
       var source = sourceName + '：' + sentence;
       var confidence = confidenceFor(sentence, sourceName);
@@ -99,7 +111,7 @@
         statement: sentence,
         source: source,
         sourceExcerpt: sentence,
-        sourceLocation: '原文第' + (facts.length + 1) + '条',
+        sourceLocation: sourceLocationFor(sentence, options, index),
         sourceDocumentId: options.sourceDocument && options.sourceDocument.id || '',
         sourceDocumentName: options.sourceDocument && options.sourceDocument.name || sourceName,
         sourceHash: options.sourceDocument && options.sourceDocument.hash || '',

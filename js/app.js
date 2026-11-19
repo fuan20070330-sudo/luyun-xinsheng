@@ -11,6 +11,8 @@
   var ProofEngine = window.LuyunProofEngine;
   var ClaimAnalyzer = window.LuyunClaimAnalyzer;
   var DraftReviser = window.LuyunDraftReviser;
+  var EvidenceGate = window.LuyunEvidenceGate;
+  var PlatformChecker = window.LuyunPlatformChecker;
   var Config = window.LUYUN_CONFIG;
   var $ = function (id) { return document.getElementById(id); };
   var $$ = function (selector) { return Array.prototype.slice.call(document.querySelectorAll(selector)); };
@@ -45,6 +47,9 @@
     appMode: 'hub',
     revision: null,
     revisionHistory: [],
+    brandRules: { preferredTerms: [], bannedTerms: [] },
+    evidenceGate: null,
+    collaboration: { workspaces: [], comments: [], approvals: [], selectedId: '', loaded: false },
     initialized: false
   };
 
@@ -75,6 +80,7 @@
     state.documents = Array.isArray(saved.documents) ? saved.documents : [];
     state.revision = saved.revision || null;
     state.revisionHistory = Array.isArray(saved.revisionHistory) ? saved.revisionHistory : [];
+    state.brandRules = Object.assign({ preferredTerms: [], bannedTerms: [] }, saved.brandRules || {});
     state.metrics = saved.metrics || { facts: 0, jobs: state.tasks.length, reviews: state.reviews.length };
   }
 
@@ -110,6 +116,7 @@
         documents: state.documents.slice(0, 100),
         revision: state.revision,
         revisionHistory: state.revisionHistory.slice(0, HISTORY_LIMIT),
+        brandRules: state.brandRules,
         metrics: state.metrics
       }));
     } catch (error) {}
@@ -131,6 +138,9 @@
     state.documents = [];
     state.revision = null;
     state.revisionHistory = [];
+    state.brandRules = { preferredTerms: [], bannedTerms: [] };
+    state.evidenceGate = null;
+    state.collaboration = { workspaces: [], comments: [], approvals: [], selectedId: '', loaded: false };
     state.appMode = 'hub';
     state.conflicts = [];
     state.historyQuery = '';
@@ -166,6 +176,23 @@
 
   function now() { return new Date().toISOString(); }
   function selected(name) { return document.querySelector('input[name="' + name + '"]:checked'); }
+  function parseTermList(value) {
+    return Array.from(new Set(String(value || '').split(/[、,，\n；;]+/).map(function (item) { return item.trim(); }).filter(Boolean)));
+  }
+  function currentBrandRules() {
+    return {
+      preferredTerms: parseTermList($('brand-preferred-terms') ? $('brand-preferred-terms').value : (state.brandRules.preferredTerms || []).join('、')),
+      bannedTerms: parseTermList($('brand-banned-terms') ? $('brand-banned-terms').value : (state.brandRules.bannedTerms || []).join('、'))
+    };
+  }
+  function detectSensitiveText(text) {
+    var warnings = [];
+    if (/(?:^|\D)1[3-9]\d{9}(?:\D|$)/.test(text)) warnings.push('疑似手机号码');
+    if (/\b\d{17}[\dXx]\b/.test(text)) warnings.push('疑似身份证号码');
+    if (/\b\d{16,19}\b/.test(text)) warnings.push('疑似银行卡号');
+    if (/(?:开户行|账号|账户)\s*[:：]?\s*\d{8,}/.test(text)) warnings.push('疑似银行账户');
+    return warnings;
+  }
   function platformName(value) { return Data.labelMaps.platform[value] || value; }
   function typeName(value) { return Data.labelMaps.contentType[value] || value; }
   function selectedPromotionMethods() {
@@ -572,6 +599,9 @@
     Renderer.renderMetrics(state);
     Renderer.renderModeHub(state);
     Renderer.renderRevision(state);
+    Renderer.renderEvidenceGate(state);
+    Renderer.renderModelComparison(state);
+    Renderer.renderCollaboration(state);
     renderRevisionDraftOptions();
   }
 
@@ -582,6 +612,14 @@
     if (state.cultureDna) state.artifacts.forEach(function (artifact) { artifact.cultureFidelity = CultureDna.evaluateArtifact(artifact, state.cultureDna); });
     state.proof = state.facts.length && ProofEngine ? ProofEngine.build(state.facts, state.risks, state.cultureDna) : null;
     if (state.proof && state.artifacts.length) state.proof.validation = ProofEngine.validateArtifacts(state.artifacts, state.proof, state.facts, state.risks, state.cultureDna);
+    var artifactText = state.artifacts.map(function (artifact) {
+      return ProofEngine.stripPolicySections(artifact.content || '').split(/\n+/).filter(function (line) {
+        return !/(不得|不要|避免|禁止|待核实|风险|提示|确认清单|语态转换|改写示例)/.test(line);
+      }).join('\n');
+    }).join('\n\n');
+    state.artifactRisks = state.artifacts.length ? Engine.detectRisks({ materials: artifactText, constraints: '', theme: '', goal: '发布前检查', facts: state.facts }) : [];
+    var gateProof = state.proof ? Object.assign({}, state.proof, { stats: Object.assign({}, state.proof.stats, { blocked: state.proof.validation ? state.proof.validation.sentenceStats.blocked : state.proof.stats.blocked }) }) : null;
+    state.evidenceGate = EvidenceGate.build({ facts: state.facts, risks: state.artifactRisks, proof: gateProof, artifacts: state.artifacts, brandRules: state.brandRules, verificationConfigured: !!(Config.officialRegistryConfigured) });
   }
 
   function refreshPassport() {
@@ -687,6 +725,149 @@
     if ($('analyzer-text')) $('analyzer-text').focus();
   }
   function closeAnalyzer() { var drawer = $('analyzer-drawer'); if (!drawer) return; drawer.hidden = true; document.body.classList.remove('analyzer-open'); }
+
+  function openCollaboration() {
+    var drawer = $('collaboration-drawer');
+    if (!drawer) return;
+    drawer.hidden = false;
+    document.body.classList.add('history-open');
+    loadCollaboration();
+  }
+  function closeCollaboration() {
+    var drawer = $('collaboration-drawer');
+    if (!drawer) return;
+    drawer.hidden = true;
+    document.body.classList.remove('history-open');
+  }
+  async function loadCollaboration() {
+    if (!Api.enabled() || !state.remoteAuth) {
+      state.collaboration.loaded = true;
+      Renderer.renderCollaboration(state);
+      toast('多人协作需要在线账号服务；当前仍可查看本机数据。', 'warning');
+      return;
+    }
+    try {
+      var payload = await Api.listCollaboration();
+      state.collaboration.workspaces = payload.workspaces || [];
+      state.collaboration.comments = payload.comments || [];
+      state.collaboration.approvals = payload.approvals || [];
+      state.collaboration.loaded = true;
+      if (!state.collaboration.selectedId && state.collaboration.workspaces.length) state.collaboration.selectedId = state.collaboration.workspaces[0].id;
+      Renderer.renderCollaboration(state);
+    } catch (error) {
+      toast(error.message || '协作空间加载失败。', 'warning');
+    }
+  }
+  async function createCollaborationWorkspace(event) {
+    if (event) event.preventDefault();
+    var sourceId = $('collaboration-source') ? $('collaboration-source').value : '';
+    var sourceRecord = state.history.filter(function (record) { return record.id === sourceId; })[0];
+    if (!sourceRecord) { toast('请选择一条生成记录作为协作内容快照。', 'warning'); return; }
+    var emails = parseTermList($('collaboration-members') ? $('collaboration-members').value : '');
+    var role = $('collaboration-member-role') ? $('collaboration-member-role').value : 'editor';
+    var workspace = {
+      id: uid('workspace'),
+      name: ($('collaboration-name') && $('collaboration-name').value.trim()) || (((sourceRecord.brand && sourceRecord.brand.name) || '品牌') + '协作审核'),
+      ownerEmail: state.user,
+      members: emails.map(function (email) { return { email: email, role: role }; }),
+      status: 'draft',
+      snapshot: cloneData(Object.assign({}, sourceRecord, { brandRules: state.brandRules }))
+    };
+    if (!Api.enabled() || !state.remoteAuth) { toast('创建多人协作空间需要登录在线服务端。', 'warning'); return; }
+    try {
+      var saved = await Api.saveWorkspace(workspace);
+      state.collaboration.selectedId = saved.id;
+      $('collaboration-create-form').reset();
+      await loadCollaboration();
+      toast('协作空间已创建，受邀账号登录后可以看到这份内容快照。');
+    } catch (error) {
+      toast(error.message || '协作空间创建失败。', 'error');
+    }
+  }
+  function selectCollaborationWorkspace(id) {
+    state.collaboration.selectedId = id;
+    Renderer.renderCollaboration(state);
+  }
+  async function submitCollaborationComment(event) {
+    if (event) event.preventDefault();
+    var workspaceId = state.collaboration.selectedId;
+    var text = $('collaboration-comment-text') ? $('collaboration-comment-text').value.trim() : '';
+    if (!workspaceId || !text) { toast('请选择协作空间并填写评论。', 'warning'); return; }
+    try {
+      await Api.saveCollabComment({ workspaceId: workspaceId, text: text, target: $('collaboration-comment-target').value.trim() || '整体文稿' });
+      $('collaboration-comment-text').value = '';
+      await loadCollaboration();
+      toast('评论已保存。');
+    } catch (error) { toast(error.message || '评论保存失败。', 'error'); }
+  }
+  async function submitCollaborationApproval(event) {
+    if (event) event.preventDefault();
+    var workspaceId = state.collaboration.selectedId;
+    if (!workspaceId) { toast('请先选择协作空间。', 'warning'); return; }
+    try {
+      var payload = await Api.saveCollabApproval({ workspaceId: workspaceId, action: $('collaboration-approval-action').value, note: $('collaboration-approval-note').value.trim() });
+      $('collaboration-approval-note').value = '';
+      await loadCollaboration();
+      toast(payload.approval.action === 'approve' ? '已批准发布。' : '审核动作已保存。');
+    } catch (error) { toast(error.message || '审核动作保存失败。', 'warning'); }
+  }
+
+  function openAccountDrawer() {
+    var drawer = $('account-drawer');
+    if (!drawer) return;
+    drawer.hidden = false;
+    document.body.classList.add('history-open');
+  }
+  function closeAccountDrawer() {
+    var drawer = $('account-drawer');
+    if (!drawer) return;
+    drawer.hidden = true;
+    document.body.classList.remove('history-open');
+  }
+  function downloadJsonFile(name, payload) {
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = name;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+  async function exportAccountData() {
+    try {
+      if (Api.enabled() && state.remoteAuth) {
+        var remote = await Api.exportAccountData();
+        downloadJsonFile('账号数据-' + state.accountId + '.json', remote);
+      } else {
+        downloadJsonFile('账号数据-' + state.accountId + '.json', {
+          exportedAt: now(), account: state.accountId,
+          brandLibrary: state.brandLibrary, history: state.history, reviews: state.reviews,
+          publishRecords: state.publishRecords, documents: state.documents,
+          revisionHistory: state.revisionHistory, brandRules: state.brandRules
+        });
+      }
+      toast('账号数据已导出。');
+    } catch (error) { toast(error.message || '账号数据导出失败。', 'error'); }
+  }
+  async function deleteCurrentAccount() {
+    var confirmation = $('account-delete-confirmation') ? $('account-delete-confirmation').value.trim() : '';
+    if (confirmation !== 'DELETE') { toast('请输入 DELETE 后再删除账号。', 'warning'); return; }
+    if (!window.confirm('确定永久删除当前账号及全部生成、审核和协作记录吗？')) return;
+    try {
+      if (Api.enabled() && state.remoteAuth) await Api.deleteAccount();
+      var accounts = readAuthAccounts();
+      delete accounts[state.accountId];
+      writeAuthAccounts(accounts);
+      try { window.localStorage.removeItem(accountKey(state.accountId)); } catch (error) {}
+      closeAccountDrawer();
+      state.accountId = '';
+      logout();
+      toast('账号及账号数据已删除。');
+    } catch (error) { toast(error.message || '账号删除失败。', 'error'); }
+  }
+
   function runClaimAnalysis(event) {
     if (event) event.preventDefault();
     var text = $('analyzer-text') ? $('analyzer-text').value.trim() : '';
@@ -773,7 +954,7 @@
     if ($('revision-keep')) $('revision-keep').value = revision.keep || '';
     if ($('revision-platform')) $('revision-platform').value = revision.platform || 'xiaohongshu';
     if ($('revision-result-text')) $('revision-result-text').value = revision.resultText || '';
-    if ($('revision-file-status') && revision.sourceType === 'file') $('revision-file-status').textContent = '已载入：' + (revision.sourceTitle || '本地文件') + '。可以在下方继续编辑或重新排查问题语段。';
+    if ($('revision-file-status') && revision.sourceType === 'file') $('revision-file-status').textContent = '已载入：' + (revision.sourceTitle || '本地文件') + '。可以在下方继续编辑或重新排查问题语段。' + ((revision.sensitiveWarnings || []).length ? '｜敏感信息提醒：' + revision.sensitiveWarnings.join('、') : '');
   }
 
   function loadRevisionSource() {
@@ -825,34 +1006,93 @@
     }
   }
 
-  function runRevisionDraft() {
+  function buildRevisionSuggestions(originalText, result) {
+    var changes = (result.changes || []).filter(function (change) { return change.type === '风险改写' && change.before && change.after; });
+    var suggestions = changes.map(function (change, index) {
+      return { id: 'suggestion-' + (index + 1), type: change.type, original: change.before, proposed: change.after, final: change.after, reason: change.reason, status: 'accepted' };
+    });
+    if (!suggestions.length) {
+      var beforeSentences = ProofEngine.splitSentences(originalText);
+      var afterSentences = ProofEngine.splitSentences(result.text || '');
+      if (beforeSentences.length === afterSentences.length) {
+        beforeSentences.forEach(function (sentence, index) {
+          if (sentence !== afterSentences[index]) suggestions.push({ id: 'suggestion-' + (suggestions.length + 1), type: '段落调整', original: sentence, proposed: afterSentences[index], final: afterSentences[index], reason: '根据修改要求调整了该段表达。', status: 'accepted' });
+        });
+      }
+    }
+    return suggestions;
+  }
+
+  async function runRevisionDraft() {
     var analysis = analyzeRevisionDraft();
     if (!analysis) return;
     var context = getRevisionContext();
     try {
-      var result = DraftReviser.revise({
-        text: state.revision.originalText,
-        requirements: state.revision.requirements,
-        keep: state.revision.keep,
-        analysis: analysis,
-        facts: context.facts,
-        brand: context.brand,
-        cultureDna: context.cultureDna,
-        platform: state.revision.platform
-      });
+      var result = await requestTransport('content.revise', {
+        text: state.revision.originalText, requirements: state.revision.requirements, keep: state.revision.keep, analysis: analysis,
+        risks: analysis.risks, facts: context.facts, brand: context.brand, brandRules: state.brandRules,
+        cultureDna: context.cultureDna, platform: state.revision.platform
+      }, 'revision.ready');
+      result.revisedAnalysis = result.revisedAnalysis || result.analysis;
       state.revision.resultText = result.text;
-      state.revision.revisedAnalysis = result.revisedAnalysis;
-      state.revision.changes = result.changes;
-      state.revision.requirementNotes = result.requirementNotes;
-      state.revision.quality = result.quality;
+      state.revision.revisedAnalysis = result.revisedAnalysis || null;
+      state.revision.changes = result.changes || [];
+      state.revision.suggestions = buildRevisionSuggestions(state.revision.originalText, result);
+      state.revision.requirementNotes = result.requirementNotes || [];
+      state.revision.quality = result.quality || null;
+      state.revision.modelInfo = result.modelInfo || { model: 'local-draft-reviser', mode: state.transportMode, promptVersion: DraftReviser.PROMPT_VERSION };
+      state.revision.usedRemote = !!result.usedRemote;
+      state.revision.platformCheck = PlatformChecker.check(result.text, state.revision.platform, context.brand && { preferredTerms: context.brand.preferredTerms || state.brandRules.preferredTerms, bannedTerms: context.brand.bannedTerms || state.brandRules.bannedTerms } || state.brandRules);
       state.revision.updatedAt = now();
       persistState();
       renderAll();
-      var remaining = result.revisedAnalysis.highRiskCount || 0;
-      toast(remaining ? '修订稿已生成，仍有 ' + remaining + ' 个高风险表达需要人工确认。' : '修订稿已生成，未检出高风险表达，请人工复核事实与品牌语气。', remaining ? 'warning' : 'info');
+      var remaining = state.revision.revisedAnalysis && state.revision.revisedAnalysis.highRiskCount || 0;
+      toast(remaining ? '修订稿已生成，仍有 ' + remaining + ' 个高风险表达需要逐段确认。' : '修订稿已生成，可逐段接受、忽略或手动编辑。', remaining ? 'warning' : 'info');
     } catch (error) {
       toast(error.message || '生成修订稿失败。', 'error');
     }
+  }
+
+  function setRevisionSuggestion(index, action) {
+    var revision = state.revision;
+    var item = revision && revision.suggestions && revision.suggestions[Number(index)];
+    if (!item) return;
+    var field = $('revision-result-text');
+    var current = field ? field.value : revision.resultText || '';
+    if (action === 'accept') {
+      if (current.indexOf(item.original) !== -1) current = current.replace(item.original, item.final || item.proposed);
+      item.status = 'accepted';
+    }
+    if (action === 'ignore') {
+      var proposed = item.final || item.proposed;
+      if (current.indexOf(proposed) !== -1) current = current.replace(proposed, item.original);
+      item.status = 'ignored';
+    }
+    if (action === 'edit') { item.status = 'editing'; renderAll(); return; }
+    if (action === 'save-edit') {
+      var editor = document.querySelector('[data-suggestion-editor="' + index + '"]');
+      var manual = editor ? editor.value.trim() : '';
+      if (!manual) { toast('手动修订内容不能为空。', 'warning'); return; }
+      var previous = item.final || item.proposed;
+      if (current.indexOf(previous) !== -1) current = current.replace(previous, manual); else if (current.indexOf(item.original) !== -1) current = current.replace(item.original, manual);
+      item.final = manual;
+      item.status = 'accepted';
+    }
+    revision.resultText = current;
+    if (field) field.value = current;
+    revision.platformCheck = PlatformChecker.check(current, revision.platform, state.brandRules);
+    revision.updatedAt = now();
+    persistState();
+    renderAll();
+  }
+
+  function clearRevisionData() {
+    state.revision = null;
+    ['revision-original-text', 'revision-result-text', 'revision-requirements', 'revision-keep'].forEach(function (id) { if ($(id)) $(id).value = ''; });
+    if ($('revision-file-status')) $('revision-file-status').textContent = '点击选择文件，也可以直接拖入。支持 TXT、Markdown、JSON、CSV；PDF、DOCX 需在线网关解析。';
+    persistState();
+    renderAll();
+    toast('本次导入和修订文本已从浏览器状态中清除，改稿记录仍保留。');
   }
 
   function locateRevisionSentence(index) {
@@ -921,10 +1161,12 @@
       keep: state.revision.keep,
       resultText: text,
       changes: cloneData(state.revision.changes || []),
+      suggestions: cloneData(state.revision.suggestions || []),
+      platformCheck: cloneData(state.revision.platformCheck || null),
       analysisSummary: state.revision.analysis ? { status: state.revision.analysis.status, highRiskCount: state.revision.analysis.highRiskCount, evidenceCoverage: state.revision.analysis.evidenceCoverage } : null,
       revisedSummary: state.revision.revisedAnalysis ? { status: state.revision.revisedAnalysis.status, highRiskCount: state.revision.revisedAnalysis.highRiskCount, evidenceCoverage: state.revision.revisedAnalysis.evidenceCoverage } : null,
-      model: 'local-draft-reviser/1.0',
-      promptVersion: DraftReviser.PROMPT_VERSION || 'draft-revision-safe-v1.0',
+      model: state.revision.modelInfo && state.revision.modelInfo.model || 'local-draft-reviser',
+      promptVersion: state.revision.modelInfo && state.revision.modelInfo.promptVersion || DraftReviser.PROMPT_VERSION,
       status: '待品牌确认',
       createdAt: now(),
       updatedAt: now()
@@ -956,6 +1198,9 @@
       keep: record.keep,
       resultText: record.resultText,
       changes: cloneData(record.changes || []),
+      suggestions: cloneData(record.suggestions || []),
+      platformCheck: cloneData(record.platformCheck || null),
+      modelInfo: { model: record.model || 'local-draft-reviser', promptVersion: record.promptVersion || DraftReviser.PROMPT_VERSION },
       analysis: null,
       revisedAnalysis: record.revisedSummary ? { status: record.revisedSummary.status, highRiskCount: record.revisedSummary.highRiskCount, evidenceCoverage: record.revisedSummary.evidenceCoverage, sentences: [] } : null,
       savedId: record.id
@@ -1066,6 +1311,7 @@
   function collectBrand() {
     var historyProducts = $('brand-materials').value.trim();
     var interviews = $('interview-notes').value.trim();
+    var rules = currentBrandRules();
     return {
       id: ($('brand-select').value === 'new' ? 'brand-' + Date.now() : $('brand-select').value),
       name: $('brand-name').value.trim(),
@@ -1073,6 +1319,8 @@
       tone: $('brand-tone').value.trim(),
       materials: historyProducts + (interviews ? '\n' + interviews : ''),
       interviews: interviews,
+      preferredTerms: rules.preferredTerms,
+      bannedTerms: rules.bannedTerms,
       isDemo: false
     };
   }
@@ -1096,6 +1344,7 @@
       theme: $('campaign-theme').value.trim(),
       goal: $('content-goal').value.trim(),
       constraints: $('content-constraints').value.trim(),
+      brandRules: currentBrandRules(),
       promotionMethods: selectedPromotionMethods().map(function (method) { return method.title; }),
       cultureDna: state.cultureDna,
       evidenceGaps: state.evidenceGaps,
@@ -1170,6 +1419,23 @@
         return result;
       });
     }
+    if (event === 'content.revise') {
+      return delay(140 * scale).then(function () {
+        var result = DraftReviser.revise({
+          text: payload.text,
+          requirements: payload.requirements || '',
+          keep: payload.keep || '',
+          facts: payload.facts || [],
+          brand: payload.brand || {},
+          cultureDna: payload.cultureDna || null,
+          platform: payload.platform || 'xiaohongshu'
+        });
+        result.modelInfo = { model: 'local-draft-reviser', mode: '本地确定性改稿引擎', promptVersion: DraftReviser.PROMPT_VERSION };
+        result.usedRemote = false;
+        if (onEvent) onEvent({ event: 'revision.ready', payload: result });
+        return result;
+      });
+    }
     return Promise.resolve(payload || {});
   }
 
@@ -1186,6 +1452,7 @@
 
   async function ingestBrand() {
     if (!validateFields(['brand-name', 'brand-type', 'brand-tone', 'brand-materials'])) return null;
+    state.brandRules = currentBrandRules();
     var brand = collectBrand();
     setBusy($('ingest-button'), true);
     $('brand-status').textContent = '提取中';
@@ -1230,6 +1497,7 @@
       if (!ingestResult) return null;
     }
     var payload = collectGeneration();
+    state.brandRules = payload.brandRules || currentBrandRules();
     state.risks = [];
     state.artifacts = [];
     renderAll();
@@ -1252,6 +1520,7 @@
       state.artifacts = result.artifacts || [];
       state.roleReviews = result.roleReviews || Engine.runRoleReview({ facts: state.facts, risks: state.risks, theme: payload.theme, platformName: payload.platformName });
       state.lastPayload = payload;
+      state.artifacts.forEach(function (artifact) { artifact.platformCheck = PlatformChecker.check(artifact.content || '', payload.platform, state.brandRules); });
       refreshInnovationData();
       refreshPassport();
       state.metrics.facts = state.facts.filter(function (fact) { return fact.status !== '待核实'; }).length;
@@ -1313,7 +1582,8 @@
     if (action === 'edit') {
       artifact.originalContent = artifact.originalContent || before;
       artifact.content = after;
-      artifact.status = state.risks.some(function (risk) { return risk.level === 'high'; }) ? 'flagged' : 'edited';
+      var editedRisks = Engine.detectRisks({ materials: after, constraints: '', theme: '', goal: '人工修改后检查', facts: state.facts });
+      artifact.status = editedRisks.some(function (risk) { return risk.level === 'high'; }) ? 'flagged' : 'edited';
     }
     state.reviews.unshift(review);
     state.metrics.reviews = state.reviews.length;
@@ -1323,6 +1593,7 @@
       task.status = action === 'accept' ? '品牌方已确认' : action === 'flag' ? '已退回修改' : action === 'reject' ? '已驳回' : '品牌方修改待复审';
     }
     syncHistoryRecord();
+    refreshInnovationData();
     persistState();
     if (Api.enabled() && state.remoteAuth) {
       Api.saveReview(review).catch(function () {});
@@ -1340,6 +1611,11 @@
     var card = button.closest('.artifact-card');
     var noteField = card && card.querySelector('.artifact-note');
     var reviewNote = noteField ? noteField.value.trim() : '';
+    if (action === 'accept' && state.evidenceGate && state.evidenceGate.status === 'blocked') {
+      toast('发布证据门禁未通过：请先确认真实来源事实、处理高风险表达并补齐事实引用。', 'warning');
+      showStep(5);
+      return;
+    }
     if (action === 'copy') {
       var artifact = findArtifact(artifactId);
       navigator.clipboard.writeText(artifact ? artifact.content : '').then(function () {
@@ -1392,6 +1668,29 @@
     }
   }
 
+  function confirmSourcedFacts() {
+    var count = 0;
+    state.facts.forEach(function (fact) {
+      if (!fact.sourceExcerpt || /^暂未从资料中提取/.test(fact.text || '')) return;
+      if (fact.status !== '已确认') count += 1;
+      fact.status = '已确认';
+      fact.verificationStatus = '品牌方已确认';
+      fact.evidenceLevel = '品牌确认';
+      fact.confirmedBy = state.user || '当前用户';
+      fact.confirmedAt = now();
+      fact.verifiedBy = state.user || '当前用户';
+      fact.verifiedAt = now();
+      fact.revision = (fact.revision || 1) + 1;
+      fact.updatedAt = now();
+    });
+    refreshInnovationData();
+    rememberCurrentBrand();
+    syncHistoryRecord();
+    persistState();
+    renderAll();
+    toast('已确认 ' + count + ' 条有原文来源的事实；无来源事实仍保持待核实。');
+  }
+
   function exportMarkdown() {
     if (!state.artifacts.length) return;
     var brand = state.brand || collectBrand();
@@ -1437,16 +1736,37 @@
     URL.revokeObjectURL(url);
   }
 
+  function exportCalendarCsv() {
+    var calendar = state.artifacts.filter(function (artifact) { return artifact.id === 'calendar'; })[0];
+    if (!calendar) { toast('当前没有内容日历成果。', 'warning'); return; }
+    var rows = [['品牌', '内容日历模块', '正文', '事实引用', '审核状态', '模型', '提示词版本']];
+    String(calendar.content || '').split(/\n+/).filter(Boolean).forEach(function (line) {
+      rows.push([state.brand && state.brand.name || '', line.replace(/^[#*\-\d.、\s]+/, ''), line, (calendar.facts || []).join('、'), calendar.status || 'draft', calendar.modelInfo && calendar.modelInfo.model || '', calendar.modelInfo && calendar.modelInfo.promptVersion || '']);
+    });
+    var csv = '\uFEFF' + rows.map(function (row) { return row.map(function (cell) { return '"' + String(cell == null ? '' : cell).replace(/"/g, '""') + '"'; }).join(','); }).join('\r\n');
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = (state.brand && state.brand.name || '品牌') + '-内容日历.csv';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
   function populateBrand(brand) {
     $('brand-name').value = brand.name || '';
     $('brand-type').value = brand.type || '';
     $('brand-tone').value = brand.tone || '';
     $('brand-materials').value = brand.materials || '';
     $('interview-notes').value = brand.interviews || '';
+    if ($('brand-preferred-terms')) $('brand-preferred-terms').value = (brand.preferredTerms || []).join('、');
+    if ($('brand-banned-terms')) $('brand-banned-terms').value = (brand.bannedTerms || []).join('、');
   }
 
   function clearBrandFields() {
-    ['brand-name', 'brand-type', 'brand-tone', 'brand-materials', 'interview-notes'].forEach(function (id) { if ($(id)) $(id).value = ''; });
+    ['brand-name', 'brand-type', 'brand-tone', 'brand-materials', 'interview-notes', 'brand-preferred-terms', 'brand-banned-terms'].forEach(function (id) { if ($(id)) $(id).value = ''; });
     state.brand = null;
     state.facts = [];
     state.risks = [];
@@ -1506,12 +1826,14 @@
     var text = '';
     var hash = '';
     var extractor = 'direct-text';
+    var meta = {};
     if (binary) {
       if (!Api.enabled() || !state.remoteAuth) throw new Error('PDF、DOCX、OCR 和音频转写需要配置服务端解析器。');
       var extracted = await Api.extractDocument(file);
       text = extracted.text || '';
       hash = extracted.hash || '';
       extractor = extracted.extractor || 'external';
+      meta = extracted.meta || {};
       if (!text.trim()) throw new Error('解析服务没有返回可用文本。');
     } else {
       text = await file.text();
@@ -1523,8 +1845,9 @@
       }
       if (/\.csv$/i.test(file.name)) text = text.split(/\r?\n/).map(function (line) { return line.split(',').join('，'); }).join('\n');
       if (window.crypto && window.crypto.subtle && file.arrayBuffer) hash = bufferToHex(await window.crypto.subtle.digest('SHA-256', await file.arrayBuffer()));
+      meta = { format: String(file.name || '').split('.').pop() || 'text', lines: text.split(/\r?\n/).length };
     }
-    return { text: text.trim(), hash: hash, extractor: extractor };
+    return { text: text.trim(), hash: hash, extractor: extractor, meta: meta };
   }
 
   async function handleFile(file) {
@@ -1534,7 +1857,7 @@
       var hash = extracted.hash;
       var extractor = extracted.extractor;
       var sourceType = $('source-type') ? $('source-type').value : 'user';
-      var documentRecord = { id: uid('doc'), name: file.name, size: file.size, type: file.type || 'application/octet-stream', hash: hash, extractor: extractor, authority: sourceType, status: hash ? '已记录指纹' : '无指纹', importedAt: now() };
+      var documentRecord = { id: uid('doc'), name: file.name, size: file.size, type: file.type || 'application/octet-stream', hash: hash, extractor: extractor, meta: extracted.meta, authority: sourceType, status: hash ? '已记录指纹' : '无指纹', importedAt: now() };
       state.documents.unshift(documentRecord);
       if (Api.enabled() && state.remoteAuth) Api.saveDocument(documentRecord).catch(function () {});
       var current = $('brand-materials').value.trim();
@@ -1564,9 +1887,10 @@
       state.revision.analysis = null;
       state.revision.revisedAnalysis = null;
       state.revision.changes = [];
+      state.revision.sensitiveWarnings = detectSensitiveText(extracted.text);
       state.revision.updatedAt = now();
       if ($('revision-original-text')) $('revision-original-text').value = extracted.text;
-      if ($('revision-file-status')) $('revision-file-status').textContent = '已导入 ' + file.name + '｜' + Math.ceil(file.size / 1024) + ' KB｜SHA-256 ' + (extracted.hash ? extracted.hash.slice(0, 12) + '…' : '未计算');
+      if ($('revision-file-status')) $('revision-file-status').textContent = '已导入 ' + file.name + '｜' + Math.ceil(file.size / 1024) + ' KB｜SHA-256 ' + (extracted.hash ? extracted.hash.slice(0, 12) + '…' : '未计算') + (state.revision.sensitiveWarnings.length ? '｜敏感信息提醒：' + state.revision.sensitiveWarnings.join('、') : '');
       persistState();
       renderAll();
       toast('文件已导入改稿台。');
@@ -1639,6 +1963,7 @@
       populateBrand(item.brand);
       state.brand = item.brand;
       state.facts = item.facts || [];
+      state.brandRules = currentBrandRules();
       renderAll();
     });
     $('file-import').addEventListener('change', function () { if (this.files[0]) handleFile(this.files[0]); });
@@ -1685,6 +2010,10 @@
       if (button) handleArtifactAction(button);
     });
     $('export-markdown').addEventListener('click', exportMarkdown);
+    if ($('export-calendar')) $('export-calendar').addEventListener('click', exportCalendarCsv);
+    if ($('collaboration-create-form')) $('collaboration-create-form').addEventListener('submit', createCollaborationWorkspace);
+    if ($('collaboration-comment-form')) $('collaboration-comment-form').addEventListener('submit', submitCollaborationComment);
+    if ($('collaboration-approval-form')) $('collaboration-approval-form').addEventListener('submit', submitCollaborationApproval);
     document.addEventListener('click', function (event) {
       var pageButton = event.target.closest('[data-page]');
       if (pageButton) { showStep(Number(pageButton.getAttribute('data-page'))); return; }
@@ -1692,6 +2021,10 @@
       if (nextButton) { handleNext(nextButton); return; }
       var modeButton = event.target.closest('.mode-choice[data-app-mode], button[data-app-mode]');
       if (modeButton) { showAppMode(modeButton.getAttribute('data-app-mode')); return; }
+      var suggestionAction = event.target.closest('[data-revision-suggestion-action]');
+      if (suggestionAction) { setRevisionSuggestion(suggestionAction.getAttribute('data-index'), suggestionAction.getAttribute('data-revision-suggestion-action')); return; }
+      var collaborationAction = event.target.closest('[data-collaboration-action]');
+      if (collaborationAction && collaborationAction.getAttribute('data-collaboration-action') === 'open') { selectCollaborationWorkspace(collaborationAction.getAttribute('data-workspace-id')); return; }
       var revisionAction = event.target.closest('[data-revision-action]');
       if (revisionAction) {
         var revisionActionName = revisionAction.getAttribute('data-revision-action');
@@ -1721,6 +2054,14 @@
       if (name === 'copy-revision') copyRevisionResult();
       if (name === 'export-revision') exportRevision();
       if (name === 'save-revision') saveRevisionRecord();
+      if (name === 'clear-revision-data') clearRevisionData();
+      if (name === 'confirm-sourced-facts') confirmSourcedFacts();
+      if (name === 'open-collaboration') openCollaboration();
+      if (name === 'close-collaboration') closeCollaboration();
+      if (name === 'open-account') openAccountDrawer();
+      if (name === 'close-account') closeAccountDrawer();
+      if (name === 'export-account-data') exportAccountData();
+      if (name === 'delete-account') deleteCurrentAccount();
       if (name === 'logout') logout();
       if (name === 'new-brand') startNewBrand(true);
       if (name === 'change-password') changePassword();
@@ -1746,6 +2087,10 @@
     document.addEventListener('keydown', function (event) {
       var analyzer = $('analyzer-drawer');
       if (analyzer && !analyzer.hidden && event.key === 'Escape') { closeAnalyzer(); return; }
+      var collaboration = $('collaboration-drawer');
+      if (collaboration && !collaboration.hidden && event.key === 'Escape') { closeCollaboration(); return; }
+      var account = $('account-drawer');
+      if (account && !account.hidden && event.key === 'Escape') { closeAccountDrawer(); return; }
       var drawer = $('history-drawer');
       if (!drawer || drawer.hidden) return;
       if (event.key === 'Escape') { closeHistory(); return; }
@@ -1823,6 +2168,10 @@
       analyzeRevisionDraft: analyzeRevisionDraft,
       runRevisionDraft: runRevisionDraft,
       saveRevisionRecord: saveRevisionRecord,
+      confirmSourcedFacts: confirmSourcedFacts,
+      openCollaboration: openCollaboration,
+      loadCollaboration: loadCollaboration,
+      exportAccountData: exportAccountData,
       login: showApp
     };
   }

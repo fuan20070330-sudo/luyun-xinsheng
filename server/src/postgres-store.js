@@ -161,6 +161,11 @@ class PostgresStore {
     return result.rows.map((row) => clone(row.payload));
   }
 
+  async listAllRecords(collection, limit) {
+    const result = await this.query('SELECT payload FROM records WHERE collection=$1 ORDER BY updated_at DESC LIMIT $2', [collection, limit || 1000]);
+    return result.rows.map((row) => clone(row.payload));
+  }
+
   async putRecord(collection, userId, record) {
     const id = record.id || record.jobId || safeId(collection);
     const item = Object.assign({}, clone(record), { id, userId, createdAt: record.createdAt || now(), updatedAt: now() });
@@ -182,6 +187,12 @@ class PostgresStore {
   async deleteRecord(collection, userId, id) {
     const result = await this.query('DELETE FROM records WHERE collection=$1 AND user_id=$2 AND id=$3', [collection, userId, id]);
     if (result.rowCount) await this.audit(collection + '.delete', { id }, userId);
+    return result.rowCount > 0;
+  }
+
+  async deleteUserAccount(userId) {
+    const result = await this.query('DELETE FROM users WHERE id=$1', [userId]);
+    if (result.rowCount) await this.audit('user.delete', { userId }, userId);
     return result.rowCount > 0;
   }
 

@@ -59,6 +59,10 @@ try {
   assert.equal(innovation.fidelityChips, 4);
   assert.match(innovation.proofStatus, /证明/);
   assert.ok(innovation.claimCards >= 4);
+  assert.equal(await page.evaluate(() => window.__LUYUN_APP__.state.evidenceGate.status), 'blocked');
+  await page.click('[data-action="confirm-sourced-facts"]');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.evidenceGate.status !== 'blocked');
+  const evidenceGateStatus = await page.evaluate(() => window.__LUYUN_APP__.state.evidenceGate.status);
   await page.waitForFunction(() => window.__LUYUN_APP__.state.passport && window.__LUYUN_APP__.state.passport.signature, null, { timeout: 20000 });
   const passportVerification = await page.evaluate(async () => {
     const passport = window.__LUYUN_APP__.state.passport;
@@ -126,6 +130,12 @@ try {
   await page.click('[data-app-mode="revise"]');
   await page.waitForFunction(() => document.getElementById('revise-workspace').hidden === false);
   assert.equal(await page.locator('#revision-dropzone').isVisible(), true);
+  await page.setInputFiles('#revision-file-import', { name: 'live-risk.md', mimeType: 'text/markdown', buffer: Buffer.from('鲁香斋是宫廷御用点心。产品可以降血糖。这款最正宗。', 'utf8') });
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.revision && window.__LUYUN_APP__.state.revision.sourceType === 'file');
+  await page.click('[data-action="run-revision"]');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.revision.suggestions && window.__LUYUN_APP__.state.revision.suggestions.length >= 1, null, { timeout: 20000 });
+  await page.locator('[data-revision-suggestion-action="ignore"]').first().click();
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.revision.suggestions[0].status === 'ignored');
   await page.selectOption('#revision-source-select', { index: 1 });
   await page.waitForFunction(() => window.__LUYUN_APP__.state.revision && window.__LUYUN_APP__.state.revision.originalText.length > 100);
   await page.fill('#revision-keep', '保留1918年和五道主要工序');
@@ -200,6 +210,9 @@ try {
   result.revisionResultRetained = revision.resultRetained;
   result.revisionIssueRows = revision.issues;
   result.splitEntryWidths = splitEntry;
+  result.evidenceGateStatus = evidenceGateStatus;
+  result.suggestionDecision = true;
+  result.factSourceLocators = await page.locator('.fact-source-locator').count();
   assert.equal(result.artifacts, 4);
   assert.ok(result.reviews >= 1);
   assert.equal(result.mobileWidth, result.viewport);

@@ -147,6 +147,13 @@ class JsonStore {
       .map(clone);
   }
 
+  listAllRecords(collection, limit) {
+    return Object.values(this.data[collection] || {})
+      .sort((a, b) => String(b.updatedAt || b.createdAt).localeCompare(String(a.updatedAt || a.createdAt)))
+      .slice(0, limit || 1000)
+      .map(clone);
+  }
+
   putRecord(collection, userId, record) {
     const id = record.id || record.jobId || safeId(collection);
     const item = Object.assign({}, clone(record), {
@@ -175,6 +182,22 @@ class JsonStore {
     if (!item || item.userId !== userId) return false;
     delete this.data[collection][id];
     this.audit(collection + '.delete', { userId, id });
+    this.save();
+    return true;
+  }
+
+  deleteUserAccount(userId) {
+    const user = this.getUser(userId);
+    if (!user) return false;
+    Object.keys(this.data).forEach((collection) => {
+      if (!this.data[collection] || typeof this.data[collection] !== 'object' || Array.isArray(this.data[collection])) return;
+      Object.keys(this.data[collection]).forEach((key) => {
+        const item = this.data[collection][key];
+        if (item && item.userId === userId) delete this.data[collection][key];
+      });
+    });
+    Object.values(this.data.users).filter((item) => item.id === userId).forEach((item) => delete this.data.users[item.email]);
+    this.audit('user.delete', { userId });
     this.save();
     return true;
   }

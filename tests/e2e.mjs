@@ -145,6 +145,8 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   assert.match(innovation.proofStatus, /证明/);
   assert.ok(innovation.claimCards >= 4);
   assert.equal(innovation.fidelityChips, 4);
+  assert.equal(await page.locator('#evidence-gate').isVisible(), true);
+  assert.ok(await page.locator('.fact-source-locator').count() >= 5);
   await page.click('[data-action="open-analyzer"]');
   await page.fill('#analyzer-text', '国家级非遗工艺，吃了可以降血糖。匠心独运，不容错过。');
   await page.selectOption('#analyzer-platform', 'douyin');
@@ -171,6 +173,12 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   assert.ok(await page.locator('#revision-issues .revision-issue').count() >= 3);
   await page.locator('[data-revision-action="fix"]').first().click();
   await page.waitForFunction(() => !document.getElementById('revision-original-text').value.includes('宫廷御用'));
+  await page.click('[data-action="run-revision"]');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.revision.resultText && window.__LUYUN_APP__.state.revision.suggestions.length >= 1);
+  assert.equal(await page.locator('#revision-suggestions .revision-suggestion').count() >= 1, true);
+  assert.equal(await page.locator('#revision-platform-check').isVisible(), true);
+  await page.locator('[data-revision-suggestion-action="ignore"]').first().click();
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.revision.suggestions[0].status === 'ignored');
   await page.selectOption('#revision-source-select', { index: 1 });
   await page.waitForFunction(() => window.__LUYUN_APP__.state.revision && window.__LUYUN_APP__.state.revision.sourceType === 'current' && window.__LUYUN_APP__.state.revision.originalText.length > 100);
   await page.fill('#revision-keep', '保留1918年和五道主要工序');
@@ -199,6 +207,9 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   assert.match(await page.locator('#mode-revision-count').textContent(), /1 条/);
   await page.click('[data-app-mode="generate"]');
   await page.evaluate(() => window.__LUYUN_APP__.showStep(5));
+  assert.equal(await page.evaluate(() => window.__LUYUN_APP__.state.evidenceGate.status), 'blocked');
+  await page.click('[data-action="confirm-sourced-facts"]');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.evidenceGate.status !== 'blocked');
   await page.click('[data-artifact="story"] [data-review="accept"]');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.reviews.length >= 1, null, { timeout: 10000 });
   const first = await page.evaluate(() => ({
@@ -289,6 +300,18 @@ assert.ok(persisted.history.length >= 1);
   await page.click('#export-markdown');
   const download = await downloadPromise;
   assert.match(download.suggestedFilename(), /老字号叙事工坊.*品牌确认包\.md$/);
+  const calendarDownloadPromise = page.waitForEvent('download');
+  await page.click('#export-calendar');
+  const calendarDownload = await calendarDownloadPromise;
+  assert.match(calendarDownload.suggestedFilename(), /内容日历\.csv$/);
+  assert.ok(await page.evaluate(() => document.querySelectorAll('#model-comparison-body tr').length >= 1));
+  await page.click('[data-action="open-collaboration"]');
+  await page.waitForFunction(() => document.getElementById('collaboration-drawer').hidden === false);
+  assert.ok(await page.locator('#collaboration-source option').count() >= 1);
+  await page.click('#collaboration-drawer .history-drawer-panel button[data-action="close-collaboration"]');
+  await page.click('[data-action="open-account"]');
+  await page.waitForFunction(() => document.getElementById('account-drawer').hidden === false);
+  await page.click('#account-drawer .history-drawer-panel button[data-action="close-account"]');
   await page.screenshot({ path: path.join(artifactsDir, 'desktop-full.png'), fullPage: true });
 
   await page.setViewportSize({ width: 390, height: 844 });

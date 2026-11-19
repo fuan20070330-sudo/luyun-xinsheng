@@ -4,6 +4,7 @@ const { extractDocument } = require('./document-service');
 const { verifyFacts } = require('./verification-service');
 const { signPassport, verifyPassport } = require('./passport-service');
 const { createRateLimiter } = require('./rate-limit');
+const EvidenceGate = require('../../shared/evidence-gate');
 const {
   setSessionCookies,
   clearSessionCookies,
@@ -62,6 +63,18 @@ function createApi(options) {
   const env = options.env || {};
   const registerLimiter = createRateLimiter({ windowMs: 60 * 60 * 1000, max: Number(env.REGISTER_RATE_LIMIT || 10) });
   const loginLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: Number(env.LOGIN_RATE_LIMIT || 20) });
+
+  function workspaceRole(workspace, user) {
+    if (!workspace || !user) return '';
+    if (workspace.ownerId === user.id || workspace.ownerEmail === user.email) return 'owner';
+    const member = (workspace.members || []).find((item) => String(item.email || '').toLowerCase() === String(user.email || '').toLowerCase());
+    return member ? member.role : '';
+  }
+
+  async function accessibleWorkspaces(user) {
+    const workspaces = await store.listAllRecords('workspaces', 1000);
+    return workspaces.map((workspace) => Object.assign({}, workspace, { myRole: workspaceRole(workspace, user) })).filter((workspace) => workspace.myRole);
+  }
 
   async function sessionResponse(response, request, result) {
     if (cookieEnabled(env)) setSessionCookies(response, request, env, result.token, result.csrfToken);
@@ -139,6 +152,84 @@ function createApi(options) {
       }
       if (!authenticated) throw Object.assign(new Error('请先登录。'), { code: 'UNAUTHORIZED', status: 401 });
       const userId = authenticated.user.id;
+
+      if (path === '/api/collaboration/workspaces' && request.method === 'GET') {
+        const workspaces = await accessibleWorkspaces(authenticated.user);
+        const ids = new Set(workspaces.map((workspace) => workspace.id));
+        const comments = (await store.listAllRecords('collabComments', 1000)).filter((item) => ids.has(item.workspaceId));
+        const approvals = (await store.listAllRecords('collabApprovals', 1000)).filter((item) => ids.has(item.workspaceId));
+        sendJson(response, 200, { ok: true, workspaces, comments, approvals });
+        return true;
+      }
+      if (path === '/api/collaboration/workspaces' && request.method === 'POST') {
+        const body = await readJsonBody(request);
+        const input = body.workspace || body;
+        const existing = input.id ? await store.getAnyRecord('workspaces', input.id) : null;
+        if (existing && existing.ownerId !== userId) throw Object.assign(new Error('只有协作空间所有者可以修改成员。'), { code: 'FORBIDDEN', status: 403 });
+        const members = (Array.isArray(input.members) ? input.members : []).map((item) => ({
+          email: String(item.email || '').trim().toLowerCase(),
+          role: ['editor', 'reviewer', 'brand_owner'].includes(item.role) ? item.role : 'editor'
+        })).filter((item) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(item.email));
+        const workspace = {
+          id: String(input.id || ('ws-' + Date.now().toString(36))),
+          name: String(input.name || '品牌协作空间').slice(0, 100),
+          ownerId: userId,
+          ownerEmail: authenticated.user.email,
+          members,
+          snapshot: input.snapshot || existing && existing.snapshot || null,
+          status: input.status || existing && existing.status || 'draft',
+          createdAt: existing && existing.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        sendJson(response, existing ? 200 : 201, { ok: true, workspace: await store.putRecord('workspaces', userId, workspace) });
+        return true;
+      }
+      if (path === '/api/collaboration/comments' && request.method === 'POST') {
+        const body = await readJsonBody(request);
+        const workspace = await store.getAnyRecord('workspaces', body.workspaceId || '');
+        const role = workspaceRole(workspace, authenticated.user);
+        if (!workspace || !role) throw Object.assign(new Error('无权访问该协作空间。'), { code: 'FORBIDDEN', status: 403 });
+        if (!String(body.text || '').trim()) throw Object.assign(new Error('评论内容不能为空。'), { code: 'EMPTY_COMMENT', status: 400 });
+        const comment = { id: 'comment-' + Date.now().toString(36), workspaceId: workspace.id, text: String(body.text).slice(0, 2000), target: String(body.target || '整体文稿').slice(0, 120), authorEmail: authenticated.user.email, authorRole: role, createdAt: new Date().toISOString() };
+        sendJson(response, 201, { ok: true, comment: await store.putRecord('collabComments', userId, comment) });
+        return true;
+      }
+      if (path === '/api/collaboration/approvals' && request.method === 'POST') {
+        const body = await readJsonBody(request);
+        const workspace = await store.getAnyRecord('workspaces', body.workspaceId || '');
+        const role = workspaceRole(workspace, authenticated.user);
+        if (!workspace || !role) throw Object.assign(new Error('无权访问该协作空间。'), { code: 'FORBIDDEN', status: 403 });
+        const action = ['submit', 'request_changes', 'approve'].includes(body.action) ? body.action : 'submit';
+        if (action === 'approve' && ['owner', 'reviewer', 'brand_owner'].indexOf(role) === -1) throw Object.assign(new Error('当前角色没有最终批准权限。'), { code: 'FORBIDDEN', status: 403 });
+        let gate = null;
+        if (action === 'approve') {
+          gate = EvidenceGate.build(Object.assign({}, workspace.snapshot || {}, { verificationConfigured: !!(env.OFFICIAL_VERIFICATION_URL || env.OFFICIAL_REGISTRY_URL) }));
+          if (gate.status === 'blocked') throw Object.assign(new Error('证据门禁未通过，不能批准发布。'), { code: 'EVIDENCE_GATE_BLOCKED', status: 409, evidenceGate: gate });
+        }
+        const approval = { id: 'approval-' + Date.now().toString(36), workspaceId: workspace.id, action, note: String(body.note || '').slice(0, 1000), authorEmail: authenticated.user.email, authorRole: role, evidenceGate: gate, createdAt: new Date().toISOString() };
+        await store.putRecord('collabApprovals', userId, approval);
+        workspace.status = action === 'approve' ? 'approved' : action === 'request_changes' ? 'changes_requested' : 'in_review';
+        workspace.updatedAt = new Date().toISOString();
+        await store.putRecord('workspaces', workspace.ownerId, workspace);
+        sendJson(response, 201, { ok: true, approval, workspace });
+        return true;
+      }
+      if (path === '/api/account/export' && request.method === 'GET') {
+        const collections = ['jobs', 'brands', 'reviews', 'publishRecords', 'documents', 'passports', 'revisionHistory', 'workspaces', 'collabComments', 'collabApprovals'];
+        const data = {};
+        for (const collection of collections) data[collection] = await store.listRecords(collection, userId, 1000);
+        sendJson(response, 200, { ok: true, exportedAt: new Date().toISOString(), user: authenticated.user, data });
+        return true;
+      }
+      if (path === '/api/account' && request.method === 'DELETE') {
+        const body = await readJsonBody(request);
+        if (body.confirmation !== 'DELETE') throw Object.assign(new Error('请输入 DELETE 确认删除账号。'), { code: 'CONFIRMATION_REQUIRED', status: 400 });
+        await auth.logout(token);
+        await store.deleteUserAccount(userId);
+        if (cookieEnabled(env)) clearSessionCookies(response, request, env);
+        sendJson(response, 200, { ok: true, deleted: true });
+        return true;
+      }
 
       if (path === '/api/passport/sign' && request.method === 'POST') {
         const body = await readJsonBody(request);

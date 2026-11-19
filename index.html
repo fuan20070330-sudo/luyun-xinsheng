@@ -8,8 +8,8 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta name="description" content="老字号叙事工坊：老字号与非遗品牌内容助手。">
   <title>老字号叙事工坊｜老字号与非遗品牌内容助手</title>
-  <link rel="icon" href="assets/favicon.svg?v=3.6.1" type="image/svg+xml">
-  <link rel="stylesheet" href="css/styles.css?v=3.6.1">
+  <link rel="icon" href="assets/favicon.svg?v=3.7.0" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css?v=3.7.0">
 </head>
 <body data-authenticated="false">
   <div class="paper-noise" aria-hidden="true"></div>
@@ -48,6 +48,8 @@
         <div class="connection-pill" id="connection-pill" data-state="connecting" role="status" aria-live="polite"><span class="connection-dot"></span><span id="connection-label">连接中</span><span class="mode-badge" id="mode-label">初始化</span></div>
         <button class="icon-button" type="button" data-action="show-mode-hub">工作台</button>
         <button class="icon-button" type="button" data-action="open-analyzer">文案体检</button>
+        <button class="icon-button" type="button" data-action="open-collaboration">协作审核</button>
+        <button class="icon-button" type="button" data-action="open-account">账号数据</button>
         <button class="icon-button" type="button" data-action="change-password">修改密码</button>
         <button class="icon-button" type="button" data-action="open-history">历史记录</button>
         <button class="icon-button" type="button" data-action="logout">退出</button>
@@ -154,13 +156,18 @@
             </div>
             <label class="field"><span>共创目标</span><input id="content-goal" value="" maxlength="160" required placeholder="例如：建立品牌记忆点、形成四周内容日历、让年轻用户看懂工艺"><small class="field-hint">说明希望用户看完后了解、收藏、搜索还是到店。</small></label>
             <label class="field"><span>限制条件</span><textarea id="content-constraints" rows="3" placeholder="例如：不承诺功效；年份只使用档案原文；非遗身份待核实；不要改变受访原意；平台字数限制等。" required></textarea><small class="field-hint">填写必须遵守的事实边界、禁用词、文化要求和平台限制。</small></label>
+            <div class="field-row two-col">
+              <label class="field"><span>品牌标准表达</span><input id="brand-preferred-terms" maxlength="240" placeholder="例如：鲁香斋、枣泥酥、山东老字号（以正式称谓为准）"><small class="field-hint">用顿号分隔。生成和改稿时会检查是否使用了品牌固定称谓。</small></label>
+              <label class="field"><span>品牌禁用表达</span><input id="brand-banned-terms" maxlength="240" placeholder="例如：宫廷御用、降血糖、最正宗"><small class="field-hint">用顿号分隔。命中后会在审核门禁中阻止最终批准。</small></label>
+            </div>
             <fieldset class="choice-group"><legend>宣传方法参考（可多选）</legend><div class="method-grid" id="method-grid"></div><p class="method-note">方法会进入生成结果和导出文件；最终仍由品牌方确认是否符合文化内涵。</p></fieldset>
             <button class="button button-primary button-full" type="submit" id="generate-button">生成内容方案</button>
           </form>
         </section>
 
         <section class="app-step" data-step="5" id="results" aria-labelledby="step5-title">
-          <div class="step-heading"><div><p class="section-kicker">步骤 5 / 6</p><h2 id="step5-title">查看生成结果</h2><p>先核对事实引用和风险，再完成多角色审查与品牌方确认。</p></div><div class="result-actions"><span id="result-status">尚无生成结果</span><button class="button button-outline" type="button" id="export-markdown" disabled>导出品牌确认包</button></div></div>
+          <div class="step-heading"><div><p class="section-kicker">步骤 5 / 6</p><h2 id="step5-title">查看生成结果</h2><p>先核对事实引用和风险，再完成多角色审查与品牌方确认。</p></div><div class="result-actions"><span id="result-status">尚无生成结果</span><button class="button button-outline" type="button" id="export-calendar" disabled>导出日历 CSV</button><button class="button button-outline" type="button" id="export-markdown" disabled>导出品牌确认包</button></div></div>
+          <article class="panel evidence-gate-panel" id="evidence-gate"><div class="panel-head"><div><span class="panel-index">门</span><h3>发布证据门禁</h3></div><span class="status-chip" id="evidence-gate-status">等待检查</span></div><div id="evidence-gate-body"><div class="empty-state"><span class="empty-glyph">证</span><p>生成内容后检查关键事实确认、原文定位、风险项和品牌禁用表达。</p></div></div></article>
           <article class="panel proof-panel"><div class="panel-head"><div><span class="panel-index">证</span><h3>内容证明编译器</h3></div><div class="passport-actions"><span class="status-chip" id="proof-status">未编译</span><button class="button button-outline" type="button" data-action="run-proof">重新执行编译证明</button></div></div><div class="proof-engine" id="proof-engine"><div class="empty-state"><span class="empty-glyph">证</span><p>生成内容后检查声明类型、证明义务和正文编译结果。</p></div></div></article>
           <article class="panel passport-panel"><div class="panel-head"><div><span class="panel-index">证</span><h3>内容护照</h3></div><div class="passport-actions"><span class="status-chip" id="passport-id">未生成</span><button class="button button-outline" type="button" id="copy-passport" disabled>复制护照信息</button></div></div><div class="content-passport" id="content-passport"><div class="empty-state"><span class="empty-glyph">证</span><p>生成内容后生成可追溯内容护照。</p></div></div></article>
           <div class="risk-summary" id="risk-summary"><span class="risk-count risk-high"><b>0</b> 高风险</span><span class="risk-count risk-medium"><b>0</b> 中风险</span><span class="risk-count risk-low"><b>0</b> 待关注</span></div>
@@ -183,6 +190,7 @@
             <article class="panel audit-panel"><div class="panel-head"><div><span class="panel-index">R</span><h3>人工审核记录</h3></div><span class="status-chip" id="review-count">0 次</span></div><div class="audit-timeline" id="audit-timeline"><div class="empty-state"><span class="empty-glyph">审</span><p>品牌方确认、修改或退回内容后，将在此记录确认人、动作、前后内容和时间。</p></div></div></article>
           </div>
           <div class="protocol-strip"><div><span>协议版本</span><strong>luyun-gateway/2.0</strong></div><div><span>连接模式</span><strong id="protocol-mode">探测中</strong></div><div><span>最后消息</span><strong id="last-event">--</strong></div><div><span>事实编号</span><strong id="fact-id-range">--</strong></div></div>
+          <article class="panel model-comparison-panel"><div class="panel-head"><div><span class="panel-index">评</span><h3>模型与版本对比</h3></div><span class="status-chip" id="model-comparison-count">0 个模型</span></div><div class="table-wrap"><table><thead><tr><th>模型</th><th>任务数</th><th>平均质量</th><th>平均风险</th><th>高风险任务</th><th>提示词版本</th></tr></thead><tbody id="model-comparison-body"><tr><td colspan="6" class="table-empty">完成生成任务后显示模型对比。</td></tr></tbody></table></div></article>
           <article class="panel publish-panel"><div class="panel-head"><div><span class="panel-index">效</span><h3>发布与效果回流</h3></div><span class="status-chip" id="publish-count">0 条</span></div><form id="publish-form" class="publish-form"><div class="field-row three-col"><label class="field"><span>发布平台</span><select id="publish-platform"><option>小红书</option><option>抖音</option><option>微信公众号</option><option>线下门店</option></select></label><label class="field"><span>发布日期</span><input id="publish-date" type="date"></label><label class="field"><span>发布状态</span><select id="publish-status"><option>已排期</option><option>已发布</option><option>待确认</option></select></label></div><div class="field-row two-col"><label class="field"><span>内容链接 / 位置</span><input id="publish-url" placeholder="粘贴链接，或填写门店、活动位置"></label><label class="field"><span>备注</span><input id="publish-note" placeholder="例如：品牌方已确认，待补充数据"></label></div><div class="field-row four-col"><label class="field"><span>曝光量</span><input id="publish-impressions" type="number" min="0" value="0"></label><label class="field"><span>点赞</span><input id="publish-likes" type="number" min="0" value="0"></label><label class="field"><span>收藏</span><input id="publish-saves" type="number" min="0" value="0"></label><label class="field"><span>转化</span><input id="publish-conversions" type="number" min="0" value="0"></label></div><button class="button button-secondary" type="submit">保存发布与效果记录</button></form><div class="publish-records" id="publish-records"><div class="empty-state"><span class="empty-glyph">效</span><p>发布后记录平台、链接和效果数据，用于下一轮内容优化。</p></div></div></article>
         </section>
       </main>
@@ -215,7 +223,7 @@
               <label class="field"><span>希望保留的重点</span><input id="revision-keep" maxlength="160" placeholder="例如：保留工序顺序、品牌语气和历史事实"><small class="field-hint">填写不能删除或不能改写的品牌信息。</small></label>
             </div>
             <label class="field"><span>修改要求</span><textarea id="revision-requirements" rows="5" placeholder="例如：压缩到 500 字以内；开头更自然；少用绝对化表达；保留 1918 年和五道工序；不要新增资料中没有的事实；结尾适合小红书收藏。"></textarea><small class="field-hint">可以同时写篇幅、语气、平台、事实边界和结构要求。</small></label>
-            <div class="revision-actions"><button class="button button-outline" type="button" data-action="analyze-revision">先排查问题语段</button><button class="button button-primary" type="button" data-action="run-revision">按要求生成修订稿</button></div>
+            <div class="revision-actions"><button class="button button-outline" type="button" data-action="analyze-revision">先排查问题语段</button><button class="button button-primary" type="button" data-action="run-revision">按要求生成修订稿</button><button class="button button-ghost" type="button" data-action="clear-revision-data">清除本次导入文本</button></div>
           </article>
 
           <article class="panel revision-history-panel">
@@ -228,6 +236,12 @@
           <article class="panel revision-issues-panel">
             <div class="panel-head"><div><span class="panel-index">检</span><h3>问题语段</h3></div><span class="status-chip" id="revision-issue-count">尚未检查</span></div>
             <div class="revision-issues" id="revision-issues"><div class="empty-state"><span class="empty-glyph">段</span><p>载入原文后点击“先排查问题语段”，系统会逐句检查事实绑定、医疗功效、绝对化宣传、虚假荣誉和模板化表达。</p></div></div>
+            <div class="revision-checks" id="revision-platform-check"><div class="empty-state"><span class="empty-glyph">台</span><p>生成修订稿后显示目标平台字数、结构和品牌规则检查。</p></div></div>
+          </article>
+
+          <article class="panel revision-suggestions-panel">
+            <div class="panel-head"><div><span class="panel-index">议</span><h3>逐段修订建议</h3></div><span class="status-chip" id="revision-suggestion-count">尚未生成</span></div>
+            <div class="revision-suggestions" id="revision-suggestions"><div class="empty-state"><span class="empty-glyph">段</span><p>生成修订稿后，可逐条接受、忽略或手动编辑每个问题语段。</p></div></div>
           </article>
 
           <article class="panel revision-result-panel">
@@ -275,23 +289,50 @@
     </aside>
   </div>
 
+  <div class="history-drawer" id="collaboration-drawer" hidden>
+    <div class="history-drawer-backdrop" data-action="close-collaboration" aria-hidden="true"></div>
+    <aside class="history-drawer-panel collaboration-panel" role="dialog" aria-modal="true" aria-labelledby="collaboration-title">
+      <div class="history-drawer-head"><div><p class="section-kicker">品牌工作空间</p><h2 id="collaboration-title">多人协作审核</h2><p>邀请其他已注册邮箱，共同评论、退回或批准同一份内容快照。</p></div><button class="icon-button" type="button" data-action="close-collaboration">关闭</button></div>
+      <form id="collaboration-create-form" class="collaboration-form">
+        <div class="field-row two-col"><label class="field"><span>协作空间名称</span><input id="collaboration-name" maxlength="100" placeholder="例如：鲁香斋节令礼盒审核"><small class="field-hint">用于区分不同品牌或活动。</small></label><label class="field"><span>内容快照</span><select id="collaboration-source"><option value="">请选择生成记录</option></select><small class="field-hint">创建后成员看到这份快照，不会看到你的其他历史。</small></label></div>
+        <div class="field-row two-col"><label class="field"><span>邀请成员邮箱</span><input id="collaboration-members" placeholder="editor@example.com、reviewer@example.com"><small class="field-hint">多个邮箱用顿号或逗号分隔；对方需先注册账号。</small></label><label class="field"><span>成员角色</span><select id="collaboration-member-role"><option value="editor">内容编辑</option><option value="reviewer">审核人</option><option value="brand_owner">品牌负责人</option></select><small class="field-hint">审核人和品牌负责人可以最终批准。</small></label></div>
+        <button class="button button-primary" type="submit">创建或更新协作空间</button>
+      </form>
+      <div class="collaboration-layout"><div class="collaboration-list" id="collaboration-list"><div class="empty-state"><span class="empty-glyph">协</span><p>尚未创建协作空间。</p></div></div><div class="collaboration-detail" id="collaboration-detail"><div class="empty-state"><span class="empty-glyph">审</span><p>选择一个协作空间查看评论与审批记录。</p></div></div></div>
+      <form id="collaboration-comment-form" class="collaboration-form" hidden><label class="field"><span>新增评论</span><input id="collaboration-comment-target" maxlength="120" placeholder="评论对象，例如：品牌故事第2段"><textarea id="collaboration-comment-text" rows="3" placeholder="写明事实、文化表达或平台适配方面的问题和建议。"></textarea></label><button class="button button-secondary" type="submit">保存评论</button></form>
+      <form id="collaboration-approval-form" class="collaboration-form" hidden><div class="field-row two-col"><label class="field"><span>审核动作</span><select id="collaboration-approval-action"><option value="submit">提交审核</option><option value="request_changes">退回修改</option><option value="approve">批准发布</option></select></label><label class="field"><span>审核说明</span><input id="collaboration-approval-note" maxlength="500" placeholder="记录本次判断依据"></label></div><button class="button button-primary" type="submit">保存审核动作</button></form>
+    </aside>
+  </div>
+
+  <div class="history-drawer" id="account-drawer" hidden>
+    <div class="history-drawer-backdrop" data-action="close-account" aria-hidden="true"></div>
+    <aside class="history-drawer-panel account-panel" role="dialog" aria-modal="true" aria-labelledby="account-title">
+      <div class="history-drawer-head"><div><p class="section-kicker">隐私与数据</p><h2 id="account-title">账号数据</h2><p>导出账号记录、清理本次文件文本，或彻底删除账号。</p></div><button class="icon-button" type="button" data-action="close-account">关闭</button></div>
+      <div class="account-actions"><button class="button button-primary" type="button" data-action="export-account-data">导出账号数据 JSON</button><button class="button button-outline" type="button" data-action="clear-revision-data">清除本次导入文本</button></div>
+      <div class="danger-zone"><h3>彻底删除账号</h3><p>将删除服务端账号、会话、品牌、生成历史、评论和审批记录。此操作不可恢复。</p><label class="field"><span>输入 DELETE 确认</span><input id="account-delete-confirmation" autocomplete="off" placeholder="DELETE"></label><button class="button button-danger" type="button" data-action="delete-account">永久删除账号与数据</button></div>
+      <p class="privacy-note">上传文件在服务端仅保留文件名、大小、哈希和解析元数据，不保存原文件正文。浏览器端文本会保存在当前账号的本地状态中，可使用“清除本次导入文本”移除。</p>
+    </aside>
+  </div>
+
   <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
-  <script src="js/config.js?v=3.6.1"></script>
-  <script src="js/api-client.js?v=3.6.1"></script>
-  <script src="shared/engine.js?v=3.6.1"></script>
-  <script src="shared/quality.js?v=3.6.1"></script>
-  <script src="shared/memory-graph.js?v=3.6.1"></script>
-  <script src="shared/culture-dna.js?v=3.6.1"></script>
-  <script src="shared/evidence-gaps.js?v=3.6.1"></script>
-  <script src="shared/content-passport.js?v=3.6.1"></script>
-  <script src="shared/proof-engine.js?v=3.6.1"></script>
-  <script src="shared/claim-analyzer.js?v=3.6.1"></script>
-  <script src="shared/draft-reviser.js?v=3.6.1"></script>
-  <script src="shared/generator.js?v=3.6.1"></script>
-  <script src="js/data.js?v=3.6.1"></script>
-  <script src="js/gateway-client.js?v=3.6.1"></script>
-  <script src="js/renderer.js?v=3.6.1"></script>
-  <script src="js/app.js?v=3.6.1"></script>
+  <script src="js/config.js?v=3.7.0"></script>
+  <script src="js/api-client.js?v=3.7.0"></script>
+  <script src="shared/engine.js?v=3.7.0"></script>
+  <script src="shared/quality.js?v=3.7.0"></script>
+  <script src="shared/memory-graph.js?v=3.7.0"></script>
+  <script src="shared/culture-dna.js?v=3.7.0"></script>
+  <script src="shared/evidence-gaps.js?v=3.7.0"></script>
+  <script src="shared/content-passport.js?v=3.7.0"></script>
+  <script src="shared/proof-engine.js?v=3.7.0"></script>
+  <script src="shared/claim-analyzer.js?v=3.7.0"></script>
+  <script src="shared/draft-reviser.js?v=3.7.0"></script>
+  <script src="shared/evidence-gate.js?v=3.7.0"></script>
+  <script src="shared/platform-checker.js?v=3.7.0"></script>
+  <script src="shared/generator.js?v=3.7.0"></script>
+  <script src="js/data.js?v=3.7.0"></script>
+  <script src="js/gateway-client.js?v=3.7.0"></script>
+  <script src="js/renderer.js?v=3.7.0"></script>
+  <script src="js/app.js?v=3.7.0"></script>
 </body>
 </html>
 
