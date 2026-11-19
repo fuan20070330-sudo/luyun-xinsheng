@@ -233,6 +233,63 @@
     root.innerHTML = '<div class="passport-grid">' + fields.map(function (item) { return '<div><small>' + escapeHtml(item[0]) + '</small><strong>' + escapeHtml(item[1] || '--') + '</strong></div>'; }).join('') + '</div>' + '<div class="artifact-hashes"><strong>成果指纹</strong>' + (passport.artifactHashes || []).map(function (item) { return '<p>' + escapeHtml(item.title) + '：' + escapeHtml(item.hash) + '｜' + escapeHtml(item.status) + '</p>'; }).join('') + '</div>' + '<div class="passport-public">' + (passport.signature ? '<a class="button button-primary" href="proof.html?id=' + encodeURIComponent(passport.id) + '" target="_blank" rel="noopener">公开验证内容护照</a>' : '<span class="status-chip">等待服务端签名</span>') + '</div>';
   }
 
+  function renderModeHub(state) {
+    if (byId('mode-account-name')) byId('mode-account-name').textContent = state.accountName || state.user || '--';
+    if (byId('mode-draft-count')) byId('mode-draft-count').textContent = ((state.revisionSources || []).length || 0) + ' 份';
+    if (byId('mode-revision-count')) byId('mode-revision-count').textContent = ((state.revisionHistory || []).length || 0) + ' 条';
+  }
+
+  function renderRevision(state) {
+    var revision = state.revision || {};
+    var analysis = revision.analysis;
+    if (byId('revision-result-text') && byId('revision-result-text').value !== (revision.resultText || '')) byId('revision-result-text').value = revision.resultText || '';
+    var issues = analysis ? (analysis.sentences || []).filter(function (item) { return ['已阻止', '未绑定', '待证明'].indexOf(item.status) !== -1; }) : [];
+    var issueRoot = byId('revision-issues');
+    var issueCount = byId('revision-issue-count');
+    var stateEl = byId('revision-state');
+    var sourceStatus = byId('revision-source-status');
+    var resultStatus = byId('revision-result-status');
+    if (stateEl) stateEl.textContent = revision.resultText ? '修订稿待人工确认' : (analysis ? analysis.status : '等待载入文稿');
+    if (sourceStatus) sourceStatus.textContent = revision.sourceTitle || (revision.originalText ? '手动粘贴文稿' : '未选择');
+    if (issueCount) issueCount.textContent = analysis ? (issues.length + ' 个待确认语段') : '尚未检查';
+    if (resultStatus) resultStatus.textContent = revision.resultText ? '可继续编辑' : '尚未生成';
+    if (issueRoot) {
+      if (!analysis) {
+        issueRoot.innerHTML = '<div class="empty-state"><span class="empty-glyph">段</span><p>载入原文后点击“先排查问题语段”，系统会逐句检查事实绑定、医疗功效、绝对化宣传、虚假荣誉和模板化表达。</p></div>';
+      } else {
+        var riskKeys = {};
+        var riskCards = (analysis.risks || []).filter(function (risk) { var key = risk.level + '|' + risk.type + '|' + risk.term; if (riskKeys[key]) return false; riskKeys[key] = true; return true; }).map(function (risk) {
+          return '<div class="revision-risk" data-level="' + escapeHtml(risk.level) + '"><strong>' + escapeHtml(risk.type) + '：' + escapeHtml(risk.term) + '</strong><p>' + escapeHtml(risk.reason) + '</p><small>' + escapeHtml(risk.suggestion) + '</small></div>';
+        }).join('');
+        var sentenceCards = issues.map(function (item) {
+          var index = Number(item.index || 1) - 1;
+          return '<article class="revision-issue" data-status="' + escapeHtml(item.status) + '"><div class="revision-issue-head"><span>' + escapeHtml(item.status) + '</span><strong>' + escapeHtml(item.claimType || '待确认表达') + '</strong></div><p>' + escapeHtml(item.sentence) + '</p><small>' + escapeHtml(item.claimId || '未绑定事实') + '｜' + escapeHtml(item.requiredEvidence) + '</small><div class="revision-issue-actions"><button class="text-button" type="button" data-revision-action="locate" data-index="' + index + '">定位原文</button><button class="text-button" type="button" data-revision-action="fix" data-index="' + index + '">采用安全改写</button></div></article>';
+        }).join('');
+        issueRoot.innerHTML = '<div class="revision-summary"><div><b>' + analysis.highRiskCount + '</b><small>高风险</small></div><div><b>' + analysis.evidenceCoverage + '%</b><small>证据覆盖</small></div><div><b>' + analysis.naturalness + '</b><small>自然度</small></div><div><b>' + issues.length + '</b><small>待确认语段</small></div></div>' + (riskCards ? '<div class="revision-risk-list">' + riskCards + '</div>' : '') + '<div class="revision-sentence-list">' + (sentenceCards || '<div class="revision-clear"><strong>未发现需要阻断的语段</strong><p>仍建议人工核对事实来源、文化语境和品牌语气。</p></div>') + '</div>';
+      }
+    }
+    if (byId('revision-compare-summary')) {
+      byId('revision-compare-summary').innerHTML = '<span>原文 ' + String((revision.originalText || '').length) + ' 字</span><span>修订稿 ' + String((revision.resultText || '').length) + ' 字</span><span>待处理 ' + issues.length + ' 项</span>';
+    }
+    if (byId('revision-change-list')) {
+      var changes = revision.changes || [];
+      byId('revision-change-list').innerHTML = changes.length ? changes.map(function (change) { return '<article class="revision-change"><strong>' + escapeHtml(change.type) + '</strong><p><del>' + escapeHtml(String(change.before || '').slice(0, 160)) + '</del></p><p><ins>' + escapeHtml(String(change.after || '').slice(0, 160)) + '</ins></p><small>' + escapeHtml(change.reason || '') + '</small></article>'; }).join('') : '<p>当前没有自动修改说明；完成问题排查并生成修订稿后会列出变化。</p>';
+    }
+    var historyRoot = byId('revision-history');
+    if (byId('revision-history-count')) byId('revision-history-count').textContent = (state.revisionHistory || []).length + ' 条';
+    if (historyRoot) {
+      if (!(state.revisionHistory || []).length) {
+        historyRoot.className = 'revision-history empty-state';
+        historyRoot.innerHTML = '<span class="empty-glyph">改</span><p>保存修订稿后，会保留修改要求、问题清单和修改前后文本。</p>';
+      } else {
+        historyRoot.className = 'revision-history';
+        historyRoot.innerHTML = state.revisionHistory.map(function (record) {
+          return '<article class="revision-history-item"><div><strong>' + escapeHtml(record.sourceTitle || '未命名文稿') + '</strong><small>' + escapeHtml(formatTime(record.createdAt)) + '｜' + escapeHtml(record.platformName || '') + '</small></div><p>' + escapeHtml(record.requirements || '未填写修改要求') + '</p><div class="revision-history-meta"><span>原文 ' + String((record.originalText || '').length) + ' 字</span><span>修订 ' + String((record.resultText || '').length) + ' 字</span><span>' + escapeHtml(record.status || '待确认') + '</span><span>提示词 ' + escapeHtml(record.promptVersion || 'draft-revision-safe-v1.0') + '</span></div><div class="revision-issue-actions"><button class="text-button" type="button" data-revision-action="load-record" data-record-id="' + escapeHtml(record.id) + '">重新打开</button><button class="text-button" type="button" data-revision-action="delete-record" data-record-id="' + escapeHtml(record.id) + '">删除</button></div></article>';
+        }).join('');
+      }
+    }
+  }
+
   function renderClaimAnalysis(result) {
     var root = byId('analyzer-results'); if (!root) return;
     if (!result) { root.innerHTML = '<div class="empty-state"><span class="empty-glyph">检</span><p>输入广告语或脚本后开始分析。</p></div>'; return; }
@@ -340,6 +397,8 @@
     renderDocuments: renderDocuments,
     renderHistory: renderHistory,
     renderMetrics: renderMetrics,
+    renderModeHub: renderModeHub,
+    renderRevision: renderRevision,
     updatePipeline: updatePipeline,
     setConnection: setConnection
   };

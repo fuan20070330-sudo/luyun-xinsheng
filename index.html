@@ -8,8 +8,8 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta name="description" content="老字号叙事工坊：老字号与非遗品牌内容助手。">
   <title>老字号叙事工坊｜老字号与非遗品牌内容助手</title>
-  <link rel="icon" href="assets/favicon.svg?v=3.5.1" type="image/svg+xml">
-  <link rel="stylesheet" href="css/styles.css?v=3.5.1">
+  <link rel="icon" href="assets/favicon.svg?v=3.6.0" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css?v=3.6.0">
 </head>
 <body data-authenticated="false">
   <div class="paper-noise" aria-hidden="true"></div>
@@ -46,6 +46,7 @@
       <div class="topbar-actions">
         <span class="user-chip">当前用户：<strong id="current-user">--</strong></span>
         <div class="connection-pill" id="connection-pill" data-state="connecting" role="status" aria-live="polite"><span class="connection-dot"></span><span id="connection-label">连接中</span><span class="mode-badge" id="mode-label">初始化</span></div>
+        <button class="icon-button" type="button" data-action="show-mode-hub">工作台</button>
         <button class="icon-button" type="button" data-action="open-analyzer">文案体检</button>
         <button class="icon-button" type="button" data-action="change-password">修改密码</button>
         <button class="icon-button" type="button" data-action="open-history">历史记录</button>
@@ -53,7 +54,39 @@
       </div>
     </header>
 
-    <div class="app-layout">
+    <section class="mode-hub" id="mode-hub" aria-labelledby="mode-hub-title">
+      <div class="mode-hub-heading">
+        <p class="section-kicker">内容工作台</p>
+        <h1 id="mode-hub-title">今天从哪一步开始？</h1>
+        <p>从品牌资料生成一份新稿，或把已有文稿、历史生成稿带进改稿台逐段检查。</p>
+      </div>
+      <div class="mode-card-grid">
+        <article class="mode-card mode-card-generate">
+          <span class="mode-index">一线</span>
+          <span class="mode-seal" aria-hidden="true">写</span>
+          <h2>生成文稿</h2>
+          <p>录入品牌资料和创作要求，生成品牌故事、内容日历、多平台文案与表达方案。</p>
+          <ul><li>品牌事实入库与来源核对</li><li>多平台内容与宣传方法组合</li><li>风险初筛与人工审核留痕</li></ul>
+          <button class="button button-primary" type="button" data-app-mode="generate">进入生成线</button>
+        </article>
+        <article class="mode-card mode-card-revise">
+          <span class="mode-index">二线</span>
+          <span class="mode-seal" aria-hidden="true">改</span>
+          <h2>修改文稿</h2>
+          <p>导入一份现有稿件，或从历史生成结果中选择一篇，再按要求检查和重写。</p>
+          <ul><li>导入 TXT、Markdown、JSON、CSV 等文件</li><li>选择历史生成稿继续编辑</li><li>问题语段定位、风险解释与修订对照</li></ul>
+          <button class="button button-secondary" type="button" data-app-mode="revise">进入改稿线</button>
+        </article>
+      </div>
+      <div class="mode-recent-bar">
+        <div><span>当前账号</span><strong id="mode-account-name">--</strong></div>
+        <div><span>可修改生成稿</span><strong id="mode-draft-count">0 份</strong></div>
+        <div><span>改稿记录</span><strong id="mode-revision-count">0 条</strong></div>
+        <button class="button button-ghost" type="button" data-action="open-history">查看最近生成</button>
+      </div>
+    </section>
+
+    <div class="app-layout" id="generation-layout" hidden>
       <aside class="app-sidebar">
         <nav class="step-nav" aria-label="应用步骤">
           <button type="button" data-page="1" class="is-active"><span>01</span><div><strong>基本信息</strong><small>品牌与定位</small></div></button>
@@ -161,6 +194,56 @@
         </section>
       </main>
     </div>
+
+    <section class="revise-workspace" id="revise-workspace" hidden aria-labelledby="revise-title">
+      <div class="revise-heading">
+        <div><p class="section-kicker">第二条工作线</p><h1 id="revise-title">改稿工作台</h1><p>把已有稿件带进来，先找出有问题的语段，再按你的要求形成一版可继续编辑的修订稿。</p></div>
+        <div class="heading-actions"><span class="status-chip" id="revision-state">等待载入文稿</span><button class="button button-ghost" type="button" data-app-mode="hub">切换工作线</button></div>
+      </div>
+
+      <div class="revise-grid">
+        <div class="revise-column">
+          <article class="panel revise-source-panel">
+            <div class="panel-head"><div><span class="panel-index">源</span><h3>选择或导入待改文稿</h3></div><span class="status-chip" id="revision-source-status">未选择</span></div>
+            <div class="revision-source-option">
+              <label class="field"><span>从当前账号的生成结果中选择</span><select id="revision-source-select"><option value="">暂无可选生成稿</option></select><small class="field-hint">这里只显示当前账号保存过的生成内容；选择后可继续修改，不会覆盖 AI 原稿。</small></label>
+              <button class="button button-outline" type="button" data-action="load-revision-source">载入所选稿</button>
+            </div>
+            <div class="revision-divider"><span>或者</span></div>
+            <input id="revision-file-import" type="file" accept=".txt,.md,.markdown,.json,.csv,.pdf,.docx,text/plain,application/json,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
+            <div class="revision-import-row"><button class="button button-ghost" type="button" data-action="trigger-revision-import">导入本地文件</button><small id="revision-file-status">支持 TXT、Markdown、JSON、CSV；PDF、DOCX 需在线网关解析。</small></div>
+            <label class="field"><span>待修改的原文</span><textarea id="revision-original-text" rows="15" placeholder="在这里粘贴广告语、公众号文章、短视频脚本或品牌介绍，也可以从上方选择一份生成稿。"></textarea><small class="field-hint">原文会保留在改稿记录中，AI 原稿与人工修改稿分开保存。</small></label>
+            <div class="field-row two-col">
+              <label class="field"><span>目标平台</span><select id="revision-platform"><option value="xiaohongshu">小红书</option><option value="douyin">抖音</option><option value="wechat">微信公众号</option><option value="matrix">多平台矩阵</option><option value="offline">线下物料 / 通用文案</option></select><small class="field-hint">平台会影响语感检查和修改建议。</small></label>
+              <label class="field"><span>希望保留的重点</span><input id="revision-keep" maxlength="160" placeholder="例如：保留工序顺序、品牌语气和历史事实"><small class="field-hint">填写不能删除或不能改写的品牌信息。</small></label>
+            </div>
+            <label class="field"><span>修改要求</span><textarea id="revision-requirements" rows="5" placeholder="例如：压缩到 500 字以内；开头更自然；少用绝对化表达；保留 1918 年和五道工序；不要新增资料中没有的事实；结尾适合小红书收藏。"></textarea><small class="field-hint">可以同时写篇幅、语气、平台、事实边界和结构要求。</small></label>
+            <div class="revision-actions"><button class="button button-outline" type="button" data-action="analyze-revision">先排查问题语段</button><button class="button button-primary" type="button" data-action="run-revision">按要求生成修订稿</button></div>
+          </article>
+
+          <article class="panel revision-history-panel">
+            <div class="panel-head"><div><span class="panel-index">记</span><h3>当前账号的改稿记录</h3></div><span class="status-chip" id="revision-history-count">0 条</span></div>
+            <div class="revision-history" id="revision-history"><div class="empty-state"><span class="empty-glyph">改</span><p>保存修订稿后，会保留修改要求、问题清单和修改前后文本。</p></div></div>
+          </article>
+        </div>
+
+        <div class="revise-column">
+          <article class="panel revision-issues-panel">
+            <div class="panel-head"><div><span class="panel-index">检</span><h3>问题语段</h3></div><span class="status-chip" id="revision-issue-count">尚未检查</span></div>
+            <div class="revision-issues" id="revision-issues"><div class="empty-state"><span class="empty-glyph">段</span><p>载入原文后点击“先排查问题语段”，系统会逐句检查事实绑定、医疗功效、绝对化宣传、虚假荣誉和模板化表达。</p></div></div>
+          </article>
+
+          <article class="panel revision-result-panel">
+            <div class="panel-head"><div><span class="panel-index">稿</span><h3>修订稿</h3></div><span class="status-chip" id="revision-result-status">尚未生成</span></div>
+            <div class="revision-compare-summary" id="revision-compare-summary"><span>原文 0 字</span><span>修订稿 0 字</span><span>待处理 0 项</span></div>
+            <label class="field"><span>修订后的文本</span><textarea id="revision-result-text" rows="18" placeholder="完成问题排查并点击“按要求生成修订稿”后，这里会出现可继续编辑的文本。"></textarea><small class="field-hint">可以继续手动修改；保存时会同时保留原文和这一版人工修订稿。</small></label>
+            <details class="revision-changes" id="revision-changes"><summary>查看本次修改说明</summary><div id="revision-change-list"><p>生成修订稿后，这里会列出替换了哪些语段以及原因。</p></div></details>
+            <div class="revision-actions"><button class="button button-ghost" type="button" data-action="copy-revision">复制修订稿</button><button class="button button-outline" type="button" data-action="export-revision">导出 Markdown</button><button class="button button-primary" type="button" data-action="save-revision">保存改稿记录</button></div>
+            <p class="revision-disclaimer">工具负责问题定位和初筛，事实确认、品牌判断与最终发布仍由人工完成。</p>
+          </article>
+        </div>
+      </div>
+    </section>
   </div>
 
   <div class="history-drawer" id="history-drawer" hidden>
@@ -196,21 +279,22 @@
   </div>
 
   <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
-  <script src="js/config.js?v=3.5.1"></script>
-  <script src="js/api-client.js?v=3.5.1"></script>
-  <script src="shared/engine.js?v=3.5.1"></script>
-  <script src="shared/quality.js?v=3.5.1"></script>
-  <script src="shared/memory-graph.js?v=3.5.1"></script>
-  <script src="shared/culture-dna.js?v=3.5.1"></script>
-  <script src="shared/evidence-gaps.js?v=3.5.1"></script>
-  <script src="shared/content-passport.js?v=3.5.1"></script>
-  <script src="shared/proof-engine.js?v=3.5.1"></script>
-  <script src="shared/claim-analyzer.js?v=3.5.1"></script>
-  <script src="shared/generator.js?v=3.5.1"></script>
-  <script src="js/data.js?v=3.5.1"></script>
-  <script src="js/gateway-client.js?v=3.5.1"></script>
-  <script src="js/renderer.js?v=3.5.1"></script>
-  <script src="js/app.js?v=3.5.1"></script>
+  <script src="js/config.js?v=3.6.0"></script>
+  <script src="js/api-client.js?v=3.6.0"></script>
+  <script src="shared/engine.js?v=3.6.0"></script>
+  <script src="shared/quality.js?v=3.6.0"></script>
+  <script src="shared/memory-graph.js?v=3.6.0"></script>
+  <script src="shared/culture-dna.js?v=3.6.0"></script>
+  <script src="shared/evidence-gaps.js?v=3.6.0"></script>
+  <script src="shared/content-passport.js?v=3.6.0"></script>
+  <script src="shared/proof-engine.js?v=3.6.0"></script>
+  <script src="shared/claim-analyzer.js?v=3.6.0"></script>
+  <script src="shared/draft-reviser.js?v=3.6.0"></script>
+  <script src="shared/generator.js?v=3.6.0"></script>
+  <script src="js/data.js?v=3.6.0"></script>
+  <script src="js/gateway-client.js?v=3.6.0"></script>
+  <script src="js/renderer.js?v=3.6.0"></script>
+  <script src="js/app.js?v=3.6.0"></script>
 </body>
 </html>
 

@@ -27,6 +27,8 @@ try {
   });
   assert.equal(remoteSession.status, 200);
   assert.equal(remoteSession.body.user.email, liveEmail);
+  await page.click('[data-app-mode="generate"]');
+  await page.waitForFunction(() => document.getElementById('generation-layout').hidden === false);
   await page.fill('#brand-type', '山东传统糕点老字号');
   await page.fill('#brand-name', '鲁香斋（模拟品牌）');
   await page.fill('#brand-tone', '真诚、考究、克制');
@@ -116,6 +118,37 @@ try {
   const historyRecords = await page.locator('#history-list .history-item').count();
   assert.ok(historyRecords >= 1, '线上账号应保存生成历史');
   await page.click('button[data-action="close-history"]');
+  await page.click('[data-action="show-mode-hub"]');
+  await page.waitForFunction(() => document.getElementById('mode-hub').hidden === false);
+  await page.click('[data-app-mode="revise"]');
+  await page.waitForFunction(() => document.getElementById('revise-workspace').hidden === false);
+  await page.selectOption('#revision-source-select', { index: 1 });
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.revision && window.__LUYUN_APP__.state.revision.originalText.length > 100);
+  await page.fill('#revision-keep', '保留1918年和五道主要工序');
+  await page.fill('#revision-requirements', '更自然，压缩到260字以内，不要新增资料中没有的事实');
+  await page.click('[data-action="analyze-revision"]');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.revision.analysis && window.__LUYUN_APP__.state.revision.analysis.sentences.length >= 3);
+  const revisionIssues = await page.locator('#revision-issues .revision-issue').count();
+  assert.ok(revisionIssues >= 1);
+  await page.click('[data-action="run-revision"]');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.revision.resultText && window.__LUYUN_APP__.state.revision.resultText.length > 100);
+  await page.click('[data-action="save-revision"]');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.revisionHistory.length >= 1);
+  const revision = await page.evaluate(() => ({
+    source: window.__LUYUN_APP__.state.revision.sourceTitle,
+    issues: document.querySelectorAll('#revision-issues .revision-issue').length,
+    changes: window.__LUYUN_APP__.state.revision.changes.length,
+    saved: window.__LUYUN_APP__.state.revisionHistory.length,
+    originalRetained: window.__LUYUN_APP__.state.revisionHistory[0].originalText.length > 0,
+    resultRetained: window.__LUYUN_APP__.state.revisionHistory[0].resultText.length > 0
+  }));
+  assert.ok(revision.changes >= 1);
+  assert.equal(revision.saved, 1);
+  assert.equal(revision.originalRetained, true);
+  assert.equal(revision.resultRetained, true);
+  await page.click('[data-action="show-mode-hub"]');
+  await page.click('[data-app-mode="generate"]');
+  await page.evaluate(() => window.__LUYUN_APP__.showStep(5));
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(300);
@@ -157,6 +190,11 @@ try {
   result.analyzerStatus = analyzer.status;
   result.analyzerHighRiskCount = analyzer.highRiskCount;
   result.analyzerSentenceRows = analyzer.sentenceRows;
+  result.revisionMode = true;
+  result.revisionSaved = revision.saved;
+  result.revisionOriginalRetained = revision.originalRetained;
+  result.revisionResultRetained = revision.resultRetained;
+  result.revisionIssueRows = revision.issues;
   assert.equal(result.artifacts, 4);
   assert.ok(result.reviews >= 1);
   assert.equal(result.mobileWidth, result.viewport);

@@ -18,6 +18,8 @@ GitHub Pages 静态前端
 
 - `shared/engine.js`：事实提取、风险与文化校验。
 - `shared/generator.js`：品牌故事、内容日历、多平台文案、年轻化表达方案生成。
+- `shared/claim-analyzer.js`：已有广告语、脚本和文稿的逐句风险分析。
+- `shared/draft-reviser.js`：问题语段安全改写、修改要求处理和改稿差异记录。
 
 前端不保存 API Key。远程模型由网关读取 `OPENAI_API_KEY`，优先调用 Responses API；也可配置 `AI_API_URL` 作为 OpenAI 兼容备用接口。配置 `apiBaseUrl` 后，前端通过 HTTP API 使用服务端邮箱账号、云端品牌数据和云端历史。设置 `DATABASE_URL` 后由 PostgreSQLStore 运行；否则使用兼容模式的 JsonStore。生产环境使用 HttpOnly Cookie、CSRF 和限流；Bearer Token 仅用于兼容测试。
 
@@ -43,6 +45,12 @@ GitHub Pages 静态前端
 2. 内容日历：按四周安排历史、工艺、产品、传承人四条内容线。
 3. 多平台文案：适配小红书、抖音、微信公众号并保留统一事实编号。
 4. 年轻化表达方案：给出语态转换、内容人设、开场示例和确认清单。
+
+## 双工作线与改稿引擎
+
+登录后可进入“生成文稿”或“修改文稿”。修改文稿支持两类来源：当前账号历史生成稿，以及 TXT、Markdown、JSON、CSV 文件；配置服务端文档解析器后可扩展 PDF、DOCX、OCR 和音频转写。
+
+改稿流程为：来源载入 → 逐句 Claim 与风险分析 → 问题语段定位/安全改写 → 修改要求处理 → 修订稿人工编辑 → 保存改稿记录。`shared/draft-reviser.js` 只替换或移除无依据、高风险表达，不会补写年份、荣誉、人物、销量和功效。压缩篇幅时会优先保留用户指定的年份、工艺和品牌事实。
 
 ## WebSocket 协议
 

@@ -12,7 +12,14 @@
   function analyze(input) {
     input = input || {}; var text = String(input.text || '').trim(); var facts = input.facts || []; var brand = input.brand || {}; var platform = input.platform || 'xiaohongshu';
     if (!text) throw new Error('请输入需要分析的广告语或脚本。');
-    var risks = engine && engine.detectRisks ? engine.detectRisks({ materials: text, constraints: text, theme: text, goal: '检查广告语', facts: facts }) : [];
+    var detectedRisks = engine && engine.detectRisks ? engine.detectRisks({ materials: text, constraints: text, theme: text, goal: '检查广告语', facts: facts }) : [];
+    var riskKeys = {};
+    var risks = detectedRisks.filter(function (risk) {
+      var key = (risk.type || '') + '|' + (risk.term || '');
+      if (riskKeys[key]) return false;
+      riskKeys[key] = true;
+      return true;
+    });
     var proof = proofEngine ? proofEngine.analyzeText(text, facts, risks, input.cultureDna) : { sentences: [], stats: {}, coverage: 0, status: '无法分析' };
     var qualityResult = quality ? quality.scoreContent(text, { platform: platform }) : { score: 0, issues: [] };
     var cliches = count(text, CLICHES); var high = risks.filter(function (risk) { return risk.level === 'high'; }); var pending = proof.sentences.filter(function (item) { return item.status === '待证明' || item.status === '未绑定'; });

@@ -15,6 +15,7 @@ const EvidenceGaps = require('../shared/evidence-gaps.js');
 const Passport = require('../shared/content-passport.js');
 const ProofEngine = require('../shared/proof-engine.js');
 const ClaimAnalyzer = require('../shared/claim-analyzer.js');
+const DraftReviser = require('../shared/draft-reviser.js');
 const { signPassport, verifyPassport } = require('../server/src/passport-service.js');
 const { lookupOfficial } = require('../server/src/official-registry-service.js');
 const { responsesEndpoint, chatEndpoint, extractResponseText, buildPrompt } = require('../server/src/ai-adapter.js');
@@ -311,6 +312,12 @@ function testInnovationModules() {
   assert.ok(analyzedCopy.highRiskCount >= 2);
   assert.match(analyzedCopy.status, /高风险/);
   assert.ok(analyzedCopy.suggestions.length >= 1);
+  assert.equal(analyzedCopy.highRiskCount, 2, '同一风险词不应因重复来源被重复计数');
+  const revisedCopy = DraftReviser.revise({ text: '鲁香斋是宫廷御用点心。产品吃一块就能降血糖。这款最正宗，千万不要错过。', requirements: '更自然，不要AI味，保留品牌信息', facts, brand: { name: '鲁香斋（模拟品牌）' }, cultureDna: dna, platform: 'xiaohongshu' });
+  assert.notEqual(revisedCopy.text, '鲁香斋是宫廷御用点心。产品吃一块就能降血糖。这款最正宗，千万不要错过。');
+  assert.equal(revisedCopy.revisedAnalysis.highRiskCount, 0);
+  assert.ok(revisedCopy.changes.length >= 3);
+  assert.doesNotMatch(revisedCopy.text, /宫廷御用|降血糖|最正宗/);
   const signedPassport = signPassport(Passport.create({ jobId: 'job-proof', brand: { name: '测试品牌' }, platformName: '小红书', contentTypeName: '品牌故事', modelInfo: { model: 'test', promptVersion: 'v1' }, facts, risks, artifacts: [{ id: 'story', title: '品牌故事', content: '正文 [F001]', status: 'draft' }], cultureDna: dna, proof, documents: [], reviews: [], transportMode: '测试模式' }), { PASSPORT_SIGNING_KEY: 'test-signing-key' });
   assert.equal(verifyPassport(signedPassport, { PASSPORT_SIGNING_KEY: 'test-signing-key' }).valid, true);
   assert.equal(verifyPassport(Object.assign({}, signedPassport, { brandName: '被篡改' }), { PASSPORT_SIGNING_KEY: 'test-signing-key' }).valid, false);
@@ -321,7 +328,7 @@ function testInnovationModules() {
   assert.match(passport.id, /^LYXS-/);
   assert.equal(passport.factCount >= 1, true);
   assert.match(Passport.toMarkdown(passport), /内容护照/);
-  return { graphNodes: graph.stats.nodes, protectedTerms: dna.protectedTerms.length, evidenceGaps: gaps.length, proofBlocked: proof.stats.blocked, claimAnalyzer: true, signedPassport: true, sentenceProof: sentenceProof.stats, passport: passport.id };
+  return { graphNodes: graph.stats.nodes, protectedTerms: dna.protectedTerms.length, evidenceGaps: gaps.length, proofBlocked: proof.stats.blocked, claimAnalyzer: true, draftReviser: true, signedPassport: true, sentenceProof: sentenceProof.stats, passport: passport.id };
 }
 
 async function testOfficialRegistryConnector() {

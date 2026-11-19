@@ -71,6 +71,8 @@ async function loginAccount(page, email, password) {
   await page.fill('#login-password', password);
   await page.click('#auth-submit');
   await page.waitForFunction(() => document.getElementById('app-shell').hidden === false);
+  await page.click('[data-app-mode="generate"]');
+  await page.waitForFunction(() => document.getElementById('generation-layout').hidden === false);
 }
 
 async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
@@ -83,6 +85,10 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   assert.ok(authRecord && authRecord.email === 'test-user@example.com');
   assert.ok(authRecord.passwordHash && authRecord.salt);
   assert.equal(Object.prototype.hasOwnProperty.call(authRecord, 'password'), false);
+  assert.equal(await page.locator('#mode-hub').isVisible(), true);
+  assert.equal(await page.locator('#generation-layout').isVisible(), false);
+  await page.click('[data-app-mode="generate"]');
+  await page.waitForFunction(() => document.getElementById('generation-layout').hidden === false);
   assert.equal(await page.locator('.app-step.is-active').getAttribute('data-step'), '1');
   assert.equal(await page.locator('.step-nav [data-page="2"]').isDisabled(), true);
   await page.fill('#brand-type', '山东传统糕点老字号');
@@ -141,6 +147,48 @@ async function runConnectedFlow(page, baseUrl, gatewayPort, consoleErrors) {
   assert.ok(analyzedCopy.riskCards >= 2);
   assert.match(analyzedCopy.safeRewrite, /待核实|已阻止/);
   await page.click('button[data-action="close-analyzer"]');
+  await page.click('[data-action="show-mode-hub"]');
+  await page.waitForFunction(() => document.getElementById('mode-hub').hidden === false);
+  const modeHub = await page.evaluate(() => ({ drafts: document.getElementById('mode-draft-count').textContent, revisions: document.getElementById('mode-revision-count').textContent }));
+  assert.match(modeHub.drafts, /4 份/);
+  await page.click('[data-app-mode="revise"]');
+  await page.waitForFunction(() => document.getElementById('revise-workspace').hidden === false);
+  await page.setInputFiles('#revision-file-import', { name: 'legacy-copy.md', mimeType: 'text/markdown', buffer: Buffer.from('鲁香斋是宫廷御用点心。产品可以降血糖。这款最正宗。', 'utf8') });
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.revision && window.__LUYUN_APP__.state.revision.sourceType === 'file' && window.__LUYUN_APP__.state.revision.originalText.includes('宫廷御用'));
+  assert.match(await page.locator('#revision-file-status').textContent(), /legacy-copy\.md/);
+  await page.click('[data-action="analyze-revision"]');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.revision.analysis && window.__LUYUN_APP__.state.revision.analysis.highRiskCount >= 3);
+  assert.ok(await page.locator('#revision-issues .revision-issue').count() >= 3);
+  await page.locator('[data-revision-action="fix"]').first().click();
+  await page.waitForFunction(() => !document.getElementById('revision-original-text').value.includes('宫廷御用'));
+  await page.selectOption('#revision-source-select', { index: 1 });
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.revision && window.__LUYUN_APP__.state.revision.sourceType === 'current' && window.__LUYUN_APP__.state.revision.originalText.length > 100);
+  await page.fill('#revision-keep', '保留1918年和五道主要工序');
+  await page.fill('#revision-requirements', '更自然，压缩到260字以内，少一点AI味，不要新增资料中没有的事实');
+  await page.click('[data-action="analyze-revision"]');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.revision.analysis && window.__LUYUN_APP__.state.revision.analysis.sentences.length >= 3);
+  const revisionAnalysis = await page.evaluate(() => ({ issues: document.querySelectorAll('#revision-issues .revision-issue').length, risks: document.querySelectorAll('#revision-issues .revision-risk').length, status: document.getElementById('revision-state').textContent }));
+  assert.ok(revisionAnalysis.issues >= 1);
+  assert.match(revisionAnalysis.status, /高风险|建议|阻止|证明|待/);
+  await page.click('[data-action="run-revision"]');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.revision.resultText && window.__LUYUN_APP__.state.revision.resultText.length > 100);
+  assert.ok(await page.locator('#revision-result-text').inputValue().then((value) => value.length > 100));
+  await page.click('[data-action="save-revision"]');
+  await page.waitForFunction(() => window.__LUYUN_APP__.state.revisionHistory.length >= 1);
+  const revisionSaved = await page.evaluate(() => ({
+    records: window.__LUYUN_APP__.state.revisionHistory.length,
+    originalRetained: window.__LUYUN_APP__.state.revisionHistory[0].originalText.length > 0,
+    resultRetained: window.__LUYUN_APP__.state.revisionHistory[0].resultText.length > 0,
+    changes: window.__LUYUN_APP__.state.revisionHistory[0].changes.length
+  }));
+  assert.equal(revisionSaved.originalRetained, true);
+  assert.equal(revisionSaved.resultRetained, true);
+  assert.ok(revisionSaved.changes >= 1);
+  await page.click('[data-action="show-mode-hub"]');
+  await page.waitForFunction(() => document.getElementById('mode-hub').hidden === false);
+  assert.match(await page.locator('#mode-revision-count').textContent(), /1 条/);
+  await page.click('[data-app-mode="generate"]');
+  await page.evaluate(() => window.__LUYUN_APP__.showStep(5));
   await page.click('[data-artifact="story"] [data-review="accept"]');
   await page.waitForFunction(() => window.__LUYUN_APP__.state.reviews.length >= 1, null, { timeout: 10000 });
   const first = await page.evaluate(() => ({
@@ -239,8 +287,17 @@ assert.ok(persisted.history.length >= 1);
   const mobile = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, innerWidth: window.innerWidth }));
   assert.ok(mobile.scrollWidth <= mobile.innerWidth, '390px 视图不应产生横向滚动：' + JSON.stringify(offenders));
   await page.screenshot({ path: path.join(artifactsDir, 'mobile-full.png'), fullPage: true });
+  await page.click('[data-action="show-mode-hub"]');
+  await page.waitForFunction(() => document.getElementById('mode-hub').hidden === false);
+  const hubMobile = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, innerWidth: window.innerWidth }));
+  assert.ok(hubMobile.scrollWidth <= hubMobile.innerWidth, '390px 工作台入口不应产生横向滚动');
+  await page.click('[data-app-mode="revise"]');
+  await page.waitForFunction(() => document.getElementById('revise-workspace').hidden === false);
+  const reviseMobile = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, innerWidth: window.innerWidth }));
+  assert.ok(reviseMobile.scrollWidth <= reviseMobile.innerWidth, '390px 改稿台不应产生横向滚动');
+  await page.screenshot({ path: path.join(artifactsDir, 'revision-mobile.png'), fullPage: true });
   assert.equal(consoleErrors.length, 0, consoleErrors.join('\n'));
-  return { first: Object.assign({}, first, { innovation }), complex, boundary, editReview: { retainedOriginal: true, action: editReview.review.action }, mobile };
+  return { first: Object.assign({}, first, { innovation }), complex, boundary, editReview: { retainedOriginal: true, action: editReview.review.action }, revision: Object.assign({ modeHub, revisionAnalysis, revisionSaved }, { saved: true }), mobile: { results: mobile, hub: hubMobile, revise: reviseMobile } };
 }
 
 async function runFallbackFlow(context, baseUrl, consoleErrors) {
@@ -421,7 +478,7 @@ try {
   await page.close();
   const fallback = await runFallbackFlow(context, baseUrl, []);
   const remoteApi = await runRemoteApiFlow(context, baseUrl, gatewayPort, consoleErrors);
-  console.log(JSON.stringify({ ok: true, baseUrl, connected, historyIsolation, fallback, remoteApi, screenshots: ['login-page.png', 'desktop-full.png', 'mobile-full.png', 'fallback-mobile.png'] }, null, 2));
+  console.log(JSON.stringify({ ok: true, baseUrl, connected, historyIsolation, fallback, remoteApi, screenshots: ['login-page.png', 'desktop-full.png', 'mobile-full.png', 'revision-mobile.png', 'fallback-mobile.png'] }, null, 2));
 } finally {
   await browser.close();
   gatewayBundle.gateway.close();

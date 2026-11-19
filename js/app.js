@@ -10,6 +10,7 @@
   var Passport = window.LuyunPassport;
   var ProofEngine = window.LuyunProofEngine;
   var ClaimAnalyzer = window.LuyunClaimAnalyzer;
+  var DraftReviser = window.LuyunDraftReviser;
   var Config = window.LUYUN_CONFIG;
   var $ = function (id) { return document.getElementById(id); };
   var $$ = function (selector) { return Array.prototype.slice.call(document.querySelectorAll(selector)); };
@@ -41,6 +42,9 @@
     user: '',
     currentStep: 1,
     unlockedStep: 1,
+    appMode: 'hub',
+    revision: null,
+    revisionHistory: [],
     initialized: false
   };
 
@@ -69,6 +73,8 @@
     state.publishRecords = Array.isArray(saved.publishRecords) ? saved.publishRecords : [];
     state.history = Array.isArray(saved.history) ? saved.history : [];
     state.documents = Array.isArray(saved.documents) ? saved.documents : [];
+    state.revision = saved.revision || null;
+    state.revisionHistory = Array.isArray(saved.revisionHistory) ? saved.revisionHistory : [];
     state.metrics = saved.metrics || { facts: 0, jobs: state.tasks.length, reviews: state.reviews.length };
   }
 
@@ -102,6 +108,8 @@
         publishRecords: state.publishRecords.slice(0, 100),
         history: state.history.slice(0, HISTORY_LIMIT),
         documents: state.documents.slice(0, 100),
+        revision: state.revision,
+        revisionHistory: state.revisionHistory.slice(0, HISTORY_LIMIT),
         metrics: state.metrics
       }));
     } catch (error) {}
@@ -121,6 +129,9 @@
     state.publishRecords = [];
     state.history = [];
     state.documents = [];
+    state.revision = null;
+    state.revisionHistory = [];
+    state.appMode = 'hub';
     state.conflicts = [];
     state.historyQuery = '';
     state.historyStatus = '';
@@ -173,7 +184,27 @@
     }).join('');
   }
 
+  function setAppModePanels(mode) {
+    var target = mode === 'generate' || mode === 'revise' ? mode : 'hub';
+    state.appMode = target;
+    document.body.setAttribute('data-app-mode', target);
+    if ($('mode-hub')) $('mode-hub').hidden = target !== 'hub';
+    if ($('generation-layout')) $('generation-layout').hidden = target !== 'generate';
+    if ($('revise-workspace')) $('revise-workspace').hidden = target !== 'revise';
+  }
+
+  function showAppMode(mode) {
+    if (!state.user) return;
+    setAppModePanels(mode);
+    if (state.appMode === 'revise') syncRevisionForm();
+    if (state.appMode === 'generate') renderBrandOptions();
+    renderAll();
+    window.scrollTo(0, 0);
+    if ($('app-main')) $('app-main').scrollTop = 0;
+  }
+
   function showStep(step) {
+    if (state.user) setAppModePanels('generate');
     step = Number(step || 1);
     if (!state.user && step !== 1) step = 1;
     if (state.user && step > state.unlockedStep) { toast('请先完成当前步骤，再进入后一页。', 'warning'); step = state.currentStep || 1; }
@@ -200,9 +231,9 @@
     state.currentStep = 1;
     state.unlockedStep = 1;
     document.body.setAttribute('data-authenticated', 'false');
+    setAppModePanels('hub');
     $('login-screen').hidden = false;
     $('app-shell').hidden = true;
-    showStep(1);
     window.scrollTo(0, 0);
   }
   function mergeById(localRecords, remoteRecords) {
@@ -251,7 +282,9 @@
     $('brand-select').value = 'new';
     clearBrandFields();
     renderAll();
-    showStep(1);
+    state.currentStep = 1;
+    state.unlockedStep = 1;
+    showAppMode('hub');
     if (state.remoteAuth) syncRemoteState();
   }
 
@@ -265,6 +298,7 @@
     state.currentStep = 1;
     state.unlockedStep = 1;
     document.body.setAttribute('data-authenticated', 'false');
+    setAppModePanels('hub');
     $('app-shell').hidden = true;
     $('login-screen').hidden = false;
     $('login-password').value = '';
@@ -520,6 +554,7 @@
   }
 
   function renderAll() {
+    state.revisionSources = collectRevisionSources();
     Renderer.renderFacts(state);
     Renderer.renderRisks(state);
     Renderer.renderArtifacts(state);
@@ -535,6 +570,9 @@
     Renderer.renderPassport(state);
     Renderer.renderHistory(state);
     Renderer.renderMetrics(state);
+    Renderer.renderModeHub(state);
+    Renderer.renderRevision(state);
+    renderRevisionDraftOptions();
   }
 
   function refreshInnovationData() {
@@ -658,6 +696,280 @@
       Renderer.renderClaimAnalysis(state.analysisResult);
       toast(state.analysisResult.status);
     } catch (error) { toast(error.message || '文案体检失败。', 'error'); }
+  }
+
+  function collectRevisionSources() {
+    var sources = [];
+    var seen = {};
+    function add(record, artifact, sourceType, recordId) {
+      if (!artifact) return;
+      var text = String(artifact.content || artifact.body || '').trim();
+      if (!text) return;
+      var key = sourceType === 'current' ? 'current:' + artifact.id : recordId + ':' + artifact.id;
+      if (seen[key]) return;
+      seen[key] = true;
+      sources.push({
+        key: key,
+        sourceType: sourceType,
+        sourceTitle: artifact.title || '未命名文稿',
+        brandName: record && record.brand && record.brand.name || state.brand && state.brand.name || '未绑定品牌',
+        text: text,
+        platform: record && record.platform || 'xiaohongshu',
+        platformName: record && record.platformName || '通用文案',
+        createdAt: record && (record.updatedAt || record.createdAt) || now(),
+        recordId: recordId || '',
+        jobId: record && (record.jobId || record.id) || state.currentJobId || '',
+        facts: cloneData(record && record.facts || state.facts || []),
+        brand: cloneData(record && record.brand || state.brand || null),
+        cultureDna: cloneData(record && record.cultureDna || state.cultureDna || null)
+      });
+    }
+    if (state.artifacts && state.artifacts.length) {
+      state.artifacts.forEach(function (artifact) { add({ brand: state.brand, facts: state.facts, platform: state.lastPayload && state.lastPayload.platform, platformName: state.lastPayload && state.lastPayload.platformName, jobId: state.currentJobId, cultureDna: state.cultureDna }, artifact, 'current', state.currentJobId || 'current'); });
+    }
+    (state.history || []).forEach(function (record) {
+      if (state.artifacts.length && record.jobId && record.jobId === state.currentJobId) return;
+      (record.artifacts || []).forEach(function (artifact) { add(record, artifact, 'history', record.id || record.jobId); });
+    });
+    return sources;
+  }
+
+  function revisionPlatformName(value) {
+    return { xiaohongshu: '小红书', douyin: '抖音', wechat: '微信公众号', matrix: '多平台矩阵', offline: '线下物料 / 通用文案' }[value] || value;
+  }
+
+  function renderRevisionDraftOptions() {
+    var select = $('revision-source-select');
+    if (!select) return;
+    var sources = state.revisionSources || collectRevisionSources();
+    var selectedKey = state.revision && state.revision.sourceKey || select.value || '';
+    var options = ['<option value="">请选择一份生成稿</option>'];
+    sources.forEach(function (source) {
+      options.push('<option value="' + Renderer.escapeHtml(source.key) + '">' + Renderer.escapeHtml(source.brandName + '｜' + source.sourceTitle + '｜' + source.platformName) + '</option>');
+    });
+    select.innerHTML = options.join('');
+    select.value = selectedKey;
+    if (!sources.length) select.options[0].textContent = '当前账号暂无生成稿，请先完成生成线';
+  }
+
+  function getRevisionContext() {
+    var sources = state.revisionSources || collectRevisionSources();
+    var source = state.revision && sources.filter(function (item) { return item.key === state.revision.sourceKey; })[0];
+    return {
+      source: source || null,
+      brand: source && source.brand || state.brand || { name: '未绑定品牌' },
+      facts: source && source.facts || state.facts || [],
+      cultureDna: source && source.cultureDna || state.cultureDna || null,
+      platform: $('revision-platform') ? $('revision-platform').value : (source && source.platform || 'xiaohongshu')
+    };
+  }
+
+  function syncRevisionForm() {
+    renderRevisionDraftOptions();
+    var revision = state.revision;
+    if (!revision) return;
+    if ($('revision-original-text')) $('revision-original-text').value = revision.originalText || '';
+    if ($('revision-requirements')) $('revision-requirements').value = revision.requirements || '';
+    if ($('revision-keep')) $('revision-keep').value = revision.keep || '';
+    if ($('revision-platform')) $('revision-platform').value = revision.platform || 'xiaohongshu';
+    if ($('revision-result-text')) $('revision-result-text').value = revision.resultText || '';
+  }
+
+  function loadRevisionSource() {
+    var key = $('revision-source-select') ? $('revision-source-select').value : '';
+    var source = (state.revisionSources || collectRevisionSources()).filter(function (item) { return item.key === key; })[0];
+    if (!source) { toast('请先选择一份生成稿。', 'warning'); return; }
+    state.revision = {
+      sourceKey: source.key,
+      sourceType: source.sourceType,
+      sourceTitle: source.sourceTitle,
+      brandName: source.brandName,
+      platform: source.platform || 'xiaohongshu',
+      originalText: source.text,
+      requirements: state.revision && state.revision.requirements || '',
+      keep: state.revision && state.revision.keep || '',
+      resultText: '',
+      analysis: null,
+      revisedAnalysis: null,
+      changes: [],
+      updatedAt: now()
+    };
+    syncRevisionForm();
+    persistState();
+    renderAll();
+    toast('已载入：' + source.sourceTitle + '。');
+  }
+
+  function analyzeRevisionDraft() {
+    var text = $('revision-original-text') ? $('revision-original-text').value.trim() : '';
+    if (!text) { toast('请先粘贴文稿或载入一份生成稿。', 'warning'); return null; }
+    var context = getRevisionContext();
+    try {
+      state.revision = state.revision || {};
+      state.revision.originalText = text;
+      state.revision.requirements = $('revision-requirements') ? $('revision-requirements').value.trim() : '';
+      state.revision.keep = $('revision-keep') ? $('revision-keep').value.trim() : '';
+      state.revision.platform = $('revision-platform') ? $('revision-platform').value : 'xiaohongshu';
+      state.revision.sourceTitle = state.revision.sourceTitle || '手动粘贴文稿';
+      state.revision.brandName = state.revision.brandName || context.brand.name || '未绑定品牌';
+      state.revision.analysis = DraftReviser.analyze({ text: text, facts: context.facts, brand: context.brand, cultureDna: context.cultureDna, platform: state.revision.platform });
+      state.revision.updatedAt = now();
+      persistState();
+      renderAll();
+      toast('已定位 ' + state.revision.analysis.sentences.filter(function (item) { return item.status !== '已证明' && item.status !== '创作表达'; }).length + ' 个需要确认的语段。');
+      return state.revision.analysis;
+    } catch (error) {
+      toast(error.message || '文稿检查失败。', 'error');
+      return null;
+    }
+  }
+
+  function runRevisionDraft() {
+    var analysis = analyzeRevisionDraft();
+    if (!analysis) return;
+    var context = getRevisionContext();
+    try {
+      var result = DraftReviser.revise({
+        text: state.revision.originalText,
+        requirements: state.revision.requirements,
+        keep: state.revision.keep,
+        analysis: analysis,
+        facts: context.facts,
+        brand: context.brand,
+        cultureDna: context.cultureDna,
+        platform: state.revision.platform
+      });
+      state.revision.resultText = result.text;
+      state.revision.revisedAnalysis = result.revisedAnalysis;
+      state.revision.changes = result.changes;
+      state.revision.requirementNotes = result.requirementNotes;
+      state.revision.quality = result.quality;
+      state.revision.updatedAt = now();
+      persistState();
+      renderAll();
+      var remaining = result.revisedAnalysis.highRiskCount || 0;
+      toast(remaining ? '修订稿已生成，仍有 ' + remaining + ' 个高风险表达需要人工确认。' : '修订稿已生成，未检出高风险表达，请人工复核事实与品牌语气。', remaining ? 'warning' : 'info');
+    } catch (error) {
+      toast(error.message || '生成修订稿失败。', 'error');
+    }
+  }
+
+  function locateRevisionSentence(index) {
+    var item = state.revision && state.revision.analysis && state.revision.analysis.sentences[Number(index)];
+    var field = $('revision-original-text');
+    if (!item || !field) return;
+    var start = field.value.indexOf(item.sentence);
+    if (start < 0) return;
+    field.focus();
+    field.setSelectionRange(start, start + item.sentence.length);
+    field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function fixRevisionSentence(index) {
+    var item = state.revision && state.revision.analysis && state.revision.analysis.sentences[Number(index)];
+    var field = $('revision-original-text');
+    if (!item || !field) return;
+    var fixed = DraftReviser.sanitizeSentence(item.sentence, item.status === '已阻止' ? item.risk : '');
+    if (!fixed.changed) { toast('这句话没有可自动替换的风险表达，需要人工修改。', 'warning'); return; }
+    field.value = field.value.replace(item.sentence, fixed.text);
+    analyzeRevisionDraft();
+    toast('已采用安全改写，请继续核对上下文。');
+  }
+
+  function copyRevisionResult() {
+    var text = $('revision-result-text') ? $('revision-result-text').value.trim() : state.revision && state.revision.resultText || '';
+    if (!text) { toast('请先生成或填写修订稿。', 'warning'); return; }
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(function () { toast('修订稿已复制。'); });
+  }
+
+  function exportRevision() {
+    var text = $('revision-result-text') ? $('revision-result-text').value.trim() : state.revision && state.revision.resultText || '';
+    if (!text) { toast('请先生成或填写修订稿。', 'warning'); return; }
+    var revision = state.revision || {};
+    var lines = ['# 改稿记录：' + (revision.sourceTitle || '手动文稿'), '', '- 品牌：' + (revision.brandName || '未绑定品牌'), '- 平台：' + revisionPlatformName(revision.platform), '- 修改时间：' + now(), '- 修改要求：' + (revision.requirements || '未填写'), '', '## 原文', '', revision.originalText || '', '', '## 修订稿', '', text, '', '## 修改说明', ''];
+    (revision.changes || []).forEach(function (change) { lines.push('- ' + change.type + '：' + change.reason); });
+    lines.push('', '> 仅用于产品原型演示。事实确认与最终发布由品牌方人工完成。');
+    var blob = new Blob([lines.join('\n')], { type: 'text/markdown;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = '改稿记录-' + String(revision.sourceTitle || '文稿').replace(/[\\/:*?"<>|]/g, '') + '.md';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function saveRevisionRecord() {
+    var text = $('revision-result-text') ? $('revision-result-text').value.trim() : state.revision && state.revision.resultText || '';
+    if (!text) { toast('请先生成或填写修订稿。', 'warning'); return; }
+    state.revision = state.revision || {};
+    state.revision.resultText = text;
+    state.revision.requirements = $('revision-requirements') ? $('revision-requirements').value.trim() : state.revision.requirements || '';
+    state.revision.keep = $('revision-keep') ? $('revision-keep').value.trim() : state.revision.keep || '';
+    state.revision.updatedAt = now();
+    var record = {
+      id: uid('revision'),
+      sourceKey: state.revision.sourceKey || '',
+      sourceTitle: state.revision.sourceTitle || '手动粘贴文稿',
+      brandName: state.revision.brandName || '未绑定品牌',
+      platform: state.revision.platform || 'xiaohongshu',
+      platformName: revisionPlatformName(state.revision.platform),
+      originalText: state.revision.originalText || '',
+      requirements: state.revision.requirements,
+      keep: state.revision.keep,
+      resultText: text,
+      changes: cloneData(state.revision.changes || []),
+      analysisSummary: state.revision.analysis ? { status: state.revision.analysis.status, highRiskCount: state.revision.analysis.highRiskCount, evidenceCoverage: state.revision.analysis.evidenceCoverage } : null,
+      revisedSummary: state.revision.revisedAnalysis ? { status: state.revision.revisedAnalysis.status, highRiskCount: state.revision.revisedAnalysis.highRiskCount, evidenceCoverage: state.revision.revisedAnalysis.evidenceCoverage } : null,
+      model: 'local-draft-reviser/1.0',
+      promptVersion: DraftReviser.PROMPT_VERSION || 'draft-revision-safe-v1.0',
+      status: '待品牌确认',
+      createdAt: now(),
+      updatedAt: now()
+    };
+    state.revisionHistory.unshift(record);
+    state.revisionHistory = state.revisionHistory.slice(0, HISTORY_LIMIT);
+    var sourceRecord = state.history.filter(function (item) { return item.id === state.revision.sourceKey.split(':')[0] || item.jobId === state.revision.sourceKey.split(':')[0]; })[0];
+    if (sourceRecord) {
+      sourceRecord.revisions = (sourceRecord.revisions || []).concat([record]).slice(-20);
+      sourceRecord.updatedAt = now();
+      if (Api.enabled() && state.remoteAuth) Api.saveHistory(sourceRecord).catch(function () {});
+    }
+    state.revision.savedId = record.id;
+    persistState();
+    renderAll();
+    toast('改稿记录已保存，AI 原稿与人工修订稿均已保留。');
+  }
+
+  function loadRevisionRecord(recordId) {
+    var record = state.revisionHistory.filter(function (item) { return item.id === recordId; })[0];
+    if (!record) return;
+    state.revision = {
+      sourceKey: record.sourceKey,
+      sourceTitle: record.sourceTitle,
+      brandName: record.brandName,
+      platform: record.platform,
+      originalText: record.originalText,
+      requirements: record.requirements,
+      keep: record.keep,
+      resultText: record.resultText,
+      changes: cloneData(record.changes || []),
+      analysis: null,
+      revisedAnalysis: record.revisedSummary ? { status: record.revisedSummary.status, highRiskCount: record.revisedSummary.highRiskCount, evidenceCoverage: record.revisedSummary.evidenceCoverage, sentences: [] } : null,
+      savedId: record.id
+    };
+    syncRevisionForm();
+    renderAll();
+    toast('已载入改稿记录。');
+  }
+
+  function deleteRevisionRecord(recordId) {
+    if (!window.confirm('确定删除这条改稿记录吗？')) return;
+    state.revisionHistory = state.revisionHistory.filter(function (item) { return item.id !== recordId; });
+    persistState();
+    renderAll();
+    toast('改稿记录已删除。');
   }
 
   function viewHistoryRecord(recordId) {
@@ -1188,30 +1500,38 @@
     return Array.prototype.map.call(new Uint8Array(buffer), function (byte) { return byte.toString(16).padStart(2, '0'); }).join('');
   }
 
+  async function extractFilePayload(file) {
+    var binary = /\.(pdf|docx|png|jpe?g|webp|mp3|m4a|wav|mp4)$/i.test(file.name);
+    var text = '';
+    var hash = '';
+    var extractor = 'direct-text';
+    if (binary) {
+      if (!Api.enabled() || !state.remoteAuth) throw new Error('PDF、DOCX、OCR 和音频转写需要配置服务端解析器。');
+      var extracted = await Api.extractDocument(file);
+      text = extracted.text || '';
+      hash = extracted.hash || '';
+      extractor = extracted.extractor || 'external';
+      if (!text.trim()) throw new Error('解析服务没有返回可用文本。');
+    } else {
+      text = await file.text();
+      if (/\.json$/i.test(file.name)) {
+        try {
+          var parsed = JSON.parse(text);
+          if (Array.isArray(parsed)) text = parsed.map(function (item) { return typeof item === 'string' ? item : JSON.stringify(item); }).join('\n');
+        } catch (error) { toast('JSON 格式不完整，已按纯文本导入。', 'warning'); }
+      }
+      if (/\.csv$/i.test(file.name)) text = text.split(/\r?\n/).map(function (line) { return line.split(',').join('，'); }).join('\n');
+      if (window.crypto && window.crypto.subtle && file.arrayBuffer) hash = bufferToHex(await window.crypto.subtle.digest('SHA-256', await file.arrayBuffer()));
+    }
+    return { text: text.trim(), hash: hash, extractor: extractor };
+  }
+
   async function handleFile(file) {
     try {
-      var binary = /\.(pdf|docx|png|jpe?g|webp|mp3|m4a|wav|mp4)$/i.test(file.name);
-      var text = '';
-      var hash = '';
-      var extractor = 'direct-text';
-      if (binary) {
-        if (!Api.enabled() || !state.remoteAuth) throw new Error('PDF、DOCX、OCR 和音频转写需要配置服务端解析器。');
-        var extracted = await Api.extractDocument(file);
-        text = extracted.text || '';
-        hash = extracted.hash || '';
-        extractor = extracted.extractor || 'external';
-        if (!text.trim()) throw new Error('解析服务没有返回可用文本。');
-      } else {
-        text = await file.text();
-        if (/\.json$/i.test(file.name)) {
-          try {
-            var parsed = JSON.parse(text);
-            if (Array.isArray(parsed)) text = parsed.map(function (item) { return typeof item === 'string' ? item : JSON.stringify(item); }).join('\n');
-          } catch (error) { toast('JSON 格式不完整，已按纯文本导入。', 'warning'); }
-        }
-        if (/\.csv$/i.test(file.name)) text = text.split(/\r?\n/).map(function (line) { return line.split(',').join('，'); }).join('\n');
-        if (window.crypto && window.crypto.subtle && file.arrayBuffer) hash = bufferToHex(await window.crypto.subtle.digest('SHA-256', await file.arrayBuffer()));
-      }
+      var extracted = await extractFilePayload(file);
+      var text = extracted.text;
+      var hash = extracted.hash;
+      var extractor = extracted.extractor;
       var sourceType = $('source-type') ? $('source-type').value : 'user';
       var documentRecord = { id: uid('doc'), name: file.name, size: file.size, type: file.type || 'application/octet-stream', hash: hash, extractor: extractor, authority: sourceType, status: hash ? '已记录指纹' : '无指纹', importedAt: now() };
       state.documents.unshift(documentRecord);
@@ -1222,6 +1542,33 @@
       persistState();
       renderAll();
       toast('资料已导入，并记录来源指纹。');
+    } catch (error) {
+      toast(error.message || '文件读取失败，请确认编码为 UTF-8。', 'error');
+    }
+  }
+
+  async function importRevisionFile(file) {
+    if (!file) return;
+    try {
+      var extracted = await extractFilePayload(file);
+      if (!extracted.text) throw new Error('文件中没有可读取的文本。');
+      state.revision = state.revision || {};
+      state.revision.sourceKey = '';
+      state.revision.sourceType = 'file';
+      state.revision.sourceTitle = file.name;
+      state.revision.brandName = state.brand && state.brand.name || '未绑定品牌';
+      state.revision.platform = $('revision-platform') ? $('revision-platform').value : 'xiaohongshu';
+      state.revision.originalText = extracted.text;
+      state.revision.resultText = '';
+      state.revision.analysis = null;
+      state.revision.revisedAnalysis = null;
+      state.revision.changes = [];
+      state.revision.updatedAt = now();
+      if ($('revision-original-text')) $('revision-original-text').value = extracted.text;
+      if ($('revision-file-status')) $('revision-file-status').textContent = '已导入 ' + file.name + '｜' + Math.ceil(file.size / 1024) + ' KB｜SHA-256 ' + (extracted.hash ? extracted.hash.slice(0, 12) + '…' : '未计算');
+      persistState();
+      renderAll();
+      toast('文件已导入改稿台。');
     } catch (error) {
       toast(error.message || '文件读取失败，请确认编码为 UTF-8。', 'error');
     }
@@ -1294,6 +1641,10 @@
       renderAll();
     });
     $('file-import').addEventListener('change', function () { if (this.files[0]) handleFile(this.files[0]); });
+    if ($('revision-file-import')) $('revision-file-import').addEventListener('change', function () { if (this.files[0]) importRevisionFile(this.files[0]); this.value = ''; });
+    if ($('revision-source-select')) $('revision-source-select').addEventListener('change', function () { if (this.value) loadRevisionSource(); });
+    if ($('revision-original-text')) $('revision-original-text').addEventListener('input', function () { state.revision = state.revision || {}; state.revision.originalText = this.value; });
+    if ($('revision-result-text')) $('revision-result-text').addEventListener('input', function () { state.revision = state.revision || {}; state.revision.resultText = this.value; });
     $('facts-list').addEventListener('click', function (event) {
       var button = event.target.closest('[data-fact-action]');
       if (!button) return;
@@ -1328,6 +1679,17 @@
       if (pageButton) { showStep(Number(pageButton.getAttribute('data-page'))); return; }
       var nextButton = event.target.closest('[data-next]');
       if (nextButton) { handleNext(nextButton); return; }
+      var modeButton = event.target.closest('button[data-app-mode]');
+      if (modeButton) { showAppMode(modeButton.getAttribute('data-app-mode')); return; }
+      var revisionAction = event.target.closest('[data-revision-action]');
+      if (revisionAction) {
+        var revisionActionName = revisionAction.getAttribute('data-revision-action');
+        if (revisionActionName === 'locate') locateRevisionSentence(revisionAction.getAttribute('data-index'));
+        if (revisionActionName === 'fix') fixRevisionSentence(revisionAction.getAttribute('data-index'));
+        if (revisionActionName === 'load-record') loadRevisionRecord(revisionAction.getAttribute('data-record-id'));
+        if (revisionActionName === 'delete-record') deleteRevisionRecord(revisionAction.getAttribute('data-record-id'));
+        return;
+      }
       var historyAction = event.target.closest('[data-history-action]');
       if (historyAction) {
         var historyActionName = historyAction.getAttribute('data-history-action');
@@ -1340,6 +1702,14 @@
       var action = event.target.closest('[data-action]');
       if (!action) return;
       var name = action.getAttribute('data-action');
+      if (name === 'show-mode-hub') showAppMode('hub');
+      if (name === 'load-revision-source') loadRevisionSource();
+      if (name === 'trigger-revision-import' && $('revision-file-import')) $('revision-file-import').click();
+      if (name === 'analyze-revision') analyzeRevisionDraft();
+      if (name === 'run-revision') runRevisionDraft();
+      if (name === 'copy-revision') copyRevisionResult();
+      if (name === 'export-revision') exportRevision();
+      if (name === 'save-revision') saveRevisionRecord();
       if (name === 'logout') logout();
       if (name === 'new-brand') startNewBrand(true);
       if (name === 'change-password') changePassword();
@@ -1438,6 +1808,10 @@
       closeAnalyzer: closeAnalyzer,
       runClaimAnalysis: runClaimAnalysis,
       rollbackHistoryVersion: rollbackHistoryVersion,
+      showAppMode: showAppMode,
+      analyzeRevisionDraft: analyzeRevisionDraft,
+      runRevisionDraft: runRevisionDraft,
+      saveRevisionRecord: saveRevisionRecord,
       login: showApp
     };
   }
