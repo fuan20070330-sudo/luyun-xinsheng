@@ -11,3 +11,4 @@ data/
 .npm-cache/
 .render-token
 .chrome-render-profile/
+.video-tools/
