@@ -324,7 +324,7 @@ def build():
     add_title(doc, data.get("title", "老字号叙事工坊完整运行案例记录"))
     add_body(doc, f"版本：{data.get('version', '')}｜生成时间：{data.get('generatedAt', '')}")
     add_body(doc, data.get("environment", ""))
-    add_body(doc, "以下三个案例使用虚构品牌“鲁香斋（模拟品牌）”和原型演示数据，分别覆盖典型场景、复杂输入和边界输入。每个案例均记录输入、运行过程、最终输出、人工修改记录和验证结果。")
+    add_body(doc, "以下三个案例分别使用“鲁香斋（模拟品牌）”“泉城茶食铺（模拟品牌）”和“沂蒙山果坊（模拟品牌）”三个虚构品牌及原型演示数据，覆盖典型场景、复杂输入和边界输入。每个案例均记录输入、运行过程、最终输出、人工修改记录和验证结果。")
     for index, case in enumerate(data.get("cases", [])):
         add_case(doc, case, index)
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
